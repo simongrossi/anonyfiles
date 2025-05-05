@@ -1,11 +1,20 @@
 import os
+import argparse # Importer le module argparse
+
 from anonymizer.spacy_engine import SpaCyEngine
 from anonymizer.word_processor import extract_text_from_docx, replace_entities_in_docx
-from anonymizer.excel_processor import extract_text_from_excel, replace_entities_in_excel # Importer les fonctions Excel
+from anonymizer.excel_processor import extract_text_from_excel, replace_entities_in_excel
 from anonymizer.replacer import generate_replacements
 
-# Définir les chemins d'entrée et de sortie (pour l'instant en dur, à améliorer plus tard)
-input_filename = "mon_fichier.docx" # Exemple : peut être modifié pour tester .xlsx
+# Configurer l'analyseur d'arguments
+parser = argparse.ArgumentParser(description="Anonymise automatiquement des fichiers Word (.docx) et Excel (.xlsx).")
+parser.add_argument("input_filename", help="Le nom du fichier à anonymiser (doit être dans le dossier input_files/).")
+
+# Analyser les arguments de la ligne de commande
+args = parser.parse_args()
+
+# Utiliser le nom de fichier fourni en argument
+input_filename = args.input_filename
 input_path = os.path.join("input_files", input_filename)
 
 # Déterminer le chemin de sortie basé sur le nom du fichier d'entrée
@@ -29,14 +38,11 @@ try:
             texte = extract_text_from_docx(input_path)
         elif file_extension == ".xlsx":
             print(f"Traitement du fichier Excel : {input_filename}")
-            # L'extraction Excel actuelle retourne une liste, vous pourriez vouloir adapter cela
-            # ou traiter les entités différemment pour Excel.
-            # Pour l'instant, nous allons simplement joindre les chaînes pour l'analyse spaCy.
             excel_data_list = extract_text_from_excel(input_path)
-            texte = "\n".join(excel_data_list) # Concaténer le texte pour l'analyse
+            texte = "\n".join(excel_data_list)
         else:
             print(f"Erreur : Type de fichier non supporté : {file_extension}")
-            texte = None # Assurez-vous que texte est None si le type n'est pas supporté
+            texte = None
 
         if texte is not None:
             # Détecter les entités dans le texte extrait
@@ -55,12 +61,8 @@ try:
                 print("✅ Anonymisation terminée :", output_path)
             elif file_extension == ".xlsx":
                  print(f"Remplacement des entités dans le fichier Excel...")
-                 # La fonction de remplacement Excel actuelle utilise applymap et replace()
-                 # ce qui peut ne pas être optimal compte tenu de l'extraction aplatie.
-                 # Une approche plus fine pour Excel pourrait être nécessaire ici.
                  replace_entities_in_excel(input_path, replacements, output_path)
                  print("✅ Anonymisation terminée :", output_path)
-            # Le cas 'else' pour le type de fichier non supporté est déjà géré plus haut
 
 except Exception as e:
     print(f"Une erreur inattendue s'est produite : {e}")
