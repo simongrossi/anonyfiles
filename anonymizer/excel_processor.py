@@ -1,46 +1,59 @@
-# Dans anonyfiles-main/anonymizer/excel_processor.py
+# anonymizer/excel_processor.py
 import pandas as pd
+import os # Import os for directory creation
+from .spacy_engine import SpaCyEngine
+from .anonymizer_core import collect_and_anonymize_text_blocks # Import the core anonymizer function
+
 
 def extract_text_from_excel(path):
+    """Extrait le texte cellule par cellule depuis un fichier Excel."""
     df = pd.read_excel(path)
-    # Extrait le texte cellule par cellule, conserve l'idée d'une liste mais
-    # l'analyse spaCy sera toujours faite sur la concaténation pour l'instant.
-    # Une amélioration future pourrait traiter chaque cellule individuellement.
     cell_texts = []
+    # Extract text from each cell, similar to CSV, treat each as a block
     for row_index in range(df.shape[0]):
         for col_index in range(df.shape[1]):
             cell_value = df.iloc[row_index, col_index]
-            if isinstance(cell_value, str):
-                cell_texts.append(cell_value)
-            # Vous pourriez aussi vouloir inclure d'autres types comme les nombres
-            # si spaCy doit les analyser, mais spaCy se concentre sur les entités nommées.
-            # elif pd.notna(cell_value): # Inclure les non-NaN non-strings
-            #     cell_texts.append(str(cell_value))
-    return cell_texts # Renvoie une liste de textes de cellules strings
+            # Ensure we are treating potential non-string values as strings for analysis
+            cell_texts.append(str(cell_value) if pd.notna(cell_value) else '') # Handle NaN
 
-def replace_entities_in_excel(path, replacements, output_path):
-    df = pd.read_excel(path)
+    return cell_texts
 
-    # Itérer sur les cellules et appliquer les remplacements
-    # Cette approche est plus précise car elle opère cellule par cellule
+def replace_entities_in_excel(input_path, output_path):
+    """Remplace les entités dans un fichier Excel cellule par cellule en utilisant l'anonymisation basée sur la position."""
+
+    df = pd.read_excel(input_path)
+
+    if df.empty:
+         # If the DataFrame is empty, save an empty Excel file
+         df.to_excel(output_path, index=False)
+         return
+
+    # Extract all cell contents as text blocks for entity collection
+    text_blocks = []
     for row_index in range(df.shape[0]):
         for col_index in range(df.shape[1]):
             cell_value = df.iloc[row_index, col_index]
+            text_blocks.append(str(cell_value) if pd.notna(cell_value) else '') # Handle NaN
 
-            # Ne traiter que les cellules contenant du texte
-            if isinstance(cell_value, str):
-                new_cell_value = cell_value # Commence avec la valeur originale de la cellule
+    # Use the core function to collect entities and anonymize the text blocks (cells)
+    spacy_engine = SpaCyEngine() # Instantiate SpaCyEngine
+    anonymized_text_blocks = collect_and_anonymize_text_blocks(text_blocks, spacy_engine)
 
-                # Appliquer chaque remplacement si l'original est trouvé dans la cellule
-                for original, replacement in replacements.items():
-                    if original in new_cell_value:
-                        # Note : Comme pour Word, .replace() peut avoir des limites
-                        # si l'original est une sous-chaîne d'une autre partie du texte dans la même cellule.
-                        # Une solution parfaite nécessiterait de travailler avec les positions exactes.
-                        new_cell_value = new_cell_value.replace(original, replacement)
+    # Create a new DataFrame or modify the existing one with anonymized content
+    anonymized_df = df.copy() # Create a copy to modify
 
-                # Mettre à jour la cellule uniquement si des remplacements ont été effectués
-                if new_cell_value != cell_value:
-                    df.iloc[row_index, col_index] = new_cell_value
+    block_index = 0
+    for row_index in range(anonymized_df.shape[0]):
+        for col_index in range(anonymized_df.shape[1]):
+            # Get the corresponding anonymized block (cell content)
+            anonymized_cell = anonymized_text_blocks[block_index]
+            anonymized_df.iloc[row_index, col_index] = anonymized_cell
+            block_index += 1
 
-    df.to_excel(output_path, index=False)
+    # Ensure output directory exists (already in original code, kept for robustness)
+    output_dir = os.path.dirname(output_path)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    # Save the modified DataFrame
+    anonymized_df.to_excel(output_path, index=False)

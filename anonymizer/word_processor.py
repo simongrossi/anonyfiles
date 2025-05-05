@@ -1,28 +1,58 @@
-# Dans anonyfiles-main/anonymizer/word_processor.py
+# anonyfiles-main/anonymizer/word_processor.py
 from docx import Document
+import os
+from .spacy_engine import SpaCyEngine
+from .anonymizer_core import collect_and_anonymize_text_blocks # Import the core anonymizer function
+
 
 def extract_text_from_docx(path):
+    """
+    Extrait le texte d'un fichier .docx, paragraphe par paragraphe.
+    Retourne une liste de textes de paragraphes.
+    """
     doc = Document(path)
-    return "\n".join([p.text for p in doc.paragraphs])
+    return [p.text for p in doc.paragraphs] # Return list of paragraph texts
 
-def replace_entities_in_docx(path, replacements, output_path):
+def replace_entities_in_docx(path, output_path):
+    """
+    Remplace les entités détectées dans un fichier .docx en utilisant
+    l'anonymisation basée sur la position sur chaque paragraphe.
+    ATTENTION : Cette méthode va toujours supprimer toute la mise en forme originale
+    à l'intérieur des paragraphes modifiés, car elle remplace le contenu du paragraphe.
+    """
     doc = Document(path)
-    # Avertissement : La méthode de remplacement simple ci-dessous
-    # peut ne pas gérer correctement les sous-chaînes ou la mise en forme complexe.
-    # Une approche plus robuste nécessiterait de travailler avec les "runs"
-    # ou la structure XML du document.
-    for p in doc.paragraphs:
-        for original, replacement in replacements.items():
-            # Vérifier si l'entité originale existe dans le texte du paragraphe
-            # Une amélioration potentielle, mais toujours basée sur du texte brut
-            # et sujet aux problèmes de sous-chaînes/runs.
-            if original in p.text:
-                 # Note: Un remplacement simple de chaîne ici peut casser la mise en forme
-                 # ou remplacer des parties de mots.
-                 p.text = p.text.replace(original, replacement)
+    paragraphs = doc.paragraphs
+    paragraph_texts = [p.text for p in paragraphs]
+
+    if not any(paragraph_texts): # Check if all paragraphs are empty
+         # If the document is empty, just save an empty document
+         doc.save(output_path)
+         return
+
+    # Use the core function to collect entities and anonymize the paragraph text blocks
+    spacy_engine = SpaCyEngine() # Instantiate SpaCyEngine
+    anonymized_paragraph_texts = collect_and_anonymize_text_blocks(paragraph_texts, spacy_engine)
+
+    # Update the document with the anonymized paragraph texts
+    for i, p in enumerate(paragraphs):
+        anonymized_text = anonymized_paragraph_texts[i]
+
+        # Clear existing runs in the paragraph
+        # Iterate over a copy of the run elements as we modify the list
+        for run_element in p._element.xpath('./w:r'):
+            run_element.getparent().remove(run_element)
+
+        # Add the anonymized text in a new run
+        # This new run will have the default formatting of the paragraph or document
+        if anonymized_text.strip(): # Add a run only if the modified text is not empty after strip
+             p.add_run(anonymized_text)
+        # If anonymized_text.strip() is empty, the paragraph will be empty (no runs)
+
+
+    # Ensure output directory exists (already in original code, kept for robustness)
+    output_dir = os.path.dirname(output_path)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    # Save the modified document
     doc.save(output_path)
-
-# La fonction replace_entities_in_docx ci-dessus est conservée pour le moment,
-# mais gardez à l'esprit sa limitation majeure.
-# Un développement futur devrait se concentrer sur une méthode de remplacement
-# plus précise au niveau de la structure du document.

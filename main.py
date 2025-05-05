@@ -1,68 +1,112 @@
 import os
-import argparse # Importer le module argparse
+import argparse
+import csv
+from datetime import datetime
 
 from anonymizer.spacy_engine import SpaCyEngine
 from anonymizer.word_processor import extract_text_from_docx, replace_entities_in_docx
 from anonymizer.excel_processor import extract_text_from_excel, replace_entities_in_excel
+from anonymizer.csv_processor import extract_text_from_csv, replace_entities_in_csv
+from anonymizer.txt_processor import extract_text_from_txt, replace_entities_in_txt
 from anonymizer.replacer import generate_replacements
 
-# Configurer l'analyseur d'arguments
-parser = argparse.ArgumentParser(description="Anonymise automatiquement des fichiers Word (.docx) et Excel (.xlsx).")
-parser.add_argument("input_filename", help="Le nom du fichier à anonymiser (doit être dans le dossier input_files/).")
+parser = argparse.ArgumentParser(description="Anonymise automatiquement des fichiers Word, Excel, CSV et TXT.")
+parser.add_argument("input_filename", help="Nom du fichier à anonymiser (dans le dossier input_files/).")
+parser.add_argument("--log-entities", help="Chemin du fichier CSV pour exporter les entités détectées (optionnel).", default=None)
+parser.add_argument("--entities", nargs='+', help="Liste des types d'entités à anonymiser (ex: PER LOC ORG DATE). Par défaut : toutes.", default=None)
 
-# Analyser les arguments de la ligne de commande
 args = parser.parse_args()
 
-# Utiliser le nom de fichier fourni en argument
 input_filename = args.input_filename
 input_path = os.path.join("input_files", input_filename)
-
-# Déterminer le chemin de sortie basé sur le nom du fichier d'entrée
 output_filename = f"{os.path.splitext(input_filename)[0]}_anonymise{os.path.splitext(input_filename)[1]}"
 output_path = os.path.join("output_files", output_filename)
-
-# Obtenir l'extension du fichier
 file_extension = os.path.splitext(input_filename)[1].lower()
 
-texte = None
 entities = []
-engine = SpaCyEngine() # Initialiser le moteur spaCy une seule fois
+engine = SpaCyEngine()
 
 try:
     if not os.path.exists(input_path):
         print(f"Erreur : Le fichier d'entrée n'existe pas à l'emplacement {input_path}")
     else:
-        # Extraire le texte en fonction du type de fichier
         if file_extension == ".docx":
             print(f"Traitement du fichier Word : {input_filename}")
-            texte = extract_text_from_docx(input_path)
+            paragraphs = extract_text_from_docx(input_path).split("\n")
+            print("Détection des entités par paragraphe...")
+            for p in paragraphs:
+                ents = engine.detect_entities(p)
+                entities.extend(ents)
+
         elif file_extension == ".xlsx":
             print(f"Traitement du fichier Excel : {input_filename}")
-            excel_data_list = extract_text_from_excel(input_path)
-            texte = "\n".join(excel_data_list)
+            data = extract_text_from_excel(input_path)
+            texte = "\n".join(data)
+            entities = engine.detect_entities(texte)
+
+        elif file_extension == ".csv":
+            print(f"Traitement du fichier CSV : {input_filename}")
+            rows = extract_text_from_csv(input_path)
+            texte = "\n".join(rows)
+            entities = engine.detect_entities(texte)
+
+        elif file_extension == ".txt":
+            print(f"Traitement du fichier TXT : {input_filename}")
+            lines = extract_text_from_txt(input_path)
+            for line in lines:
+                ents = engine.detect_entities(line)
+                entities.extend(ents)
+
         else:
             print(f"Erreur : Type de fichier non supporté : {file_extension}")
-            texte = None
+            entities = []
 
-        if texte is not None:
-            # Détecter les entités dans le texte extrait
-            print("Détection des entités...")
-            entities = engine.detect_entities(texte)
+        # --- Filtrer les entités si --entities est utilisé ---
+        if args.entities:
+            selected_labels = set(args.entities)
+            print(f"Filtrage des entités avec les types : {selected_labels}")
+            entities = [(text, label) for text, label in entities if label in selected_labels]
+
+        if args.log_entities and entities:
+            log_output_path = args.log_entities
+            if os.path.dirname(log_output_path) == '':
+                log_output_path = os.path.join('log', log_output_path)
+            log_output_dir = os.path.dirname(log_output_path)
+            if log_output_dir and not os.path.exists(log_output_dir):
+                os.makedirs(log_output_dir, exist_ok=True)
+
+            try:
+                with open(log_output_path, mode='w', newline='', encoding='utf-8') as log_file:
+                    log_writer = csv.writer(log_file)
+                    log_writer.writerow(["Entite", "Label"])
+                    for entity_text, entity_label in entities:
+                        log_writer.writerow([entity_text, entity_label])
+                print(f"✅ Entités détectées exportées vers : {log_output_path}")
+            except Exception as log_e:
+                print(f"Erreur lors de l'exportation des entités : {log_e}")
+
+        if entities:
             print(f"Entités détectées : {entities}")
-
-            # Générer les remplacements
             replacements = generate_replacements(entities)
             print(f"Remplacements générés : {replacements}")
 
-            # Remplacer les entités en fonction du type de fichier
             if file_extension == ".docx":
-                print(f"Remplacement des entités dans le fichier Word...")
+                print("Remplacement des entités dans le fichier Word...")
                 replace_entities_in_docx(input_path, replacements, output_path)
-                print("✅ Anonymisation terminée :", output_path)
             elif file_extension == ".xlsx":
-                 print(f"Remplacement des entités dans le fichier Excel...")
-                 replace_entities_in_excel(input_path, replacements, output_path)
-                 print("✅ Anonymisation terminée :", output_path)
+                print("Remplacement des entités dans le fichier Excel...")
+                replace_entities_in_excel(input_path, replacements, output_path)
+            elif file_extension == ".csv":
+                print("Remplacement des entités dans le fichier CSV...")
+                replace_entities_in_csv(input_path, replacements, output_path)
+            elif file_extension == ".txt":
+                print("Remplacement des entités dans le fichier TXT...")
+                replace_entities_in_txt(input_path, replacements, output_path)
+            print("✅ Anonymisation terminée :", output_path)
+        elif file_extension in [".docx", ".xlsx", ".csv", ".txt"]:
+            print("Aucune entité détectée. Aucun remplacement effectué.")
 
+except FileNotFoundError:
+    print(f"Erreur : Le fichier d'entrée n'a pas été trouvé à l'emplacement {input_path}")
 except Exception as e:
     print(f"Une erreur inattendue s'est produite : {e}")

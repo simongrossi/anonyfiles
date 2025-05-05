@@ -1,0 +1,29 @@
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+
+# 📦 Environnements virtuels
+venv/
+.env/
+.venv/
+
+# 📄 Fichiers spécifiques à VSCode ou autres IDE
+.vscode/
+.idea/
+
+# 🗃️ Fichiers temporaires ou système
+.DS_Store
+Thumbs.db
+
+# 📊 Sorties et logs
+log/
+output_files/
+*.log
+*.bak
+
+# 🔧 fichiers de config local
+.env
+*.swp
