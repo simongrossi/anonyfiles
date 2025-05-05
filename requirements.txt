@@ -1,0 +1,5 @@
+spacy
+python-docx
+openpyxl
+pandas
+faker
