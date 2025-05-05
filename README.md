@@ -1,45 +1,71 @@
-# 🛡️ anonyfiles
+# 🕵️ anonyfiles
 
-**Anonyfiles** est une application Python open source permettant d'**anonymiser automatiquement des fichiers Word (.docx) et Excel (.xlsx)** en local.  
-Elle détecte les données personnelles (noms, prénoms, dates, adresses, organisations, etc.) à l'aide de l'IA open source **spaCy**, puis les remplace ou les masque selon vos besoins.
+**anonyfiles** est un outil open source d’anonymisation de documents, basé sur `spaCy`. Il prend en charge les formats Word, Excel, CSV et TXT.
+
+## ⚙️ Fonctionnalités principales
+
+- 📄 Support des fichiers `.docx`, `.xlsx`, `.csv`, `.txt`
+- 🤖 Détection d'entités nommées (NER) avec spaCy (`fr_core_news_md`)
+- 🧠 Génération automatique de remplacements fictifs avec `Faker`
+- 🔐 Remplacement contextuel des noms, lieux, organisations, dates, etc.
+- 📝 Export optionnel des entités détectées (`--log-entities`)
+- 🎯 Filtrage des types d'entités à anonymiser (`--entities`)
+- 📂 Traitement ligne par ligne ou global selon le format
+- 💾 Fichiers de sortie conservant l'intégrité de la structure
 
 ---
 
-## 🎯 Objectif
+## 🚀 Utilisation
 
-Fournir un outil **multiplateforme, local et RGPD-compliant**, pour anonymiser efficacement les documents contenant des données sensibles.
+```bash
+python main.py input_files/mon_fichier.docx
+```
+
+### Avec export des entités détectées :
+```bash
+python main.py mon_fichier.docx --log-entities log/entites.csv
+```
+
+### Avec sélection des types d'entités à anonymiser :
+```bash
+python main.py mon_fichier.docx --entities PER ORG
+```
 
 ---
 
-## ⚙️ Fonctionnalités
+## 🔧 Choix des entités à anonymiser
 
-- ✅ Détection automatique des entités personnelles (noms, lieux, dates…)
-- 🧠 Utilisation de **spaCy** en local (aucune donnée envoyée)
-- 📄 Support des formats **Word (.docx)** et **Excel (.xlsx)**
-- 🔁 Remplacement configurable : données fictives (`Faker`) ou texte `[REDACTED]`
-- 📤 Export CSV facultatif des entités détectées (`--log-entities`)
-- 💾 Génération d’un fichier anonymisé dans `output_files/`
+Par défaut, le script anonymise toutes les entités détectées par spaCy.  
+Vous pouvez filtrer les types d'entités que vous souhaitez anonymiser à l'aide de l'option `--entities`.
+
+**Exemple : anonymiser uniquement les personnes (PER) et les organisations (ORG)**
+
+```bash
+python main.py mon_fichier.docx --entities PER ORG
+```
+
+### Types d'entités courants (`fr_core_news_md`) :
+- `PER` : Personnes (noms, prénoms)
+- `LOC` : Lieux
+- `ORG` : Organisations
+- `DATE` : Dates
+- `MISC` : Autres entités diverses
+
+---
+
+## 🚧 Roadmap
+
+- [x] Support des fichiers `.docx` / `.xlsx`
+- [x] Support des fichiers `.csv` / `.txt`
+- [x] Log CSV des entités détectées
+- [x] Sélection dynamique des types d'entités à anonymiser
+- [ ] Remplacement plus robuste via indexation de positions
+- [ ] Interface utilisateur (GUI)
+- [ ] Traitement en batch
 
 ---
 
 ## 📦 Installation
-
-### 1. Cloner le dépôt
-
-```bash
-git clone https://github.com/votre-utilisateur/anonyfiles.git
-cd anonyfiles
-```
-
-### 2. Créer un environnement virtuel
-
-```bash
-python -m venv venv
-venv\Scripts\activate    # Sous Windows
-source venv/bin/activate   # Sous macOS/Linux
-```
-
-### 3. Installer les dépendances
 
 ```bash
 pip install -r requirements.txt
@@ -48,76 +74,6 @@ python -m spacy download fr_core_news_md
 
 ---
 
-## 🚀 Utilisation
+## 🛡️ Licence
 
-### Anonymiser un fichier Word :
-
-```bash
-python main.py test.docx
-```
-
-### Anonymiser avec journalisation CSV des entités :
-
-```bash
-python main.py test.docx --log-entities entites_test.csv
-```
-
-Le log sera généré dans `log/entites_test.csv` (sauf si un chemin complet est fourni).
-
----
-
-## 📁 Structure du projet
-
-```
-anonyfiles/
-├── anonymizer/
-│   ├── spacy_engine.py
-│   ├── word_processor.py
-│   ├── excel_processor.py
-│   └── replacer.py
-├── input_files/
-├── output_files/
-├── log/
-├── main.py
-├── requirements.txt
-└── README.md
-```
-
----
-
-## 🔐 Pourquoi en local ?
-
-Contrairement à des solutions cloud :
-- ✅ Aucune connexion internet requise
-- ✅ Conformité RGPD renforcée
-- ✅ Meilleur contrôle des documents sensibles
-
----
-
-## 📋 Roadmap
-
-- [x] Support Word et Excel
-- [x] Export CSV des entités détectées
-- [ ] Interface graphique simple (Tauri, PyQt, Tkinter)
-- [ ] Support PDF avec OCR (Tesseract)
-- [ ] Paramétrage fin des types d’entités à anonymiser
-- [ ] Exécution par dossier complet
-- [ ] Packaging `.exe` (PyInstaller)
-
----
-
-## 📄 Licence
-
-Ce projet est sous licence **MIT**.
-
----
-
-## 🤝 Contribuer
-
-Les contributions sont bienvenues !
-- Bugs
-- Idées de fonctionnalités
-- Revue de code
-- Traductions
-
-N'hésitez pas à forker le projet et soumettre une PR !
+MIT - Simon Grossi
