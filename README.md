@@ -1,22 +1,24 @@
 # 🛡️ anonyfiles
 
-**Anonyfiles** est une application Python open source permettant d'**anonymiser automatiquement des fichiers Word (.docx) et Excel (.xlsx)** en local. Elle détecte les données personnelles (noms, prénoms, dates, adresses, etc.) à l'aide de l'IA open source **spaCy**, puis les remplace ou les masque selon vos besoins.
+**Anonyfiles** est une application Python open source permettant d'**anonymiser automatiquement des fichiers Word (.docx) et Excel (.xlsx)** en local.  
+Elle détecte les données personnelles (noms, prénoms, dates, adresses, organisations, etc.) à l'aide de l'IA open source **spaCy**, puis les remplace ou les masque selon vos besoins.
 
 ---
 
 ## 🎯 Objectif
 
-Fournir un outil **multiplateforme, 100 % local et RGPD-compliant**, pour anonymiser efficacement les documents contenant des données sensibles.
+Fournir un outil **multiplateforme, local et RGPD-compliant**, pour anonymiser efficacement les documents contenant des données sensibles.
 
 ---
 
 ## ⚙️ Fonctionnalités
 
 - ✅ Détection automatique des entités personnelles (noms, lieux, dates…)
-- 🧠 Utilisation de **spaCy** en local (pas d'envoi de données)
+- 🧠 Utilisation de **spaCy** en local (aucune donnée envoyée)
 - 📄 Support des formats **Word (.docx)** et **Excel (.xlsx)**
-- 🔁 Remplacement configurable (balises ou données fictives via `Faker`)
-- 💾 Génération d’un nouveau fichier anonymisé
+- 🔁 Remplacement configurable : données fictives (`Faker`) ou texte `[REDACTED]`
+- 📤 Export CSV facultatif des entités détectées (`--log-entities`)
+- 💾 Génération d’un fichier anonymisé dans `output_files/`
 
 ---
 
@@ -29,42 +31,38 @@ git clone https://github.com/votre-utilisateur/anonyfiles.git
 cd anonyfiles
 ```
 
-### 2. Créer un environnement virtuel (optionnel mais recommandé)
+### 2. Créer un environnement virtuel
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # macOS/Linux
-venv\Scripts\activate     # Windows
+venv\Scripts\activate    # Sous Windows
+source venv/bin/activate   # Sous macOS/Linux
 ```
 
 ### 3. Installer les dépendances
 
 ```bash
 pip install -r requirements.txt
-```
-
-### 4. Télécharger le modèle spaCy français (si ce n’est pas déjà fait)
-
-```bash
 python -m spacy download fr_core_news_md
 ```
 
 ---
 
-## 🚀 Utilisation rapide
+## 🚀 Utilisation
 
-Placez un fichier `.docx` ou `.xlsx` dans le dossier `input_files/`.
-
-Exemple avec un fichier Word :
+### Anonymiser un fichier Word :
 
 ```bash
-python main.py
+python main.py test.docx
 ```
 
-L’application :
-1. Lit le document
-2. Identifie les données personnelles
-3. Génère un fichier anonymisé dans `output_files/mon_fichier_anonymise.docx`
+### Anonymiser avec journalisation CSV des entités :
+
+```bash
+python main.py test.docx --log-entities entites_test.csv
+```
+
+Le log sera généré dans `log/entites_test.csv` (sauf si un chemin complet est fourni).
 
 ---
 
@@ -72,8 +70,6 @@ L’application :
 
 ```
 anonyfiles/
-├── main.py
-├── requirements.txt
 ├── anonymizer/
 │   ├── spacy_engine.py
 │   ├── word_processor.py
@@ -81,6 +77,9 @@ anonyfiles/
 │   └── replacer.py
 ├── input_files/
 ├── output_files/
+├── log/
+├── main.py
+├── requirements.txt
 └── README.md
 ```
 
@@ -88,29 +87,37 @@ anonyfiles/
 
 ## 🔐 Pourquoi en local ?
 
-Contrairement à d'autres solutions cloud, **anonyfiles fonctionne entièrement en local** :
-- ✅ Aucune dépendance à internet
+Contrairement à des solutions cloud :
+- ✅ Aucune connexion internet requise
 - ✅ Conformité RGPD renforcée
-- ✅ Meilleur contrôle des données sensibles
+- ✅ Meilleur contrôle des documents sensibles
 
 ---
 
-## 📋 Roadmap (à venir)
+## 📋 Roadmap
 
-- [ ] Interface graphique simple (Tauri, PyQt…)
-- [ ] Support de fichiers PDF (via OCR)
-- [ ] Mode ligne de commande avec options
-- [ ] Export des entités détectées (fichier CSV/log)
+- [x] Support Word et Excel
+- [x] Export CSV des entités détectées
+- [ ] Interface graphique simple (Tauri, PyQt, Tkinter)
+- [ ] Support PDF avec OCR (Tesseract)
+- [ ] Paramétrage fin des types d’entités à anonymiser
+- [ ] Exécution par dossier complet
+- [ ] Packaging `.exe` (PyInstaller)
 
 ---
 
 ## 📄 Licence
 
-Ce projet est sous licence **MIT**. Vous êtes libre de l'utiliser, le modifier et le redistribuer.
+Ce projet est sous licence **MIT**.
 
 ---
 
 ## 🤝 Contribuer
 
-Les contributions sont les bienvenues !  
-N'hésitez pas à proposer des idées, corriger des bugs ou soumettre des PR.
+Les contributions sont bienvenues !
+- Bugs
+- Idées de fonctionnalités
+- Revue de code
+- Traductions
+
+N'hésitez pas à forker le projet et soumettre une PR !
