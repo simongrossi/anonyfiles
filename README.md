@@ -33,6 +33,21 @@ python main.py mon_fichier.docx --entities PER ORG
 
 ---
 
+
+## 📝 Export CSV des entités détectées
+
+Vous pouvez ajouter `--log-entities fichier.csv` pour exporter toutes les entités détectées dans un fichier CSV.
+
+Exemple :
+```bash
+python main.py fichier.docx --log-entities log/entites.csv
+```
+
+Ce fichier contiendra deux colonnes :
+- **Entite** : le texte trouvé dans le document
+- **Label** : son type (ex. `PER`, `LOC`, `ORG`, etc.)
+
+
 ## 🔧 Choix des entités à anonymiser
 
 Par défaut, le script anonymise toutes les entités détectées par spaCy.  
