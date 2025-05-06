@@ -4,4 +4,5 @@ openpyxl
 pandas
 faker
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.5.0/fr_core_news_sm-3.5.0.tar.gz#egg=fr_core_news_sm
+https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.5.0/fr_core_news_md-3.5.0.tar.gz#egg=fr_core_news_md
 python-docx
