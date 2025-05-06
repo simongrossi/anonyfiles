@@ -97,19 +97,35 @@ Cela garantit une anonymisation plus fiable, notamment dans les `.txt` et `.csv`
 
 ---
 
-## 🖥️ Utilisation GUI (anonyfiles-gui)
+## 🖥️ Interface graphique (`anonyfiles-gui`) – ❌ NON FONCTIONNELLE
 
-### Prérequis :
-- Node.js (18+)
+⚠️ L'interface graphique est actuellement **non opérationnelle**. Plusieurs problèmes bloquants empêchent son lancement :
+
+- 🚫 **Échec de la construction de l'interface** : le dossier `dist` requis par Tauri n’est pas généré.
+- ❌ **Erreurs de chargement des assets** (JS/CSS) : Tauri affiche une page blanche ou des erreurs en console.
+- 🔌 **Connexion impossible au serveur de développement Vite**.
+
+### 🔧 Prérequis techniques (si contribution souhaitée)
+
+- Node.js (≥18)
 - Rust (via `rustup`)
-- Tauri CLI : `npm install -g @tauri-apps/cli`
+- Tauri CLI :
 
-### Lancer l'interface :
+```bash
+npm install -g @tauri-apps/cli
+```
+
+### 🚀 Commandes de développement (non fonctionnelles à ce jour)
+
 ```bash
 cd anonyfiles-gui
 npm install
 npm run tauri dev
 ```
+
+### 🤝 Appel à contribution
+
+> Si vous maîtrisez Svelte, Vite ou Tauri et souhaitez aider à stabiliser l'interface graphique, toute contribution est la bienvenue ! 🙏
 
 ---
 
@@ -118,7 +134,7 @@ npm run tauri dev
 - [x] Support `.docx`, `.xlsx`, `.csv`, `.txt`
 - [x] Sélection dynamique des entités
 - [x] Export CSV des entités détectées
-- [x] Interface GUI avec Tauri (v2)
+- [o] Interface GUI avec Tauri (v2)
 - [ ] Drag & Drop dans l’interface
 - [ ] Traitement en batch
 - [ ] Packaging multiplateforme (Windows/macOS/Linux)
