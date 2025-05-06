@@ -1,11 +1,10 @@
-
 # 🕵️ anonyfiles
 
-**anonyfiles** est un outil open source d’anonymisation de documents, basé sur `spaCy`.  
+**anonyfiles** est un outil open source d’anonymisation de documents basé sur `spaCy`.  
 Il se décline en deux interfaces complémentaires :
 
-- 🖥️ **anonyfiles-gui** : une interface graphique moderne avec Tauri + Svelte.
-- 💻 **anonyfiles-cli** : une ligne de commande Python robuste.
+- 🖥️ `anonyfiles-gui` : une interface graphique moderne avec Tauri + Svelte.
+- 💻 `anonyfiles-cli` : une ligne de commande Python robuste.
 
 ---
 
@@ -33,18 +32,18 @@ anonyfiles/
 │   │   │   ├── excel_processor.py  ← Traitement des fichiers Excel
 │   │   │   ├── replacer.py         ← Génération des remplacements
 │   │   │   ├── spacy_engine.py     ← Moteur spaCy pour la détection des entités
-│   │   │   ├── txt_processor.py      ← Traitement des fichiers TXT
+│   │   │   ├── txt_processor.py    ← Traitement des fichiers TXT
 │   │   │   └── word_processor.py   ← Traitement des fichiers Word
-│   │   │
-│   │   ├── input_files/   ← Fichiers d'entrée de test
-│   │   ├── log/           ← Fichiers de log (si optionnel)
-│   │   ├── main.py        ← Script principal de la CLI
-│   │   └── requirements.txt ← Dépendances Python
 │   │
+│   ├── input_files/   ← Fichiers d'entrée de test
+│   ├── log/           ← Fichiers de log (si optionnel)
+│   ├── main.py        ← Script principal de la CLI
+│   └── requirements.txt ← Dépendances Python
+│
 ├── anonyfiles-gui/      ← Interface graphique (GUI)
 │   │   Ce dossier contient le code source de l'interface graphique, développée avec Tauri (Rust) et Svelte (JavaScript).
 │   │   Il inclut les fichiers de l'interface utilisateur, la logique de l'application et la configuration de Tauri.
-│   │
+│
 │   ├── public/       ← Assets statiques (HTML, etc.)
 │   ├── src/          ← Code source Svelte
 │   ├── src-tauri/    ← Code source et configuration Tauri (Rust)
@@ -52,15 +51,16 @@ anonyfiles/
 │   │   │   ├── src/           ← Code Rust de Tauri
 │   │   │   ├── tauri.conf.json ← Configuration de Tauri
 │   │   │   └── vite.config.ts  ← Configuration de Vite
-│   │   │
-│   │   ├── index.html    ← Page HTML principale
-│   │   ├── package.json  ← Dépendances et scripts Node.js
-│   │   ├── package-lock.json
-│   │   ├── README.md
-│   │   └── tsconfig.json  ← Configuration TypeScript
-│   │
+│
+│   ├── index.html    ← Page HTML principale
+│   ├── package.json  ← Dépendances et scripts Node.js
+│   ├── package-lock.json
+│   ├── README.md
+│   └── tsconfig.json  ← Configuration TypeScript
+│
 ├── README.md         ← Documentation principale
 └── LICENSE           ← Licence du projet
+```
 
 ---
 
@@ -77,7 +77,7 @@ anonyfiles/
 
 ---
 
-## 🚀 Utilisation CLI (anonyfiles-cli)
+## 🚀 Utilisation CLI (`anonyfiles-cli`)
 
 ### 📦 Installation
 
@@ -89,17 +89,20 @@ python -m spacy download fr_core_news_md
 
 ### ▶️ Exemples
 
-Anonymisation d’un document :
+#### Anonymisation d’un document :
+
 ```bash
 python main.py input_files/mon_fichier.docx
 ```
 
-Avec export des entités détectées :
+#### Avec export des entités détectées :
+
 ```bash
 python main.py mon_fichier.docx --log-entities log/entites.csv
 ```
 
-Avec filtrage sur types d’entités :
+#### Avec filtrage des types d’entités :
+
 ```bash
 python main.py mon_fichier.docx --entities PER ORG
 ```
@@ -109,6 +112,7 @@ python main.py mon_fichier.docx --entities PER ORG
 ## 📝 Export CSV des entités détectées
 
 Le fichier CSV généré avec `--log-entities` contiendra :
+
 - **Entite** : le texte trouvé
 - **Label** : son type (`PER`, `LOC`, `ORG`, etc.)
 
@@ -116,7 +120,8 @@ Le fichier CSV généré avec `--log-entities` contiendra :
 
 ## 🔧 Types d'entités disponibles
 
-Dépend du modèle spaCy `fr_core_news_md`. Exemples courants :
+Les entités dépendent du modèle spaCy `fr_core_news_md`. Exemples courants :
+
 - `PER` : Personnes
 - `LOC` : Lieux
 - `ORG` : Organisations
@@ -127,20 +132,21 @@ Dépend du modèle spaCy `fr_core_news_md`. Exemples courants :
 
 ## 🧠 Remplacement via positions précises (prototype)
 
-Pour éviter les collisions ou erreurs, l’algorithme utilise désormais les **positions (`start_char`, `end_char`)** des entités dans le texte.  
-Cela garantit une anonymisation plus fiable, notamment dans les `.txt` et `.csv`.
+Pour éviter les collisions ou erreurs, l’algorithme utilise désormais les positions (`start_char`, `end_char`) des entités.  
+Cela garantit une anonymisation plus fiable, notamment pour les fichiers `.txt` et `.csv`.
 
 ---
 
-## 🖥️ Interface graphique (`anonyfiles-gui`) – ❌ NON FONCTIONNELLE
+## 🖥️ Interface graphique (`anonyfiles-gui`) – 🚧 En Cours de Développement
 
-⚠️ L'interface graphique est actuellement **non opérationnelle**. Plusieurs problèmes bloquants empêchent son lancement :
+L'interface graphique basée sur Tauri (Rust) et Svelte (JavaScript) est désormais capable de se lancer.
 
-- 🚫 **Échec de la construction de l'interface** : le dossier `dist` requis par Tauri n’est pas généré.
-- ❌ **Erreurs de chargement des assets** (JS/CSS) : Tauri affiche une page blanche ou des erreurs en console.
-- 🔌 **Connexion impossible au serveur de développement Vite**.
+Les problèmes de lancement initiaux (échec de build, erreurs de chargement JS/CSS, connexion Vite) qui bloquaient le démarrage sont maintenant résolus.  
+L'application ouvre sa fenêtre et affiche l'interface frontend.
 
-### 🔧 Prérequis techniques (si contribution souhaitée)
+Certaines fonctionnalités, comme le glisser-déposer pour l'upload de fichiers et l'intégration complète avec le backend d'anonymisation (`anonyfiles-cli`), sont toujours en cours de développement et de stabilisation.
+
+### 🔧 Prérequis techniques (pour développer la GUI)
 
 - Node.js (≥18)
 - Rust (via `rustup`)
@@ -150,17 +156,23 @@ Cela garantit une anonymisation plus fiable, notamment dans les `.txt` et `.csv`
 npm install -g @tauri-apps/cli
 ```
 
-### 🚀 Commandes de développement (non fonctionnelles à ce jour)
+### 🚀 Commandes de développement
+
+Une fois dans le répertoire `anonyfiles-gui` qui contient le `package.json` et le dossier `src-tauri`  
+(vérifiez votre arborescence, il pourrait y avoir un sous-dossier imbriqué), vous pouvez lancer l'application en mode développement :
 
 ```bash
-cd anonyfiles-gui
-npm install
+cd anonyfiles-gui  # Assurez-vous d'être dans le bon dossier
+npm install        # Si ce n'est pas déjà fait
 npm run tauri dev
 ```
 
+L'application devrait maintenant s'ouvrir dans une fenêtre native.
+
 ### 🤝 Appel à contribution
 
-> Si vous maîtrisez Svelte, Vite ou Tauri et souhaitez aider à stabiliser l'interface graphique, toute contribution est la bienvenue ! 🙏
+Si vous maîtrisez Svelte, Vite ou Tauri et souhaitez aider à implémenter les fonctionnalités restantes  
+(glisser-déposer avancé, interface de réglages, communication inter-processus avec le backend Python, etc.), toute contribution est la bienvenue ! 🙏
 
 ---
 
@@ -169,7 +181,7 @@ npm run tauri dev
 - [x] Support `.docx`, `.xlsx`, `.csv`, `.txt`
 - [x] Sélection dynamique des entités
 - [x] Export CSV des entités détectées
-- [o] Interface GUI avec Tauri (v2)
+- [x] Interface GUI avec Tauri (v2)
 - [ ] Drag & Drop dans l’interface
 - [ ] Traitement en batch
 - [ ] Packaging multiplateforme (Windows/macOS/Linux)
@@ -178,4 +190,4 @@ npm run tauri dev
 
 ## 🛡️ Licence
 
-MIT - Simon Grossi
+MIT – Simon Grossi
