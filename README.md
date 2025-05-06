@@ -2,6 +2,13 @@
 
 **anonyfiles** est un outil open source d’anonymisation de documents, basé sur `spaCy`. Il prend en charge les formats Word, Excel, CSV et TXT.
 
+## ⚠️ Statut du projet
+
+**anonyfiles est actuellement en phase de test.**  
+Des bugs peuvent subsister et certaines fonctionnalités sont encore en cours de validation ou d'amélioration.  
+Merci de faire preuve de vigilance et de ne pas l’utiliser sur des documents sensibles en production sans vérification.
+
+
 ## ⚙️ Fonctionnalités principales
 
 - 📄 Support des fichiers `.docx`, `.xlsx`, `.csv`, `.txt`
