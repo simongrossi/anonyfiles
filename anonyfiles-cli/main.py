@@ -1,3 +1,4 @@
+# main.py
 import os
 import argparse
 import csv
@@ -32,30 +33,28 @@ try:
     else:
         if file_extension == ".docx":
             print(f"Traitement du fichier Word : {input_filename}")
-            paragraphs = extract_text_from_docx(input_path).split("\n")
-            print("Détection des entités par paragraphe...")
-            for p in paragraphs:
-                ents = engine.detect_entities(p)
-                entities.extend(ents)
+            text = extract_text_from_docx(input_path)
+            print("Détection des entités dans le document...")
+            ents = engine.detect_entities("\n".join(text))  # Traiter tout le texte en une seule fois
+            entities.extend(ents)
 
         elif file_extension == ".xlsx":
             print(f"Traitement du fichier Excel : {input_filename}")
-            data = extract_text_from_excel(input_path)
-            texte = "\n".join(data)
-            entities = engine.detect_entities(texte)
+            text = extract_text_from_excel(input_path)
+            ents = engine.detect_entities("\n".join(text))
+            entities.extend(ents)
 
         elif file_extension == ".csv":
             print(f"Traitement du fichier CSV : {input_filename}")
-            rows = extract_text_from_csv(input_path)
-            texte = "\n".join(rows)
-            entities = engine.detect_entities(texte)
+            text = extract_text_from_csv(input_path)
+            ents = engine.detect_entities("\n".join(text))
+            entities.extend(ents)
 
         elif file_extension == ".txt":
             print(f"Traitement du fichier TXT : {input_filename}")
-            lines = extract_text_from_txt(input_path)
-            for line in lines:
-                ents = engine.detect_entities(line)
-                entities.extend(ents)
+            text = extract_text_from_txt(input_path)
+            ents = engine.detect_entities(text)  # Traiter tout le texte en une seule fois
+            entities.extend(ents)
 
         else:
             print(f"Erreur : Type de fichier non supporté : {file_extension}")
