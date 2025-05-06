@@ -17,15 +17,50 @@ Merci de faire preuve de vigilance et de ne pas l’utiliser sur des documents s
 
 ---
 
-## 📁 Structure du projet
+## 🗂️ Détail de la structure du projet
 
 ```
 anonyfiles/
-├── anonyfiles-cli/      ← Interface en ligne de commande (Python)
-├── anonyfiles-gui/      ← Interface graphique (Tauri + Svelte)
-├── README.md
-└── LICENSE
-```
+├── anonyfiles-cli/      ← Interface en ligne de commande (CLI)
+│   │   Ce dossier contient le code source de l'interface en ligne de commande, écrite en Python.
+│   │   Il inclut les scripts pour l'anonymisation des différents types de fichiers (.docx, .xlsx, .csv, .txt) ainsi que les modules de traitement du texte et de remplacement des entités.
+│   │
+│   ├── anonymizer/    ← Modules d'anonymisation
+│   │   │   Ce dossier contient les différents modules et classes nécessaires à l'anonymisation du texte.
+│   │   │
+│   │   │   ├── anonymizer_core.py  ← Logique principale de l'anonymisation
+│   │   │   ├── csv_processor.py    ← Traitement des fichiers CSV
+│   │   │   ├── excel_processor.py  ← Traitement des fichiers Excel
+│   │   │   ├── replacer.py         ← Génération des remplacements
+│   │   │   ├── spacy_engine.py     ← Moteur spaCy pour la détection des entités
+│   │   │   ├── txt_processor.py      ← Traitement des fichiers TXT
+│   │   │   └── word_processor.py   ← Traitement des fichiers Word
+│   │   │
+│   │   ├── input_files/   ← Fichiers d'entrée de test
+│   │   ├── log/           ← Fichiers de log (si optionnel)
+│   │   ├── main.py        ← Script principal de la CLI
+│   │   └── requirements.txt ← Dépendances Python
+│   │
+├── anonyfiles-gui/      ← Interface graphique (GUI)
+│   │   Ce dossier contient le code source de l'interface graphique, développée avec Tauri (Rust) et Svelte (JavaScript).
+│   │   Il inclut les fichiers de l'interface utilisateur, la logique de l'application et la configuration de Tauri.
+│   │
+│   ├── public/       ← Assets statiques (HTML, etc.)
+│   ├── src/          ← Code source Svelte
+│   ├── src-tauri/    ← Code source et configuration Tauri (Rust)
+│   │   │   ├── capabilities/  ← Permissions de l'application
+│   │   │   ├── src/           ← Code Rust de Tauri
+│   │   │   ├── tauri.conf.json ← Configuration de Tauri
+│   │   │   └── vite.config.ts  ← Configuration de Vite
+│   │   │
+│   │   ├── index.html    ← Page HTML principale
+│   │   ├── package.json  ← Dépendances et scripts Node.js
+│   │   ├── package-lock.json
+│   │   ├── README.md
+│   │   └── tsconfig.json  ← Configuration TypeScript
+│   │
+├── README.md         ← Documentation principale
+└── LICENSE           ← Licence du projet
 
 ---
 
