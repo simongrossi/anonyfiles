@@ -3,7 +3,7 @@
     let isDragging = false;
   
     // Fonction appelée lorsqu'un élément est glissé au-dessus de la zone
-    // Supprimez ": DragEvent"
+    // NOTE : L'annotation de type ': DragEvent' a été retirée pour résoudre l'erreur de compilation.
     function handleDragOver(event) {
       event.preventDefault(); // Empêche le comportement par défaut du navigateur (ouvrir le fichier)
       isDragging = true;
@@ -12,14 +12,14 @@
     }
   
     // Fonction appelée lorsqu'un élément quitte la zone de glisser-déposer
-    // Supprimez ": DragEvent"
+    // NOTE : L'annotation de type ': DragEvent' a été retirée.
     function handleDragLeave(event) {
       event.preventDefault();
       isDragging = false;
     }
   
     // Fonction appelée lorsqu'un élément est déposé dans la zone
-    // Supprimez ": DragEvent"
+    // NOTE : L'annotation de type ': DragEvent' a été retirée.
     function handleDrop(event) {
       event.preventDefault();
       isDragging = false; // Retour à l'état normal après le dépôt
@@ -29,10 +29,13 @@
   
       if (files && files.length > 0) {
         console.log("Fichiers déposés :");
-        // Ici, nous affichons juste les noms et types des fichiers déposés
+        // Ici, nous affichons juste les noms et types des fichiers déposés dans la console
         for (let i = 0; i < files.length; i++) {
           console.log(`- Nom : ${files[i].name}, Type : ${files[i].type}`);
         }
+  
+        // Prochaine étape : utiliser l'API Tauri pour obtenir les chemins complets des fichiers
+        // et les envoyer au backend.
       }
     }
   </script>
@@ -58,8 +61,11 @@
       padding: 20px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.3s ease;
+      transition: border-color 0.3s ease, background-color 0.3s ease; /* Ajout transition background */
       margin-top: 20px; /* Juste pour l'espacement */
+      width: 80%; /* Exemple: prend 80% de la largeur du conteneur parent */
+      max-width: 400px; /* Largeur maximale */
+      box-sizing: border-box; /* Inclure padding et border dans la largeur */
     }
   
     .drop-zone.dragging {
@@ -71,6 +77,7 @@
     .drop-zone p {
       margin: 0;
       color: #555;
+      user-select: none; /* Empêche la sélection du texte */
     }
   
     .drop-zone.dragging p {
