@@ -1,22 +1,11 @@
-import { invoke } from "@tauri-apps/api/core";
+import App from './App.svelte'; // Importe le composant App.svelte, qui est la racine de votre application
 
-let greetInputEl: HTMLInputElement | null;
-let greetMsgEl: HTMLElement | null;
-
-async function greet() {
-  if (greetMsgEl && greetInputEl) {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    greetMsgEl.textContent = await invoke("greet", {
-      name: greetInputEl.value,
-    });
-  }
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  greetInputEl = document.querySelector("#greet-input");
-  greetMsgEl = document.querySelector("#greet-msg");
-  document.querySelector("#greet-form")?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    greet();
-  });
+// Crée une nouvelle instance de l'application Svelte
+const app = new App({
+  // 'target' spécifie l'élément HTML où l'application Svelte sera insérée.
+  // Nous avons configuré index.html pour avoir une <div id="app"></div>
+  target: document.getElementById('app')!, // Le '!' indique à TypeScript que cet élément existera bien
 });
+
+// Exporte l'instance de l'application (utile pour les tests ou si d'autres modules l'importent)
+export default app;
