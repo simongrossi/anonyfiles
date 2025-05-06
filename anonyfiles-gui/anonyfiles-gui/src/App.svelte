@@ -1,19 +1,40 @@
 <script lang="ts">
     // Importez votre composant DropZone
     import DropZone from './lib/DropZone.svelte';
+    import { onMount, onDestroy } from 'svelte'; // <--- Importez les fonctions de cycle de vie
   
-    // Note : Les fonctions handleDragOver et handleDrop que nous avions ici initialement
-    // pour la gestion globale ne sont plus nécessaires car nous utilisons
-    // directement les modificateurs d'événements de Svelte sur la balise <main>.
-    // Le composant DropZone gère ses propres événements locaux.
+    // Fonction pour gérer les événements dragover et drop globaux
+    // Cette fonction empêche le comportement par défaut du navigateur/système
+    // qui pourrait ouvrir le fichier ou naviguer.
+    function preventDefaultHandler(event: DragEvent) {
+      event.preventDefault(); // Empêche le comportement par défaut (navigation, ouverture de fichier)
+      // event.stopPropagation(); // Optionnel, pour arrêter la propagation, mais preventDefault est la clé ici
+    }
+  
+    onMount(() => {
+      // S'exécute lorsque le composant App.svelte est monté dans le DOM
+  
+      // Ajoute des écouteurs d'événements 'dragover' et 'drop' à l'objet 'window' entier.
+      // Cela permet de s'assurer que le comportement par défaut est empêché quel que soit l'endroit
+      // où l'événement commence à l'intérieur de la fenêtre.
+      window.addEventListener('dragover', preventDefaultHandler as EventListener);
+      window.addEventListener('drop', preventDefaultHandler as EventListener); // Empêche aussi le drop par défaut global
+  
+      console.log('Écouteurs de glisser-déposer globaux ajoutés sur window.');
+  
+      return () => {
+        // Cette fonction de nettoyage s'exécute lorsque le composant App.svelte est détruit
+        // Il est important de retirer les écouteurs ajoutés pour éviter les fuites de mémoire.
+        window.removeEventListener('dragover', preventDefaultHandler as EventListener);
+        window.removeEventListener('drop', preventDefaultHandler as EventListener);
+  
+        console.log('Écouteurs de glisser-déposer globaux retirés de window.');
+      };
+    });
   
   </script>
   
-  <main
-    class="container"
-    on:dragover|preventDefault|stopPropagation
-    on:drop|preventDefault|stopPropagation
-  >
+  <main class="container">
     <h1>Anonyfiles GUI</h1>
   
     <DropZone />
@@ -81,7 +102,7 @@
     h1 {
       text-align: center;
       color: #333;
-      margin-bottom: 20px; /* Ajoute un peu d'espace sous le titre */
+      margin-bottom: 20px;
     }
   
     p {

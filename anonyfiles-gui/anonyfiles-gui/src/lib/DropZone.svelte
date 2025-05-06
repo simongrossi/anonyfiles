@@ -1,43 +1,71 @@
 <script lang="ts">
-    // Variable pour gérer l'état visuel (quand un élément est glissé au-dessus)
+    import { open } from '@tauri-apps/plugin-dialog'; // <--- Importez la fonction open
+  
     let isDragging = false;
   
-    // Fonction appelée lorsqu'un élément est glissé au-dessus de la zone
-    // NOTE : L'annotation de type ': DragEvent' a été retirée pour résoudre l'erreur de compilation.
-    function handleDragOver(event) {
-      event.preventDefault(); // Empêche le comportement par défaut du navigateur (ouvrir le fichier)
+    function handleDragOver(event: DragEvent) { // Vous pouvez remettre DragEvent si ça ne cause pas d'erreur maintenant
+      event.preventDefault();
       isDragging = true;
-      // Optionnel: ajouter dataTransfer.dropEffect pour indiquer le type d'opération
-      // event.dataTransfer.dropEffect = 'copy';
     }
   
-    // Fonction appelée lorsqu'un élément quitte la zone de glisser-déposer
-    // NOTE : L'annotation de type ': DragEvent' a été retirée.
-    function handleDragLeave(event) {
+    function handleDragLeave(event: DragEvent) { // Remettre DragEvent ici aussi si vous voulez
       event.preventDefault();
       isDragging = false;
     }
   
-    // Fonction appelée lorsqu'un élément est déposé dans la zone
-    // NOTE : L'annotation de type ': DragEvent' a été retirée.
-    function handleDrop(event) {
+    async function handleDrop(event: DragEvent) { // Et ici
       event.preventDefault();
-      isDragging = false; // Retour à l'état normal après le dépôt
+      isDragging = false;
   
-      // Récupérer la liste des fichiers déposés
       const files = event.dataTransfer?.files;
   
       if (files && files.length > 0) {
         console.log("Fichiers déposés :");
-        // Ici, nous affichons juste les noms et types des fichiers déposés dans la console
+        // Nous afficherons ici les chemins complets plus tard, via l'API Tauri
         for (let i = 0; i < files.length; i++) {
           console.log(`- Nom : ${files[i].name}, Type : ${files[i].type}`);
         }
   
-        // Prochaine étape : utiliser l'API Tauri pour obtenir les chemins complets des fichiers
-        // et les envoyer au backend.
+        // Prochaine étape: Traiter les fichiers déposés (obtenir les chemins réels et les envoyer au backend)
+        // Nous devrons obtenir les chemins via l'API Tauri pour les fichiers déposés.
       }
     }
+  
+    // <--- Nouvelle fonction pour gérer le clic
+    async function openFileSelection() {
+      try {
+        // Ouvre une boîte de dialogue pour sélectionner des fichiers
+        // 'multiple: true' permet de sélectionner plusieurs fichiers
+        // 'filters' peut être utilisé pour limiter les types de fichiers (optionnel)
+        const selected = await open({
+          multiple: true,
+          title: 'Sélectionner les fichiers à anonymiser',
+          // Exemple de filtre pour les documents (ajustez selon les formats supportés)
+          filters: [{
+            name: 'Documents',
+            extensions: ['docx', 'xlsx', 'csv', 'txt']
+          }]
+        });
+  
+        if (Array.isArray(selected)) {
+          // L'utilisateur a sélectionné un ou plusieurs fichiers
+          console.log("Fichiers sélectionnés via la boîte de dialogue :");
+          selected.forEach(filePath => console.log(`- Chemin : ${filePath}`));
+          // Prochaine étape : Traiter les fichiers sélectionnés (envoyer les chemins au backend)
+  
+        } else if (selected === null) {
+          // L'utilisateur a annulé la sélection
+          console.log("Sélection de fichier annulée.");
+        } else {
+          // L'utilisateur a sélectionné un seul fichier (si multiple: false)
+          console.log("Fichier sélectionné via la boîte de dialogue :", selected);
+          // Prochaine étape : Traiter le fichier sélectionné (envoyer le chemin au backend)
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'ouverture de la boîte de dialogue :", error);
+      }
+    }
+    // Fin nouvelle fonction
   </script>
   
   <div
@@ -46,12 +74,12 @@
     on:dragover={handleDragOver}
     on:dragleave={handleDragLeave}
     on:drop={handleDrop}
+    on:click={openFileSelection} // <--- Ajoutez cet écouteur
   >
     {#if isDragging}
       <p>Relâchez les fichiers ici</p>
     {:else}
-      <p>Glissez vos fichiers ici pour les anonymiser</p>
-    {/if}
+      <p>Glissez vos fichiers ici ou cliquez pour sélectionner</p> {/if}
   </div>
   
   <style>
@@ -61,23 +89,22 @@
       padding: 20px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.3s ease, background-color 0.3s ease; /* Ajout transition background */
-      margin-top: 20px; /* Juste pour l'espacement */
-      width: 80%; /* Exemple: prend 80% de la largeur du conteneur parent */
-      max-width: 400px; /* Largeur maximale */
-      box-sizing: border-box; /* Inclure padding et border dans la largeur */
+      transition: border-color 0.3s ease, background-color 0.3s ease;
+      margin-top: 20px;
+      width: 80%;
+      max-width: 400px;
+      box-sizing: border-box;
     }
   
     .drop-zone.dragging {
-      border-color: #007bff; /* Couleur différente quand on glisse au-dessus */
-      background-color: #e9f5ff; /* Fond différent */
+      border-color: #007bff;
+      background-color: #e9f5ff;
     }
   
-    /* Styles pour la zone quand elle n'est pas active ou glissée */
     .drop-zone p {
       margin: 0;
       color: #555;
-      user-select: none; /* Empêche la sélection du texte */
+      user-select: none;
     }
   
     .drop-zone.dragging p {
