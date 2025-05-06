@@ -16,6 +16,11 @@ parser.add_argument("input_filename", help="Nom du fichier à anonymiser (dans l
 parser.add_argument("--log-entities", help="Chemin du fichier CSV pour exporter les entités détectées (optionnel).", default=None)
 parser.add_argument("--entities", nargs='+', help="Liste des types d'entités à anonymiser (ex: PER LOC ORG DATE). Par défaut : toutes.", default=None)
 
+args = parser = argparse.ArgumentParser(description="Anonymise automatiquement des fichiers Word, Excel, CSV et TXT.")
+parser.add_argument("input_filename", help="Nom du fichier à anonymiser (dans le dossier input_files/).")
+parser.add_argument("--log-entities", help="Chemin du fichier CSV pour exporter les entités détectées (optionnel).", default=None)
+parser.add_argument("--entities", nargs='+', help="Liste des types d'entités à anonymiser (ex: PER LOC ORG DATE). Par défaut : toutes.", default=None)
+
 args = parser.parse_args()
 
 input_filename = args.input_filename
@@ -33,10 +38,11 @@ try:
     else:
         if file_extension == ".docx":
             print(f"Traitement du fichier Word : {input_filename}")
-            text = extract_text_from_docx(input_path)
-            print("Détection des entités dans le document...")
-            ents = engine.detect_entities("\n".join(text))  # Traiter tout le texte en une seule fois
-            entities.extend(ents)
+            paragraphs = extract_text_from_docx(input_path)
+            print("Détection des entités par paragraphe...")
+            for p in paragraphs:
+                ents = engine.detect_entities(p)
+                entities.extend(ents)
 
         elif file_extension == ".xlsx":
             print(f"Traitement du fichier Excel : {input_filename}")
@@ -53,7 +59,7 @@ try:
         elif file_extension == ".txt":
             print(f"Traitement du fichier TXT : {input_filename}")
             text = extract_text_from_txt(input_path)
-            ents = engine.detect_entities(text)  # Traiter tout le texte en une seule fois
+            ents = engine.detect_entities(text)
             entities.extend(ents)
 
         else:
@@ -91,16 +97,16 @@ try:
 
             if file_extension == ".docx":
                 print("Remplacement des entités dans le fichier Word...")
-                replace_entities_in_docx(input_path, replacements, output_path)
+                replace_entities_in_docx(input_path, output_path)
             elif file_extension == ".xlsx":
                 print("Remplacement des entités dans le fichier Excel...")
-                replace_entities_in_excel(input_path, replacements, output_path)
+                replace_entities_in_excel(input_path, output_path)
             elif file_extension == ".csv":
                 print("Remplacement des entités dans le fichier CSV...")
-                replace_entities_in_csv(input_path, replacements, output_path)
+                replace_entities_in_csv(input_path, output_path)
             elif file_extension == ".txt":
                 print("Remplacement des entités dans le fichier TXT...")
-                replace_entities_in_txt(input_path, replacements, output_path)
+                replace_entities_in_txt(input_path, output_path)
             print("✅ Anonymisation terminée :", output_path)
         elif file_extension in [".docx", ".xlsx", ".csv", ".txt"]:
             print("Aucune entité détectée. Aucun remplacement effectué.")
