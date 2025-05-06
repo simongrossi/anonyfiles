@@ -1,6 +1,13 @@
+
 # 🕵️ anonyfiles
 
-**anonyfiles** est un outil open source d’anonymisation de documents, basé sur `spaCy`. Il prend en charge les formats Word, Excel, CSV et TXT.
+**anonyfiles** est un outil open source d’anonymisation de documents, basé sur `spaCy`.  
+Il se décline en deux interfaces complémentaires :
+
+- 🖥️ **anonyfiles-gui** : une interface graphique moderne avec Tauri + Svelte.
+- 💻 **anonyfiles-cli** : une ligne de commande Python robuste.
+
+---
 
 ## ⚠️ Statut du projet
 
@@ -8,6 +15,19 @@
 Des bugs peuvent subsister et certaines fonctionnalités sont encore en cours de validation ou d'amélioration.  
 Merci de faire preuve de vigilance et de ne pas l’utiliser sur des documents sensibles en production sans vérification.
 
+---
+
+## 📁 Structure du projet
+
+```
+anonyfiles/
+├── anonyfiles-cli/      ← Interface en ligne de commande (Python)
+├── anonyfiles-gui/      ← Interface graphique (Tauri + Svelte)
+├── README.md
+└── LICENSE
+```
+
+---
 
 ## ⚙️ Fonctionnalités principales
 
@@ -22,96 +42,86 @@ Merci de faire preuve de vigilance et de ne pas l’utiliser sur des documents s
 
 ---
 
-## 🚀 Utilisation
+## 🚀 Utilisation CLI (anonyfiles-cli)
 
+### 📦 Installation
+
+```bash
+cd anonyfiles-cli
+pip install -r requirements.txt
+python -m spacy download fr_core_news_md
+```
+
+### ▶️ Exemples
+
+Anonymisation d’un document :
 ```bash
 python main.py input_files/mon_fichier.docx
 ```
 
-### Avec export des entités détectées :
+Avec export des entités détectées :
 ```bash
 python main.py mon_fichier.docx --log-entities log/entites.csv
 ```
 
-### Avec sélection des types d'entités à anonymiser :
+Avec filtrage sur types d’entités :
 ```bash
 python main.py mon_fichier.docx --entities PER ORG
 ```
 
 ---
-
 
 ## 📝 Export CSV des entités détectées
 
-Vous pouvez ajouter `--log-entities fichier.csv` pour exporter toutes les entités détectées dans un fichier CSV.
+Le fichier CSV généré avec `--log-entities` contiendra :
+- **Entite** : le texte trouvé
+- **Label** : son type (`PER`, `LOC`, `ORG`, etc.)
 
-Exemple :
-```bash
-python main.py fichier.docx --log-entities log/entites.csv
-```
+---
 
-Ce fichier contiendra deux colonnes :
-- **Entite** : le texte trouvé dans le document
-- **Label** : son type (ex. `PER`, `LOC`, `ORG`, etc.)
+## 🔧 Types d'entités disponibles
 
-
-## 🔧 Choix des entités à anonymiser
-
-Par défaut, le script anonymise toutes les entités détectées par spaCy.  
-Vous pouvez filtrer les types d'entités que vous souhaitez anonymiser à l'aide de l'option `--entities`.
-
-**Exemple : anonymiser uniquement les personnes (PER) et les organisations (ORG)**
-
-```bash
-python main.py mon_fichier.docx --entities PER ORG
-```
-
-### Types d'entités courants (`fr_core_news_md`) :
-- `PER` : Personnes (noms, prénoms)
+Dépend du modèle spaCy `fr_core_news_md`. Exemples courants :
+- `PER` : Personnes
 - `LOC` : Lieux
 - `ORG` : Organisations
 - `DATE` : Dates
-- `MISC` : Autres entités diverses
+- `MISC` : Divers
 
 ---
 
+## 🧠 Remplacement via positions précises (prototype)
+
+Pour éviter les collisions ou erreurs, l’algorithme utilise désormais les **positions (`start_char`, `end_char`)** des entités dans le texte.  
+Cela garantit une anonymisation plus fiable, notamment dans les `.txt` et `.csv`.
 
 ---
 
-## 🧠 Remplacement robuste via position des entités
+## 🖥️ Utilisation GUI (anonyfiles-gui)
 
-Par défaut, les remplacements dans les fichiers texte se faisaient par correspondance directe de chaînes.  
-Cela peut poser problème si le mot apparaît en plusieurs endroits ou est contenu dans d'autres mots.
+### Prérequis :
+- Node.js (18+)
+- Rust (via `rustup`)
+- Tauri CLI : `npm install -g @tauri-apps/cli`
 
-Une approche plus robuste consiste à utiliser les **positions exactes** des entités (`start_char`, `end_char`)  
-retournées par spaCy pour reconstruire le texte en injectant précisément les remplacements.
+### Lancer l'interface :
+```bash
+cd anonyfiles-gui
+npm install
+npm run tauri dev
+```
 
-✅ Cela permet :
-- D’éviter les collisions (ex : remplacer « Jean » dans « Jean-Michel »)
-- De garantir que seule l’entité détectée est anonymisée
-- Une future adaptation facile pour les formats comme `.txt` ou `.csv`
-
-Cette méthode est désormais utilisée dans notre prototype de remplacement par position.
-
+---
 
 ## 🚧 Roadmap
 
-- [x] Support des fichiers `.docx` / `.xlsx`
-- [x] Support des fichiers `.csv` / `.txt`
-- [x] Log CSV des entités détectées
-- [x] Sélection dynamique des types d'entités à anonymiser
-- [ ] Remplacement plus robuste via indexation de positions
-- [ ] Interface utilisateur (GUI)
+- [x] Support `.docx`, `.xlsx`, `.csv`, `.txt`
+- [x] Sélection dynamique des entités
+- [x] Export CSV des entités détectées
+- [x] Interface GUI avec Tauri (v2)
+- [ ] Drag & Drop dans l’interface
 - [ ] Traitement en batch
-
----
-
-## 📦 Installation
-
-```bash
-pip install -r requirements.txt
-python -m spacy download fr_core_news_md
-```
+- [ ] Packaging multiplateforme (Windows/macOS/Linux)
 
 ---
 
