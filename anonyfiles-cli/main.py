@@ -9,9 +9,10 @@ import importlib.metadata
 import re # Import the 're' module
 
 from anonymizer.spacy_engine import SpaCyEngine, EMAIL_REGEX # Import SpaCyEngine and EMAIL_REGEX
+# Import the modified word_processor
 from anonymizer.word_processor import extract_text_from_docx, replace_entities_in_docx
 from anonymizer.excel_processor import extract_text_from_excel, replace_entities_in_excel
-# Import the modified txt_processor which uses positional replacement
+# Import the modified txt_processor
 from anonymizer.txt_processor import extract_text_from_txt, replace_entities_in_txt
 from anonymizer.csv_processor import extract_text_from_csv, replace_entities_in_csv
 from anonymizer.replacer import generate_replacements
@@ -82,42 +83,80 @@ def anonymize(
     # Extraction du texte et détection des entités avec et sans offsets
     texts: List[str] = []
     all_entities_for_replacement_generation = [] # For global replacement generation (text, label)
-    entities_per_block_with_offsets = [] # For positional replacement (text, label, start, end)
+    entities_per_block_with_offsets = [] # For positional replacement (text, label, start, end) - each entry is a list for a block
 
     if ext == ".docx":
         typer.echo("Traitement Word (.docx)")
-        texts = extract_text_from_docx(input_path)
-        # For DOCX, need to detect entities per paragraph with offsets later
-        # and add (text, label) to all_entities_for_replacement_generation
-        # For now, placeholder:
-        entities_per_block_with_offsets = [[] for _ in texts] # Placeholder for now
+        # Extraire le texte paragraphe par paragraphe
+        paragraph_texts = extract_text_from_docx(input_path)
+        texts = paragraph_texts # Conserver la liste des textes de paragraphe
+
+        # --- Detect entities *with offsets* for EACH paragraph ---
+        for p_text in paragraph_texts:
+            if p_text.strip():
+                 doc = engine.nlp(p_text)
+                 # Store entities with offsets for this paragraph
+                 block_entities_with_offsets = [(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents]
+                 entities_per_block_with_offsets.append(block_entities_with_offsets)
+
+                 # --- Also collect entities (without offsets) for global replacement generation ---
+                 # Include SpaCy entities from this paragraph
+                 all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
+                 # Include EMAIL entities detected by regex from this paragraph
+                 email_matches = re.findall(EMAIL_REGEX, p_text)
+                 all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
+            else:
+                 # Si le paragraphe est vide, ajouter une liste vide d'entités pour maintenir la correspondance paragraphe-entités
+                 entities_per_block_with_offsets.append([])
+
 
     elif ext == ".xlsx":
         typer.echo("Traitement Excel (.xlsx)")
         texts = extract_text_from_excel(input_path)
         # For XLSX, need to detect entities per cell with offsets later
-        # For now, placeholder:
-        entities_per_block_with_offsets = [[] for _ in texts] # Placeholder for now
+        # and add to both entity lists.
+        # Placeholder for now:
+        for cell_text in texts:
+             if isinstance(cell_text, str) and cell_text.strip():
+                  doc = engine.nlp(cell_text)
+                  # Placeholder: in a real implementation, we'd need cell-level offsets
+                  entities_per_block_with_offsets.append([(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents])
+                  all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
+                  email_matches = re.findall(EMAIL_REGEX, cell_text)
+                  all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
+             else:
+                  entities_per_block_with_offsets.append([]) # Placeholder
 
 
     elif ext == ".csv":
         typer.echo("Traitement CSV (.csv)")
         texts = extract_text_from_csv(input_path)
          # For CSV, need to detect entities per cell with offsets later
-         # For now, placeholder:
-        entities_per_block_with_offsets = [[] for _ in texts] # Placeholder for now
+         # and add to both entity lists.
+         # Placeholder for now:
+        for cell_text in texts:
+             if isinstance(cell_text, str) and cell_text.strip():
+                  doc = engine.nlp(cell_text)
+                   # Placeholder: in a real implementation, we'd need cell-level offsets
+                  entities_per_block_with_offsets.append([(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents])
+                  all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
+                  email_matches = re.findall(EMAIL_REGEX, cell_text)
+                  all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
+             else:
+                  entities_per_block_with_offsets.append([]) # Placeholder
+
 
     elif ext == ".txt":
         typer.echo("Traitement TXT (.txt)")
         text_content = extract_text_from_txt(input_path)
-        texts = [text_content] # Store the text in a list
+        texts = [text_content] # Store the text in a list (single block)
 
         # --- Detect entities *with offsets* for the TXT block ---
         if text_content.strip():
              doc = engine.nlp(text_content)
-             # Store entities with offsets for positional replacement
+             # Store entities with offsets for positional replacement (for the single TXT block)
              block_entities_with_offsets = [(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents]
-             entities_per_block_with_offsets.append(block_entities_with_offsets)
+             entities_per_block_with_offsets.append(block_entities_with_offsets) # Append as a list for consistency
 
              # --- Also collect entities (without offsets) for global replacement generation ---
              # Include SpaCy entities
@@ -129,23 +168,11 @@ def anonymize(
         else:
              entities_per_block_with_offsets.append([]) # Empty block, no entities
 
+
     else: # Type de fichier non supporté
         typer.secho(f"Type de fichier non supporté : {ext}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
-
-    # --- Collect all entities (without offsets) for *global* replacement generation for other file types ---
-    # This loop is needed if we process other file types. For TXT, we already collected above.
-    # If we were to fully refactor using collect_and_anonymize_text_blocks, this section would change.
-    # Leaving it here for now as a placeholder for other file types.
-    # if ext != ".txt":
-    #     for block in texts: # texts already populated for other types
-    #         if isinstance(block, str) and block.strip():
-    #              doc = engine.nlp(block)
-    #              all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
-    #              email_matches = re.findall(EMAIL_REGEX, block)
-    #              all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
-    #              # Note: For other file types, entities_per_block_with_offsets is still empty lists here.
 
     # --- Filtering entities based on selected types ---
     if entities:
@@ -160,6 +187,7 @@ def anonymize(
         return
 
     # --- Generate *global* replacements based on unique filtered entities ---
+    # Use the collected entities (without offsets) for global replacement generation
     unique_entities = list(set(all_entities_for_replacement_generation))
     typer.echo(f"Entités uniques détectées: {unique_entities}")
 
@@ -187,21 +215,31 @@ def anonymize(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if ext == ".docx":
-        # This part still uses the old replacement logic - needs update
-        replace_entities_in_docx(input_path, output_path, replacements)
+        typer.echo("Application remplacement positionnel Word (.docx)")
+        # Apply positional replacement for the DOCX file
+        # Pass the input path, output path, global replacements,
+        # and the list of entity lists with offsets (one list per paragraph)
+        if texts: # Ensure there are paragraphs
+             replace_entities_in_docx(input_path, output_path, replacements, entities_per_block_with_offsets)
+        else: # If the DOCX file was empty, copy the empty file (or create an empty docx, safer)
+             Document().save(output_path)
+
+
     elif ext == ".xlsx":
-        # This part still uses the old replacement logic - needs update
+        typer.echo("Application remplacement simple Excel (.xlsx)")
+        # This part still uses the old replacement logic - needs update for positional
         replace_entities_in_excel(input_path, output_path, replacements)
     elif ext == ".csv":
-        # This part still uses the old replacement logic - needs update
+        typer.echo("Application remplacement simple CSV (.csv)")
+        # This part still uses the old replacement logic - needs update for positional
         replace_entities_in_csv(input_path, output_path, replacements)
     elif ext == ".txt":
-        # --- Apply positional replacement for the TXT file ---
-        # We pass the original text content, the global replacements table,
-        # and the entities WITH offsets specific to the TXT block.
+        typer.echo("Application remplacement positionnel TXT (.txt)")
+        # Apply positional replacement for the TXT file
+        # We pass the input path, output path, global replacements table,
+        # and the entities WITH offsets specific to the TXT block (which is the first and unique block).
         if texts and texts[0].strip(): # Ensure there's a non-empty block
-             # Pass the text content directly (texts[0]) as the first arg to apply_positional_replacements
-             # replace_entities_in_txt now handles the file reading/writing
+             # entities_per_block_with_offsets is a list containing one list of entities for the TXT block
              replace_entities_in_txt(input_path, output_path, replacements, entities_per_block_with_offsets[0])
         else: # If the TXT file was empty, just copy the empty file
             with open(input_path, 'r', encoding='utf-8') as fin, \
