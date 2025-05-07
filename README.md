@@ -69,6 +69,7 @@ anonyfiles/
 - 📄 Support des fichiers `.docx`, `.xlsx`, `.csv`, `.txt`
 - 🤖 Détection d'entités nommées (NER) avec spaCy (`fr_core_news_md`)
 - 🧠 Génération automatique de remplacements fictifs avec `Faker`
+- - **Détection et anonymisation des adresses e-mail (`EMAIL`) via regex**
 - 🔐 Remplacement contextuel des noms, lieux, organisations, dates, etc.
 - 📝 Export optionnel des entités détectées (`--log-entities`)
 - 🎯 Filtrage des types d'entités à anonymiser (`--entities`)
