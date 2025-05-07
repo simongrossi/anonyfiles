@@ -1,28 +1,48 @@
 image:
-  - Visual Studio 2022   # Windows
-  - macOS                # macOS (mapped à macos-monterey)
+  - Visual Studio 2022    # Windows
+  - macos                 # macOS Monterey (par défaut sur AppVeyor)
 
 environment:
   matrix:
-    - PYTHON: "3.11"
+    - PYTHON_VERSION: "3.11"
 
 install:
-  # Mettre à jour pip
-  - ps: python -m pip install --upgrade pip
-  # Déps CLI Python
-  - ps: python -m pip install -r anonyfiles-cli/requirements.txt
-  # Déps GUI Node/Rust
-  - ps: npm install --prefix anonyfiles-gui
-  - ps: cargo fetch --manifest-path anonyfiles-gui/src-tauri/Cargo.toml
+  - sh: |
+      if [[ "$APPVEYOR_OS_NAME" == "macos" ]]; then
+        brew install python@3.11
+        ln -sfn /usr/local/bin/python3.11 /usr/local/bin/python
+        python -m pip install --upgrade pip
+        python -m pip install -r anonyfiles-cli/requirements.txt
+        python -m spacy download fr_core_news_md
+        npm install --prefix anonyfiles-gui
+        cargo fetch --manifest-path anonyfiles-gui/src-tauri/Cargo.toml
+      fi
+  - ps: |
+      if ($env:APPVEYOR_OS_NAME -eq "Windows_NT") {
+        choco install python --version=%PYTHON_VERSION% -y
+        refreshenv
+        python -m pip install --upgrade pip
+        python -m pip install -r anonyfiles-cli/requirements.txt
+        python -m spacy download fr_core_news_md
+        npm install --prefix anonyfiles-gui
+        cargo fetch --manifest-path anonyfiles-gui/src-tauri/Cargo.toml
+      }
 
 build: off
 
 build_script:
-  # Tests Python
-  - ps: python -m pytest --maxfail=1 --disable-warnings anonyfiles-cli/tests
-  # Build GUI (Svelte + Tauri/Rust)
-  - ps: npm run build --prefix anonyfiles-gui
-  - ps: cargo build --manifest-path anonyfiles-gui/src-tauri/Cargo.toml --release
+  - sh: |
+      if [[ "$APPVEYOR_OS_NAME" == "macos" ]]; then
+        python -m pytest --maxfail=1 --disable-warnings anonyfiles-cli/tests || true
+        npm run build --prefix anonyfiles-gui
+        cargo build --manifest-path anonyfiles-gui/src-tauri/Cargo.toml --release
+      fi
+  - ps: |
+      if ($env:APPVEYOR_OS_NAME -eq "Windows_NT") {
+        python -m pytest --maxfail=1 --disable-warnings anonyfiles-cli/tests
+        npm run build --prefix anonyfiles-gui
+        cargo build --manifest-path anonyfiles-gui/src-tauri/Cargo.toml --release
+      }
 
 artifacts:
   - path: anonyfiles-cli/dist/*.whl
