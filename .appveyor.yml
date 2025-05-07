@@ -1,41 +1,29 @@
-# 1) Environnements de build (Windows + Linux)
 image:
-  - Visual Studio 2022
-  - Ubuntu
+  - Visual Studio 2022   # Windows
+  - macOS                # macOS (mapped à macos-monterey)
 
-# 2) Matrix Python (facultatif)
 environment:
   matrix:
-    - PYTHON: "3.10"
     - PYTHON: "3.11"
 
-# 3) Installation des dépendances
 install:
-  # → on met à jour pip via python -m pip
-  - ps: python -m pip install --upgrade pip           
-
-  # → puis on installe vos requirements
+  # Mettre à jour pip
+  - ps: python -m pip install --upgrade pip
+  # Déps CLI Python
   - ps: python -m pip install -r anonyfiles-cli/requirements.txt
-
-  # Node.js pour la GUI
+  # Déps GUI Node/Rust
   - ps: npm install --prefix anonyfiles-gui
-
-  # Pré‑téléchargement des crates Rust pour Tauri
   - ps: cargo fetch --manifest-path anonyfiles-gui/src-tauri/Cargo.toml
 
-# 4) Désactivation du mode MSBuild par défaut
 build: off
 
-# 5) Script de build / test
 build_script:
   # Tests Python
   - ps: python -m pytest --maxfail=1 --disable-warnings anonyfiles-cli/tests
-
-  # Build GUI Tauri (Svelte + Rust)
+  # Build GUI (Svelte + Tauri/Rust)
   - ps: npm run build --prefix anonyfiles-gui
   - ps: cargo build --manifest-path anonyfiles-gui/src-tauri/Cargo.toml --release
 
-# 6) Artefacts à collecter
 artifacts:
   - path: anonyfiles-cli/dist/*.whl
   - path: anonyfiles-gui/src-tauri/target/release/*
