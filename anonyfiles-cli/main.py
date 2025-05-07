@@ -8,14 +8,20 @@ from typing import List, Optional
 import importlib.metadata
 import re # Import the 're' module
 
+# Import the modified processor files
 from anonymizer.spacy_engine import SpaCyEngine, EMAIL_REGEX # Import SpaCyEngine and EMAIL_REGEX
-# Import the modified word_processor
 from anonymizer.word_processor import extract_text_from_docx, replace_entities_in_docx
-from anonymizer.excel_processor import extract_text_from_excel, replace_entities_in_excel
-# Import the modified txt_processor
+from anonymizer.excel_processor import extract_text_from_excel, replace_entities_in_excel # Note: replace_entities_in_excel needs modification for positional replacement
 from anonymizer.txt_processor import extract_text_from_txt, replace_entities_in_txt
 from anonymizer.csv_processor import extract_text_from_csv, replace_entities_in_csv
 from anonymizer.replacer import generate_replacements
+
+# Needed for creating empty docx file
+from docx import Document
+
+# Needed for reading xlsx file
+import pandas as pd
+
 
 # CLI App
 app = typer.Typer(help="Anonymise automatiquement des fichiers Word, Excel, CSV et TXT.")
@@ -80,70 +86,101 @@ def anonymize(
         typer.secho(f"Erreur : fichier non trouvé {input_path}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
-    # Extraction du texte et détection des entités avec et sans offsets
-    texts: List[str] = []
+    # --- Extraction du texte et détection des entités avec et sans offsets ---
+    texts: List[str] = [] # Liste plate de tous les textes extraits (pour détection globale)
     all_entities_for_replacement_generation = [] # For global replacement generation (text, label)
-    entities_per_block_with_offsets = [] # For positional replacement (text, label, start, end) - each entry is a list for a block
+    entities_per_block_with_offsets = [] # For positional replacement (text, label, start, end) - each entry is a list for a block (cell, paragraph, etc.)
+
+    # --- Variables pour stocker les données structurées par type de fichier ---
+    original_file_data = None # Pour CSV (liste de listes) ou XLSX (DataFrame)
+
 
     if ext == ".docx":
         typer.echo("Traitement Word (.docx)")
-        # Extraire le texte paragraphe par paragraphe
         paragraph_texts = extract_text_from_docx(input_path)
         texts = paragraph_texts # Conserver la liste des textes de paragraphe
 
-        # --- Detect entities *with offsets* for EACH paragraph ---
+        # --- Detect entities *with offsets* for EACH paragraph (block) ---
         for p_text in paragraph_texts:
             if p_text.strip():
                  doc = engine.nlp(p_text)
-                 # Store entities with offsets for this paragraph
                  block_entities_with_offsets = [(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents]
                  entities_per_block_with_offsets.append(block_entities_with_offsets)
 
                  # --- Also collect entities (without offsets) for global replacement generation ---
-                 # Include SpaCy entities from this paragraph
                  all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
-                 # Include EMAIL entities detected by regex from this paragraph
                  email_matches = re.findall(EMAIL_REGEX, p_text)
                  all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
             else:
-                 # Si le paragraphe est vide, ajouter une liste vide d'entités pour maintenir la correspondance paragraphe-entités
-                 entities_per_block_with_offsets.append([])
+                 entities_per_block_with_offsets.append([]) # Empty paragraph
 
 
     elif ext == ".xlsx":
         typer.echo("Traitement Excel (.xlsx)")
-        texts = extract_text_from_excel(input_path)
-        # For XLSX, need to detect entities per cell with offsets later
-        # and add to both entity lists.
-        # Placeholder for now:
-        for cell_text in texts:
-             if isinstance(cell_text, str) and cell_text.strip():
+        # --- Read Excel data into a pandas DataFrame ---
+        try:
+            df = pd.read_excel(input_path)
+            original_file_data = df # Store the DataFrame
+        except Exception as e:
+            typer.secho(f"Erreur lors de la lecture du fichier Excel : {e}", fg=typer.colors.RED)
+            raise typer.Exit(code=1)
+
+        # --- Iterate through DataFrame cells for detection with offsets and global entity collection ---
+        # Flatten the DataFrame values to iterate through cell texts
+        cell_values = df.values.flatten()
+        # texts will be the list of string representations of cell values for global detection
+        texts = [str(value) if pd.notna(value) else '' for value in cell_values]
+
+        # Iterate through the flat list of cell texts for detection with offsets
+        for cell_text in texts: # This loop iterates over flattened texts from the DataFrame
+             if cell_text.strip():
                   doc = engine.nlp(cell_text)
-                  # Placeholder: in a real implementation, we'd need cell-level offsets
-                  entities_per_block_with_offsets.append([(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents])
+                  # Store entities with offsets for this cell (block)
+                  block_entities_with_offsets = [(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents]
+                  entities_per_block_with_offsets.append(block_entities_with_offsets)
+
+                  # --- Also collect entities (without offsets) for global replacement generation ---
                   all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
                   email_matches = re.findall(EMAIL_REGEX, cell_text)
                   all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
              else:
-                  entities_per_block_with_offsets.append([]) # Placeholder
+                  entities_per_block_with_offsets.append([]) # Empty cell
 
 
     elif ext == ".csv":
         typer.echo("Traitement CSV (.csv)")
-        texts = extract_text_from_csv(input_path)
-         # For CSV, need to detect entities per cell with offsets later
-         # and add to both entity lists.
-         # Placeholder for now:
-        for cell_text in texts:
-             if isinstance(cell_text, str) and cell_text.strip():
-                  doc = engine.nlp(cell_text)
-                   # Placeholder: in a real implementation, we'd need cell-level offsets
-                  entities_per_block_with_offsets.append([(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents])
-                  all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
-                  email_matches = re.findall(EMAIL_REGEX, cell_text)
-                  all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
-             else:
-                  entities_per_block_with_offsets.append([]) # Placeholder
+        # --- Read CSV data into a list of lists ---
+        csv_data = []
+        try:
+            with open(input_path, mode='r', encoding='utf-8') as fin:
+                reader = csv.reader(fin)
+                for row in reader:
+                    original_row = [str(cell) for cell in row] # Ensure cells are strings
+                    csv_data.append(original_row)
+            original_file_data = csv_data # Store the list of lists
+        except Exception as e:
+            typer.secho(f"Erreur lors de la lecture du fichier CSV : {e}", fg=typer.colors.RED)
+            raise typer.Exit(code=1)
+
+
+        # --- Collect cell texts for global detection and detect entities with offsets for EACH cell (block) ---
+        # Iterate through rows and cells of the structured data
+        for row_index, row in enumerate(csv_data):
+            for col_index, cell_text in enumerate(row):
+                texts.append(cell_text) # Add cell text to the flat list for global detection
+
+                if cell_text.strip():
+                    doc = engine.nlp(cell_text)
+                    # Store entities with offsets for this cell (block)
+                    block_entities_with_offsets = [(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents]
+                    entities_per_block_with_offsets.append(block_entities_with_offsets)
+
+                    # --- Also collect entities (without offsets) for global replacement generation ---
+                    all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
+                    email_matches = re.findall(EMAIL_REGEX, cell_text)
+                    all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
+                else:
+                    entities_per_block_with_offsets.append([]) # Empty cell
 
 
     elif ext == ".txt":
@@ -159,22 +196,20 @@ def anonymize(
              entities_per_block_with_offsets.append(block_entities_with_offsets) # Append as a list for consistency
 
              # --- Also collect entities (without offsets) for global replacement generation ---
-             # Include SpaCy entities
              all_entities_for_replacement_generation.extend([(ent.text, ent.label_) for ent in doc.ents])
-             # Include EMAIL entities detected by regex
              email_matches = re.findall(EMAIL_REGEX, text_content)
              all_entities_for_replacement_generation.extend([(email, "EMAIL") for email in email_matches])
 
         else:
-             entities_per_block_with_offsets.append([]) # Empty block, no entities
+             entities_per_block_with_offsets.append([]) # Empty block
 
 
-    else: # Type de fichier non supporté
+    else: # Type de fichier non supporté (should be caught earlier, but good practice)
         typer.secho(f"Type de fichier non supporté : {ext}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
 
-    # --- Filtering entities based on selected types ---
+    # --- Filtering global entities based on selected types ---
     if entities:
         selected = set(entities)
         # Filter the global list of entities before generating replacements
@@ -184,7 +219,11 @@ def anonymize(
 
     if not all_entities_for_replacement_generation:
         typer.echo("Aucune entité détectée selon les critères spécifiés.")
-        return
+        # If no entities detected, the output file should ideally be a copy of the input
+        # However, the current flow exits here, preventing output writing.
+        # This might be acceptable if no anonymization is needed.
+        return # Exit the command if no entities found
+
 
     # --- Generate *global* replacements based on unique filtered entities ---
     # Use the collected entities (without offsets) for global replacement generation
@@ -209,35 +248,47 @@ def anonymize(
 
     if dry_run:
         typer.echo("--dry-run: aucun fichier de sortie généré.")
-        return
+        return # Exit the command if dry_run
+
 
     # --- Application des remplacements ---
+    # Create output directory if it doesn't exist
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if ext == ".docx":
         typer.echo("Application remplacement positionnel Word (.docx)")
-        # Apply positional replacement for the DOCX file
-        # Pass the input path, output path, global replacements,
-        # and the list of entity lists with offsets (one list per paragraph)
-        if texts: # Ensure there are paragraphs
+        if texts: # Ensure there are paragraphs (texts was populated with paragraph_texts)
+             # entities_per_block_with_offsets is a list of lists, one list per paragraph
              replace_entities_in_docx(input_path, output_path, replacements, entities_per_block_with_offsets)
-        else: # If the DOCX file was empty, copy the empty file (or create an empty docx, safer)
+        else: # If the DOCX file was empty, create an empty docx
              Document().save(output_path)
 
 
     elif ext == ".xlsx":
-        typer.echo("Application remplacement simple Excel (.xlsx)")
-        # This part still uses the old replacement logic - needs update for positional
-        replace_entities_in_excel(input_path, output_path, replacements)
+        typer.echo("Application remplacement positionnel Excel (.xlsx)")
+        # --- Apply positional replacement for the XLSX file ---
+        # Call the modified replace_entities_in_excel function
+        if original_file_data is not None: # Ensure DataFrame was populated and stored in original_file_data
+             # entities_per_block_with_offsets contains entities with offsets per cell
+             replace_entities_in_excel(input_path, output_path, replacements, original_file_data, entities_per_block_with_offsets)
+        else: # If the XLSX file was empty, create an empty excel
+             pd.DataFrame().to_excel(output_path, index=False)
+
+
     elif ext == ".csv":
-        typer.echo("Application remplacement simple CSV (.csv)")
-        # This part still uses the old replacement logic - needs update for positional
-        replace_entities_in_csv(input_path, output_path, replacements)
+         typer.echo("Application remplacement positionnel CSV (.csv)")
+         # --- Apply positional replacement for the CSV file ---
+         if original_file_data is not None: # Ensure csv_data was populated and stored in original_file_data
+              # Pass original_file_data (list of lists) and entities_per_block_with_offsets (entities with offsets per cell)
+              replace_entities_in_csv(input_path, output_path, replacements, original_file_data, entities_per_block_with_offsets)
+         else: # If the CSV file was empty, create an empty csv
+             with open(output_path, mode='w', encoding='utf-8', newline='') as fout:
+                 pass
+
+
     elif ext == ".txt":
         typer.echo("Application remplacement positionnel TXT (.txt)")
-        # Apply positional replacement for the TXT file
-        # We pass the input path, output path, global replacements table,
-        # and the entities WITH offsets specific to the TXT block (which is the first and unique block).
+        # Apply positional replacement for the TXT file (already implemented)
         if texts and texts[0].strip(): # Ensure there's a non-empty block
              # entities_per_block_with_offsets is a list containing one list of entities for the TXT block
              replace_entities_in_txt(input_path, output_path, replacements, entities_per_block_with_offsets[0])
@@ -245,6 +296,11 @@ def anonymize(
             with open(input_path, 'r', encoding='utf-8') as fin, \
                  open(output_path, 'w', encoding='utf-8') as fout:
                  fout.write(fin.read())
+
+
+    else: # This else block should technically not be reached due to the checks above, but kept for completeness
+        typer.secho(f"Erreur interne: Type de fichier inattendu ({ext}).", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
 
 
     typer.secho(f"✅ Anonymisation terminée: {output_path}", fg=typer.colors.GREEN)
