@@ -1,194 +1,293 @@
-# 🕵️ anonyfiles
 
-**anonyfiles** est un outil open source d’anonymisation de documents basé sur `spaCy`.  
-Il se décline en deux interfaces complémentaires :
+# 🕵️‍♂️ anonyfiles-cli
 
-- 🖥️ `anonyfiles-gui` : une interface graphique moderne avec Tauri + Svelte.
-- 💻 `anonyfiles-cli` : une ligne de commande Python robuste.
+**anonyfiles-cli** est un outil open source d’anonymisation et de pseudonymisation automatique de documents, en ligne de commande, basé sur **spaCy** et **Faker**, avec une interface GUI en cours de développement.
 
 ---
 
-## ⚠️ Statut du projet
+## 📌 Sommaire
 
-**anonyfiles est actuellement en phase de test.**  
-Des bugs peuvent subsister et certaines fonctionnalités sont encore en cours de validation ou d'amélioration.  
-Merci de faire preuve de vigilance et de ne pas l’utiliser sur des documents sensibles en production sans vérification.
+- [🎯 Objectif](#-objectif)
+- [🚀 Fonctionnalités](#-fonctionnalités)
+- [💻 Prérequis](#-prérequis)
+- [⚙️ Installation](#-installation)
+- [🛠️ Configuration](#️-configuration)
+- [💡 Utilisation](#-utilisation)
+  - [CLI](#cli)
+  - [GUI (alpha)](#gui-alpha)
+- [🔍 Entités supportées](#-entités-supportées)
+- [📊 Exemples avancés](#-exemples-avancés)
+- [❗ Limitations](#-limitations)
+- [📂 Structure du projet](#-structure-du-projet)
+- [🤝 Contribution](#-contribution)
+- [📝 Changelog](#-changelog)
+- [🛡️ Licence](#️-licence)
+
+---
+
+## 🎯 Objectif
+
+Fournir un pipeline fiable pour anonymiser automatiquement des documents `.docx`, `.xlsx`, `.csv`, `.txt` en remplaçant les entités sensibles (noms, lieux, dates, emails...) tout en respectant leur position dans le texte.
+
+---
+
+## 🚀 Fonctionnalités
+
+| Fonction                 | Description |
+|--------------------------|-------------|
+| **Formats supportés**    | `.docx`, `.xlsx`, `.csv`, `.txt` |
+| **NER spaCy**            | `PER`, `LOC`, `ORG`, `DATE`, `MISC` |
+| **Détection e-mails**    | Via regex robuste |
+| **Remplacement précis**  | Basé sur `start_char` / `end_char` pour éviter les erreurs |
+| **Données factices**     | Faker `fr_FR` pour noms, lieux, dates, emails |
+| **Filtrage d'entités**   | `--entities PER,LOC,EMAIL,...` |
+| **Mode audit**           | `--dry-run` sans écriture |
+| **Export d'entités**     | CSV/JSON via `--log-entities` |
+| **GUI (alpha)**          | Interface simple multiplateforme |
+
+---
+
+## 💻 Prérequis
+
+- Python ≥ 3.8 (recommandé : 3.11)
+- pip
+- Git
+- Environnement virtuel (optionnel mais recommandé)
+
+---
+
+## ⚙️ Installation
+
+```bash
+git clone https://github.com/votre-orga/anonyfiles-cli.git
+cd anonyfiles-cli
+
+python3.11 -m venv .venv
+source .venv/bin/activate     # macOS/Linux
+.\.venv\Scriptsctivate      # Windows
+
+pip install -r requirements.txt
+python -m spacy download fr_core_news_md
+```
+
+Pour utiliser la GUI :
+
+```bash
+pip install -r requirements-gui.txt
+```
+
+---
+
+## 🛠️ Configuration
+
+Créez un fichier `config.yaml` :
+
+```yaml
+spacy_model: fr_core_news_md
+entities:
+  - PER
+  - LOC
+  - ORG
+  - DATE
+  - EMAIL
+output_dir: output_files
+fake_data: true
+log:
+  format: csv
+  path: log/entities.csv
+```
+
+---
+
+## 💡 Utilisation
+
+### CLI
+
+```bash
+python main.py anonymize <INPUT_FILE> [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output` | Chemin du fichier de sortie |
+| `-e, --entities` | Types d'entités à anonymiser |
+| `-l, --log-entities` | Fichier CSV/JSON d'entités |
+| `-n, --dry-run` | Pas d’écriture, juste analyse |
+| `--fake-data / --redact` | Remplacer par Faker ou `[REDACTED]` |
+| `--verbose` | Mode verbeux |
+| `--gui` | Lancer l'interface graphique |
+
+### GUI (alpha)
+
+```bash
+python main.py --gui
+```
+
+Dev (React + Tailwind + Rust Tauri) :
+
+```bash
+cd gui
+npm install
+npm run dev
+```
+
+Build final :
+
+```bash
+npm run build && tauri build
+```
+
+---
+
+## 🔍 Entités supportées
+
+| Code | Description | Source |
+|------|-------------|--------|
+| PER | Personne     | spaCy |
+| LOC | Lieu         | spaCy |
+| ORG | Organisation | spaCy |
+| DATE| Date         | spaCy |
+| MISC| Divers       | spaCy |
+| EMAIL| Adresse mail| Regex |
+
+---
+
+## 📊 Exemples avancés
+
+Lister les entités d’un modèle :
+
+```bash
+python main.py list-entities --model fr_core_news_md
+```
+
+Tester sans modifier les fichiers :
+
+```bash
+python main.py anonymize mon.docx --dry-run
+```
+
+Anonymiser un fichier TXT :
+
+```bash
+python main.py anonymize input.txt -e PER EMAIL --log-entities entites.csv
+```
+
+---
+
+## ❗ Limitations
+
+- Le formatage complexe `.docx` (gras, couleurs) est supprimé lors du remplacement.
+- Certaines entités peuvent ne pas être détectées si mal orthographiées ou contextuelles.
+- Pas encore de traitement batch natif ni de gestion PDF.
+
+---
+
+## 📂 Structure du projet
+
+```
+anonyfiles-cli/
+├── main.py
+├── requirements.txt
+├── config.yaml.sample
+├── anonymizer/
+│   ├── anonymizer_core.py
+│   ├── spacy_engine.py
+│   ├── replacer.py
+│   ├── word_processor.py
+│   ├── excel_processor.py
+│   ├── csv_processor.py
+│   └── txt_processor.py
+├── input_files/
+├── output_files/
+├── log/
+└── gui/
+    ├── src/
+    ├── tauri.conf.json
+    └── assets/
+```
+
+---
+
+## 🤝 Contribution
+
+1. Fork du repo
+2. Créer une branche `feature/x`
+3. Ajouter vos tests
+4. Proposer une PR
+
+---
+
+## 📝 Changelog
+
+- **v1.2.0** (2025‑05‑07) – GUI alpha, support YAML
+- **v1.1.0** (2025‑04‑20) – Améliorations Excel/CSV
+- **v1.0.0** (2025‑04‑10) – Release initiale
+
+---
+
+## 🛡️ Licence
+
+MIT © 2025 Simon Grossi
+
+---
+
+## 🧭 Feuille de route (Roadmap)
+
+### Phase 1 : Flexibilité et Robustesse de Base
+- ✅ Gestion de la configuration via fichier YAML (modèle, entités, options)
+- 🔜 Paramétrage de la stratégie de remplacement (`fake` vs `[REDACTED]`) dans `config.yaml`
+- 🔜 Messages d’erreur plus clairs et journalisation améliorée (INFO, DEBUG, ERROR)
+
+### Phase 2 : Qualité et Précision de la Sortie
+- 🔜 Préservation du formatage des fichiers `.docx` (gras, couleurs, etc.)
+- 🔜 Priorisation des entités détectées multiples (ex. EMAIL vs LOC)
+- 🔜 Détection améliorée pour d’autres entités comme les numéros de téléphone
+
+### Phase 3 : Performance et Scalabilité
+- 🔜 Traitement mémoire efficace pour fichiers TXT et CSV (streaming/chunking)
+- 🔜 Amélioration de la gestion de fichiers Excel/Word volumineux
+
+### Phase 4 : Extension et Fonctionnalités Avancées
+- 🔜 Refactorisation du cœur (`main.py` et `anonymizer_core.py`)
+- 🔜 Support de nouveaux formats : PDF, JSON, XML
+- 🔜 Stratégies d’anonymisation personnalisées (via config ou plugins Python)
+
+### Phase 5 : Expérience Utilisateur
+- 🔜 Barres de progression en CLI
+- 🔜 Interface GUI complète (glisser-déposer, sélection entités, logs visuels)
+- 🔜 Documentation complète via Sphinx ou MkDocs
+
 
 ---
 
 ## 🗂️ Détail de la structure du projet
 
 ```
-anonyfiles/
-├── anonyfiles-cli/      ← Interface en ligne de commande (CLI)
-│   │   Ce dossier contient le code source de l'interface en ligne de commande, écrite en Python.
-│   │   Il inclut les scripts pour l'anonymisation des différents types de fichiers (.docx, .xlsx, .csv, .txt) ainsi que les modules de traitement du texte et de remplacement des entités.
-│   │
-│   ├── anonymizer/    ← Modules d'anonymisation
-│   │   │   Ce dossier contient les différents modules et classes nécessaires à l'anonymisation du texte.
-│   │   │
-│   │   │   ├── anonymizer_core.py  ← Logique principale de l'anonymisation
-│   │   │   ├── csv_processor.py    ← Traitement des fichiers CSV
-│   │   │   ├── excel_processor.py  ← Traitement des fichiers Excel
-│   │   │   ├── replacer.py         ← Génération des remplacements
-│   │   │   ├── spacy_engine.py     ← Moteur spaCy pour la détection des entités
-│   │   │   ├── txt_processor.py    ← Traitement des fichiers TXT
-│   │   │   └── word_processor.py   ← Traitement des fichiers Word
-│   │
-│   ├── input_files/   ← Fichiers d'entrée de test
-│   ├── log/           ← Fichiers de log (si optionnel)
-│   ├── main.py        ← Script principal de la CLI
-│   └── requirements.txt ← Dépendances Python
-│
-├── anonyfiles-gui/      ← Interface graphique (GUI)
-│   │   Ce dossier contient le code source de l'interface graphique, développée avec Tauri (Rust) et Svelte (JavaScript).
-│   │   Il inclut les fichiers de l'interface utilisateur, la logique de l'application et la configuration de Tauri.
-│
-│   ├── public/       ← Assets statiques (HTML, etc.)
-│   ├── src/          ← Code source Svelte
-│   ├── src-tauri/    ← Code source et configuration Tauri (Rust)
-│   │   │   ├── capabilities/  ← Permissions de l'application
-│   │   │   ├── src/           ← Code Rust de Tauri
-│   │   │   ├── tauri.conf.json ← Configuration de Tauri
-│   │   │   └── vite.config.ts  ← Configuration de Vite
-│
-│   ├── index.html    ← Page HTML principale
-│   ├── package.json  ← Dépendances et scripts Node.js
-│   ├── package-lock.json
-│   ├── README.md
-│   └── tsconfig.json  ← Configuration TypeScript
-│
-├── README.md         ← Documentation principale
-└── LICENSE           ← Licence du projet
+anonyfiles-cli/
+├── main.py                   # Point d'entrée CLI (typer)
+├── requirements.txt          # Dépendances de base
+├── requirements-gui.txt      # Dépendances GUI (React/Tauri)
+├── config.yaml.sample        # Exemple de configuration
+├── input_files/              # Fichiers à anonymiser
+├── output_files/             # Résultats anonymisés
+├── log/                      # Dossiers de logs d’entités
+├── anonymizer/               # Cœur du traitement d’anonymisation
+│   ├── anonymizer_core.py    # Fonctions de détection/remplacement avec offsets
+│   ├── spacy_engine.py       # Initialisation SpaCy + détection + regex e-mails
+│   ├── replacer.py           # Génération des remplacements avec Faker
+│   ├── word_processor.py     # Traitement des fichiers Word (.docx)
+│   ├── excel_processor.py    # Traitement des fichiers Excel (.xlsx)
+│   ├── csv_processor.py      # Traitement des fichiers CSV (.csv)
+│   └── txt_processor.py      # Traitement des fichiers texte (.txt)
+└── gui/                      # Interface graphique (alpha)
+    ├── src/                  # Code frontend (React/Tailwind ou Svelte)
+    ├── tauri.conf.json       # Config Tauri
+    └── assets/               # Ressources statiques (logos, styles, etc.)
 ```
 
----
+Chaque module `*_processor.py` contient :
+- Une fonction d’extraction de texte brut (pour analyse SpaCy).
+- Une fonction de remplacement positionnel dans le fichier original.
 
-## ⚙️ Fonctionnalités principales
+`main.py` orchestre tout : lecture, détection, filtrage, remplacement, export.
 
-- 📄 Support des fichiers `.docx`, `.xlsx`, `.csv`, `.txt`
-- 🤖 Détection d'entités nommées (NER) avec spaCy (`fr_core_news_md`)
-- 🧠 Génération automatique de remplacements fictifs avec `Faker`
-- - **Détection et anonymisation des adresses e-mail (`EMAIL`) via regex**
-- 🔐 Remplacement contextuel des noms, lieux, organisations, dates, etc.
-- 📝 Export optionnel des entités détectées (`--log-entities`)
-- 🎯 Filtrage des types d'entités à anonymiser (`--entities`)
-- 📂 Traitement ligne par ligne ou global selon le format
-- 💾 Fichiers de sortie conservant l'intégrité de la structure
-
----
-
-## 🚀 Utilisation CLI (`anonyfiles-cli`)
-
-### 📦 Installation
-
-```bash
-cd anonyfiles-cli
-pip install -r requirements.txt
-python -m spacy download fr_core_news_md
-```
-
-### ▶️ Exemples
-
-#### Anonymisation d’un document :
-
-```bash
-python main.py input_files/mon_fichier.docx
-```
-
-#### Avec export des entités détectées :
-
-```bash
-python main.py mon_fichier.docx --log-entities log/entites.csv
-```
-
-#### Avec filtrage des types d’entités :
-
-```bash
-python main.py mon_fichier.docx --entities PER ORG
-```
-
----
-
-## 📝 Export CSV des entités détectées
-
-Le fichier CSV généré avec `--log-entities` contiendra :
-
-- **Entite** : le texte trouvé
-- **Label** : son type (`PER`, `LOC`, `ORG`, etc.)
-
----
-
-## 🔧 Types d'entités disponibles
-
-Les entités dépendent du modèle spaCy `fr_core_news_md`. Exemples courants :
-
-- `PER` : Personnes
-- `LOC` : Lieux
-- `ORG` : Organisations
-- `DATE` : Dates
-- `MISC` : Divers
-
----
-
-## 🧠 Remplacement via positions précises (prototype)
-
-Pour éviter les collisions ou erreurs, l’algorithme utilise désormais les positions (`start_char`, `end_char`) des entités.  
-Cela garantit une anonymisation plus fiable, notamment pour les fichiers `.txt` et `.csv`.
-
----
-
-## 🖥️ Interface graphique (`anonyfiles-gui`) – 🚧 En Cours de Développement
-
-L'interface graphique basée sur Tauri (Rust) et Svelte (JavaScript) est désormais capable de se lancer.
-
-Les problèmes de lancement initiaux (échec de build, erreurs de chargement JS/CSS, connexion Vite) qui bloquaient le démarrage sont maintenant résolus.  
-L'application ouvre sa fenêtre et affiche l'interface frontend.
-
-Certaines fonctionnalités, comme le glisser-déposer pour l'upload de fichiers et l'intégration complète avec le backend d'anonymisation (`anonyfiles-cli`), sont toujours en cours de développement et de stabilisation.
-
-### 🔧 Prérequis techniques (pour développer la GUI)
-
-- Node.js (≥18)
-- Rust (via `rustup`)
-- Tauri CLI :
-
-```bash
-npm install -g @tauri-apps/cli
-```
-
-### 🚀 Commandes de développement
-
-Une fois dans le répertoire `anonyfiles-gui` qui contient le `package.json` et le dossier `src-tauri`  
-(vérifiez votre arborescence, il pourrait y avoir un sous-dossier imbriqué), vous pouvez lancer l'application en mode développement :
-
-```bash
-cd anonyfiles-gui  # Assurez-vous d'être dans le bon dossier
-npm install        # Si ce n'est pas déjà fait
-npm run tauri dev
-```
-
-L'application devrait maintenant s'ouvrir dans une fenêtre native.
-
-### 🤝 Appel à contribution
-
-Si vous maîtrisez Svelte, Vite ou Tauri et souhaitez aider à implémenter les fonctionnalités restantes  
-(glisser-déposer avancé, interface de réglages, communication inter-processus avec le backend Python, etc.), toute contribution est la bienvenue ! 🙏
-
----
-
-## 🚧 Roadmap
-
-- [x] Support `.docx`, `.xlsx`, `.csv`, `.txt`
-- [x] Sélection dynamique des entités
-- [x] Export CSV des entités détectées
-- [x] Interface GUI avec Tauri (v2)
-- [ ] Drag & Drop dans l’interface
-- [ ] Traitement en batch
-- [ ] Packaging multiplateforme (Windows/macOS/Linux)
-
----
-
-## 🛡️ Licence
-
-MIT – Simon Grossi
