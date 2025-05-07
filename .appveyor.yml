@@ -1,1 +1,43 @@
+# 1) Choix des images (Windows + Linux)
+image:
+  - Visual Studio 2022
+  - Ubuntu
+
+# 2) Matrix Python (facultatif si vous ne voulez qu'une seule version)
+environment:
+  matrix:
+    - PYTHON: "3.10"
+    - PYTHON: "3.11"
+
+# 3) Installation des dépendances
+install:
+  # Installer les dépendances Python de votre CLI
+  - pip install --upgrade pip
+  - pip install -r anonyfiles-cli/requirements.txt
+
+  # Installer les dépendances Node.js pour la GUI
+  - ps: npm install --prefix anonyfiles-gui
+
+  # Préparer Rust (Tauri)
+  - ps: cargo fetch --manifest-path anonyfiles-gui/src-tauri/Cargo.toml
+
+# 4) Désactivation MSBuild
 build: off
+
+# 5) Votre script de build / test
+build_script:
+  # 5.1 Lancer les tests Python
+  - pytest --maxfail=1 --disable-warnings anonyfiles-cli/tests
+
+  # 5.2 Builder la GUI Tauri
+  # (cette commande génère le front Svelte + empaquette Rust)
+  - ps: npm run build --prefix anonyfiles-gui
+  - ps: cargo build --manifest-path anonyfiles-gui/src-tauri/Cargo.toml --release
+
+# 6) Collecte des artefacts à publier
+artifacts:
+  # La wheel Python générée
+  - path: anonyfiles-cli/dist/*.whl
+
+  # Les binaires GUI (Windows exe, Linux AppImage…)
+  - path: anonyfiles-gui/src-tauri/target/release/*
