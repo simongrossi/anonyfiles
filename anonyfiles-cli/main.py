@@ -1,7 +1,10 @@
-# main.py
+import typer
 import os
-import argparse
 import csv
+import logging
+from pathlib import Path
+from typing import List, Optional
+import importlib.metadata
 
 from anonymizer.spacy_engine import SpaCyEngine
 from anonymizer.word_processor import extract_text_from_docx, replace_entities_in_docx
@@ -10,92 +13,130 @@ from anonymizer.csv_processor import extract_text_from_csv, replace_entities_in_
 from anonymizer.txt_processor import extract_text_from_txt, replace_entities_in_txt
 from anonymizer.replacer import generate_replacements
 
-parser = argparse.ArgumentParser(description="Anonymise automatiquement des fichiers Word, Excel, CSV et TXT.")
-parser.add_argument("input_filename", help="Nom du fichier à anonymiser (dans le dossier input_files/).")
-parser.add_argument("--log-entities", help="Chemin du fichier CSV pour exporter les entités détectées (optionnel).", default=None)
-parser.add_argument("--entities", nargs='+', help="Liste des types d'entités à anonymiser (ex: PER LOC ORG DATE EMAIL). Par défaut : toutes.", default=None)
+# CLI App
+app = typer.Typer(help="Anonymise automatiquement des fichiers Word, Excel, CSV et TXT.")
+__version__ = importlib.metadata.version("anonyfiles")
 
-args = parser.parse_args()
+# Configure logging
+logger = logging.getLogger("anonyfiles")
 
-input_filename = args.input_filename
-input_path = os.path.join("input_files", input_filename)
-output_filename = f"{os.path.splitext(input_filename)[0]}_anonymise{os.path.splitext(input_filename)[1]}"
-output_path = os.path.join("output_files", output_filename)
-file_extension = os.path.splitext(input_filename)[1].lower()
 
-entities = []
-engine = SpaCyEngine()
+def setup_logging(verbose: bool):
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=level)
 
-try:
-    if not os.path.exists(input_path):
-        print(f"Erreur : Le fichier d'entrée n'existe pas à l'emplacement {input_path}")
+
+@app.callback()
+def main(
+    version: Optional[bool] = typer.Option(
+        None, "--version", "-v", help="Afficher la version et quitter.")
+):
+    """CLI d'anonymisation de documents avec anonyfiles."""
+    if version:
+        typer.echo(f"anonyfiles version {__version__}")
+        raise typer.Exit()
+
+
+@app.command("anonymize")
+def anonymize(
+    input_filename: Path = typer.Argument(..., exists=True, file_okay=True, readable=True, help="Fichier à anonymiser (dans input_files/)") ,
+    output_filename: Optional[Path] = typer.Option(None, "-o", "--output", help="Chemin de sortie (par défaut output_files/)") ,
+    entities: List[str] = typer.Option([], "-e", "--entities", help="Types d'entités à anonymiser (ex: PER LOC ORG DATE EMAIL). Toutes si vide."),
+    log_entities: Optional[Path] = typer.Option(None, "-l", "--log-entities", help="Exporter les entités détectées vers un fichier CSV."),
+    dry_run: bool = typer.Option(False, "-n", "--dry-run", help="Simule sans écrire de fichier."),
+    verbose: bool = typer.Option(False, "--verbose", help="Mode verbeux (debug).")
+):
+    """Anonymise le fichier spécifié."""
+    setup_logging(verbose)
+    engine = SpaCyEngine()
+
+    input_path = Path("input_files") / input_filename
+    ext = input_filename.suffix.lower()
+    output_path = output_filename or (Path("output_files") / f"{input_filename.stem}_anonymise{ext}")
+
+    typer.echo(f"🔍 Lecture de : {input_path}")
+    if not input_path.exists():
+        typer.secho(f"Erreur : fichier non trouvé {input_path}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    # Extraction du texte
+    texts: List[str] = []
+    if ext == ".docx":
+        typer.echo("Traitement Word (.docx)")
+        texts = extract_text_from_docx(input_path)
+    elif ext == ".xlsx":
+        typer.echo("Traitement Excel (.xlsx)")
+        texts = extract_text_from_excel(input_path)
+    elif ext == ".csv":
+        typer.echo("Traitement CSV (.csv)")
+        texts = extract_text_from_csv(input_path)
+    elif ext == ".txt":
+        typer.echo("Traitement TXT (.txt)")
+        texts = [extract_text_from_txt(input_path)]
     else:
-        # --- Extraction du texte selon le type de fichier ---
-        if file_extension == ".docx":
-            print(f"Traitement du fichier Word : {input_filename}")
-            paragraphs = extract_text_from_docx(input_path)
-            for p in paragraphs:
-                entities.extend(engine.detect_entities(p))
+        typer.secho(f"Type de fichier non supporté : {ext}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
 
-        elif file_extension == ".xlsx":
-            print(f"Traitement du fichier Excel : {input_filename}")
-            text = extract_text_from_excel(input_path)
-            entities.extend(engine.detect_entities("\n".join(text)))
+    # Détection
+    all_entities = []
+    for block in texts:
+        ents = engine.detect_entities(block)
+        all_entities.extend(ents)
+    
+    # Filtrage
+    if entities:
+        selected = set(entities)
+        all_entities = [(t, l) for t, l in all_entities if l in selected]
+        typer.echo(f"Entités filtrées : {selected}")
 
-        elif file_extension == ".csv":
-            print(f"Traitement du fichier CSV : {input_filename}")
-            text = extract_text_from_csv(input_path)
-            entities.extend(engine.detect_entities("\n".join(text)))
+    # Export log entités
+    if log_entities and all_entities:
+        log_path = Path("log") / log_entities
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Entite", "Label"])
+            for t, l in all_entities:
+                writer.writerow([t, l])
+        typer.echo(f"✅ Entités exportées vers {log_path}")
 
-        elif file_extension == ".txt":
-            print(f"Traitement du fichier TXT : {input_filename}")
-            text = extract_text_from_txt(input_path)
-            entities.extend(engine.detect_entities(text))
+    if not all_entities:
+        typer.echo("Aucune entité détectée.")
+        raise typer.Exit()
 
-        else:
-            print(f"Erreur : Type de fichier non supporté : {file_extension}")
-            entities = []
+    typer.echo(f"Entités détectées: {all_entities}")
+    replacements = generate_replacements(all_entities)
+    typer.echo(f"Remplacements générés: {replacements}")
 
-        # --- Filtrage des entités si demandé ---
-        if args.entities:
-            selected_labels = set(args.entities)
-            print(f"Filtrage des entités avec les types : {selected_labels}")
-            entities = [(text, label) for text, label in entities if label in selected_labels]
+    if dry_run:
+        typer.echo("--dry-run: aucun fichier de sortie généré.")
+        raise typer.Exit()
 
-        # --- Export des entités ---
-        if args.log_entities and entities:
-            log_output_path = args.log_entities
-            if os.path.dirname(log_output_path) == '':
-                log_output_path = os.path.join('log', log_output_path)
-            os.makedirs(os.path.dirname(log_output_path), exist_ok=True)
+    # Application des remplacements
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if ext == ".docx":
+        replace_entities_in_docx(input_path, output_path, replacements)
+    elif ext == ".xlsx":
+        replace_entities_in_excel(input_path, output_path, replacements)
+    elif ext == ".csv":
+        replace_entities_in_csv(input_path, output_path, replacements)
+    elif ext == ".txt":
+        replace_entities_in_txt(input_path, output_path, replacements)
 
-            with open(log_output_path, mode='w', newline='', encoding='utf-8') as log_file:
-                log_writer = csv.writer(log_file)
-                log_writer.writerow(["Entite", "Label"])
-                for entity_text, entity_label in entities:
-                    log_writer.writerow([entity_text, entity_label])
-            print(f"✅ Entités détectées exportées vers : {log_output_path}")
+    typer.secho(f"✅ Anonymisation terminée: {output_path}", fg=typer.colors.GREEN)
 
-        # --- Remplacement si entités détectées ---
-        if entities:
-            print(f"Entités détectées : {entities}")
-            replacements = generate_replacements(entities)
-            print(f"Remplacements générés : {replacements}")
 
-            if file_extension == ".docx":
-                replace_entities_in_docx(input_path, output_path, replacements)
-            elif file_extension == ".xlsx":
-                replace_entities_in_excel(input_path, output_path, replacements)
-            elif file_extension == ".csv":
-                replace_entities_in_csv(input_path, output_path, replacements)
-            elif file_extension == ".txt":
-                replace_entities_in_txt(input_path, output_path, replacements)
+@app.command("list-entities")
+def list_entities(
+    model: str = typer.Option("fr_core_news_md", "-m", "--model", help="Modèle spaCy à utiliser.")
+):
+    """Liste les types d'entités reconnus par le modèle spaCy."""
+    import spacy
+    nlp = spacy.load(model)
+    labels = nlp.get_pipe("ner").labels
+    for label in labels:
+        typer.echo(label)
 
-            print("✅ Anonymisation terminée :", output_path)
-        elif file_extension in [".docx", ".xlsx", ".csv", ".txt"]:
-            print("Aucune entité détectée. Aucun remplacement effectué.")
 
-except FileNotFoundError:
-    print(f"Erreur : Le fichier d'entrée n'a pas été trouvé à l'emplacement {input_path}")
-except Exception as e:
-    print(f"Une erreur inattendue s'est produite : {e}")
+if __name__ == "__main__":
+    app()
