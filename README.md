@@ -41,6 +41,8 @@ Anonymiser rapidement et efficacement des documents `.docx`, `.xlsx`, `.csv`, `.
 | Mode simulation (`--dry`)  | Analyse sans écrire |
 | Export CSV/JSON            | Journalisation des entités détectées |
 | Interface graphique (GUI)  | Drag & drop, sélection visuelle |
+| **NOUVEAU : Remplacement PER** | **Remplacement des noms de personnes (PER) par codes séquentiels (NOMnnn)** |
+| **NOUVEAU : Mapping PER**     | **Export de la table Nom Original -> Code pour désanonymisation** |
 
 ---
 
@@ -78,7 +80,7 @@ entities:
   - DATE
   - EMAIL
 output_dir: output_files
-fake_data: true
+fake_data: true  # Note: Ce paramètre affecte les entités autres que PER
 log:
   format: csv
   path: log/entities.csv
@@ -92,27 +94,46 @@ log:
 python main.py anonymize input.docx --config config.yaml
 ```
 
+Anonymiser rapidement et efficacement des documents .docx, .xlsx, .csv, .txt en remplaçant les entités sensibles (noms, lieux, dates, emails...). Le processus de remplacement respecte la structure et la lisibilité des fichiers. Les noms de personnes (entités PER) sont maintenant remplacés par des codes uniques (NOMnnn), et une table de correspondance peut être exportée pour la désanonymisation.
+
+### Options
+
 | Option | Description |
 |--------|-------------|
 | `-o, --output` | Chemin fichier de sortie |
-| `-e, --entities` | Entités ciblées |
-| `-l, --log-entities` | Fichier log des entités |
-| `--fake-data / --redact` | Mode de remplacement |
-| `--dry-run` | Simulation sans écriture |
-| `--verbose` | Logs détaillés |
+| `-e, --entities` | Entités ciblées (ex: -e PER -e LOC). Anonymise tout par défaut. |
+| `-l, --log-entities` | Fichier log des entités détectées au format CSV. |
+| `--fake-data / --redact` | Mode de remplacement pour les entités autres que PER. |
+| `--mapping-output` | Chemin fichier CSV pour la table PER -> NOMnnn. |
+| `--dry-run` | Simulation sans écriture de fichiers. |
+| `--verbose` | Logs détaillés (debug). |
+
+---
+
+### 🔁 Comportement spécifique pour les entités PER
+
+Contrairement aux autres types d'entités qui sont remplacés par des données Faker synthétiques ou par [REDACTED], les entités de type PERSONNE (PER) détectées sont remplacées par un code séquentiel unique sous la forme NOMnnn (ex: NOM001, NOM002, NOM010, etc.). Chaque nom de personne unique dans l'ensemble du document recevra le même code consistant.
+
+Pour retrouver les noms originaux à partir de ces codes, il est essentiel d'exporter la table de correspondance. Utilisez l'option `--mapping-output` pour spécifier le chemin du fichier CSV de sortie pour cette table. Si cette option n'est pas utilisée, un fichier de mapping est généré par défaut à côté du fichier anonymisé, nommé d'après ce dernier avec le suffixe `_mapping.csv`. Ce fichier CSV contient deux colonnes : "Code" et "Nom Original".
+
+Exemple d'utilisation :
+
+```bash
+python main.py anonymize input_files/mon_rapport.docx --mapping-output ./rapport_codes_mapping.csv
+```
 
 ---
 
 ## 🔍 Entités supportées
 
-| Code | Type           | Source     |
-|------|----------------|------------|
-| PER  | Personne       | spaCy      |
-| LOC  | Lieu           | spaCy      |
-| ORG  | Organisation   | spaCy      |
-| DATE | Date           | spaCy      |
-| MISC | Divers         | spaCy      |
-| EMAIL| Adresse email  | Regex      |
+| Code | Type | Source | Note |
+|------|------|--------|------|
+| PER | Personne | spaCy | Remplacé par code séquentiel (NOMnnn) |
+| LOC | Lieu | spaCy | Remplacé par fausse ville ou REDACTED |
+| ORG | Organisation | spaCy | Remplacé par fausse organisation ou REDACTED |
+| DATE | Date | spaCy | Remplacé par fausse date ou REDACTED |
+| MISC | Divers | spaCy | Remplacé par REDACTED |
+| EMAIL | Adresse email | Regex | Remplacé par faux email ou REDACTED |
 
 ---
 
@@ -120,54 +141,42 @@ python main.py anonymize input.docx --config config.yaml
 
 ```
 anonyfiles/
-├── main.py
-├── requirements.txt
-├── config.yaml.sample
+├── main.py                  ← Script principal de la CLI
+├── requirements.txt         ← Dépendances Python
+├── config.yaml.sample       ← Exemple de fichier de configuration
 │
-├── anonymizer/
-│   ├── anonymizer_core.py
-│   ├── spacy_engine.py
-│   ├── replacer.py
-│   ├── word_processor.py
-│   ├── excel_processor.py
-│   ├── csv_processor.py
-│   └── txt_processor.py
+├── anonymizer/              ← Modules d'anonymisation
+│   ├── anonymizer_core.py   ← Logique principale de remplacement
+│   ├── spacy_engine.py      ← Moteur SpaCy + détection EMAIL
+│   ├── replacer.py          ← Génération des remplacements (codes NOMnnn, Faker, etc.)
+│   ├── word_processor.py    ← Traitement des fichiers Word (.docx)
+│   ├── excel_processor.py   ← Traitement des fichiers Excel (.xlsx)
+│   ├── csv_processor.py     ← Traitement des fichiers CSV
+│   └── txt_processor.py     ← Traitement des fichiers texte brut
 │
-├── input_files/
-├── output_files/
-├── log/
+├── input_files/             ← Dossier pour les fichiers à anonymiser
+├── output_files/            ← Dossier pour les fichiers anonymisés
+├── log/                     ← Export CSV des entités détectées ou mapping PER
 ```
 
 ---
 
 ## 🖼️ Interface Graphique (GUI)
 
-L'interface graphique de `anonyfiles` est développée avec **React + Tailwind CSS** pour le frontend et **Tauri (Rust)** pour le backend natif. Elle permet une utilisation intuitive avec glisser-déposer, sélection des entités à anonymiser, et configuration visuelle.
+L'interface graphique de anonyfiles est développée avec React + Tailwind CSS pour le frontend et Tauri (Rust) pour le backend natif. Elle permet une utilisation intuitive avec glisser-déposer, sélection des entités à anonymiser, et configuration visuelle.
 
 ### 🧱 Structure du dossier
 
 ```
 anonyfiles-gui/
-├── src/                    # Frontend React (TypeScript)
-│   ├── App.tsx            # Point d'entrée principal
-│   ├── components/        # Dropzone, ProgressBar, EntitySelector, etc.
-│   ├── pages/             # Pages principales (Accueil, Résultat)
-│   ├── styles/            # Fichiers CSS ou configuration Tailwind
-│   ├── utils/             # Fonctions utilitaires
-│   └── index.tsx          # Point d’entrée ReactDOM
-│
-├── public/                # Fichiers statiques (favicon, index.html, etc.)
-├── dist/                  # Fichiers générés après build (ne pas versionner)
-│
-├── package.json           # Dépendances Node.js + scripts npm
-├── vite.config.ts         # Configuration Vite (frontend)
-├── README.md              # Documentation spécifique GUI
-│
-└── src-tauri/             # Backend Rust (Tauri)
-    ├── src/
-    │   └── main.rs        # Logique Rust, commandes Tauri
-    ├── tauri.conf.json    # Configuration globale Tauri
-    └── target/            # Artéfacts compilés (à ignorer)
+├── src/ (React)
+├── public/
+├── dist/
+├── package.json
+├── vite.config.ts
+├── src-tauri/
+│   ├── src/
+│   ├── tauri.conf.json
 ```
 
 ### 📦 Installation & Lancement
@@ -179,54 +188,47 @@ cargo install tauri-cli
 npm run tauri dev
 ```
 
-### 🏗️ Build de production
-
-```bash
-npm run build && tauri build
-```
-
-> L’interface est encore en cours de développement (alpha).
-
 ---
 
 ## 🧭 Feuille de route (Roadmap)
 
-### Phase 1 – Robustesse de base
-- ✅ Fichier `config.yaml`
-- 🔜 Gestion fine des erreurs et logs
+Phase 1 – Robustesse de base  
+✅ Fichier config.yaml  
+🔜 Gestion fine des erreurs et logs  
 
-### Phase 2 – Précision et rendu
-- 🔜 Préservation du formatage `.docx`
-- 🔜 Détection multi-entité (avec priorité)
+Phase 2 – Précision et rendu  
+🔜 Préservation du formatage .docx  
+🔜 Détection multi-entité (avec priorité)  
 
-### Phase 3 – Performance
-- 🔜 Streaming CSV/TXT
-- 🔜 Meilleure gestion mémoire
+Phase 3 – Performance  
+🔜 Streaming CSV/TXT  
+🔜 Meilleure gestion mémoire  
 
-### Phase 4 – Extensibilité
-- 🔜 Support PDF / JSON
-- 🔜 Anonymisation personnalisée
+Phase 4 – Extensibilité  
+🔜 Support PDF / JSON  
+🔜 Anonymisation personnalisée  
 
-### Phase 5 – UX
-- 🔜 Documentation Sphinx
-- 🔜 GUI complète et ergonomique
+Phase 5 – UX  
+🔜 Documentation Sphinx  
+🔜 GUI complète et ergonomique  
 
 ---
 
 ## 🤝 Contribution
 
-1. Fork du repo
-2. Créer une branche `feature/xxx`
-3. Ajouter des tests
-4. Proposer une Pull Request
+- Fork du repo
+- Créer une branche feature/xxx
+- Ajouter des tests
+- Proposer une Pull Request
 
 ---
 
 ## 📝 Changelog
 
-- **v1.2.0** – GUI alpha, config YAML
-- **v1.1.0** – CSV/XLSX améliorés
-- **v1.0.0** – Première version
+- v1.3.0 – Remplacement des entités PER par codes séquentiels (NOMnnn) et ajout de l'option `--mapping-output` pour exporter la table de correspondance Nom Original -> Code.
+- v1.2.0 – GUI alpha, config YAML
+- v1.1.0 – CSV/XLSX améliorés
+- v1.0.0 – Première version
 
 ---
 

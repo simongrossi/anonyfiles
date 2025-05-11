@@ -1,7 +1,7 @@
 # main.py
 import typer
 import os
-import csv
+import csv # Importer le module csv pour l'export du mapping
 import logging
 from pathlib import Path
 from typing import List, Optional
@@ -11,10 +11,11 @@ import re # Import the 're' module
 # Import the modified processor files
 from anonymizer.spacy_engine import SpaCyEngine, EMAIL_REGEX # Import SpaCyEngine and EMAIL_REGEX
 from anonymizer.word_processor import extract_text_from_docx, replace_entities_in_docx
-from anonymizer.excel_processor import extract_text_from_excel, replace_entities_in_excel # Note: replace_entities_in_excel needs modification for positional replacement
+from anonymizer.excel_processor import extract_text_from_excel, replace_entities_in_excel
 from anonymizer.txt_processor import extract_text_from_txt, replace_entities_in_txt
 from anonymizer.csv_processor import extract_text_from_csv, replace_entities_in_csv
-from anonymizer.replacer import generate_replacements
+# Import generate_replacements from the modified replacer.py
+from anonymizer.replacer import generate_replacements # IMPORTANT: This function now returns two values!
 
 # Needed for creating empty docx file
 from docx import Document
@@ -59,26 +60,26 @@ def main(
 
 @app.command("anonymize")
 def anonymize(
-    # Removed exists=True validation here, as the script constructs the path
-    input_filename: Path = typer.Argument(..., file_okay=True, readable=True, help="Fichier à anonymiser (dans input_files/)") ,
-    output_filename: Optional[Path] = typer.Option(None, "-o", "--output", help="Chemin de sortie (par défaut output_files/)") ,
+    input_filename: Path = typer.Argument(..., file_okay=True, readable=True, help="Fichier à anonymiser (dans input_files/)"),
+    output_filename: Optional[Path] = typer.Option(None, "-o", "--output", help="Chemin de sortie (par défaut output_files/)"),
     entities: List[str] = typer.Option([], "-e", "--entities", help="Types d'entités à anonymiser (ex: PER LOC ORG DATE EMAIL). Toutes si vide."),
     log_entities: Optional[Path] = typer.Option(None, "-l", "--log-entities", help="Exporter les entités détectées vers un fichier CSV."),
+    # Nouvelle option pour le fichier de mapping des codes personne
+    mapping_output: Optional[Path] = typer.Option(None, "--mapping-output", help="Exporter la table de correspondance Nom original -> Code (pour les entités PER) vers un fichier CSV."),
     dry_run: bool = typer.Option(False, "-n", "--dry-run", help="Simule sans écrire de fichier."),
     verbose: bool = typer.Option(False, "--verbose", help="Mode verbeux (debug).")
 ):
     """Anonymise le fichier spécifié."""
     setup_logging(verbose)
-    # engine = SpaCyEngine() # Removed from here
 
-    # Construct the full input path by joining the 'input_files' directory with the provided filename
+    # Construct the full input path
     input_path = Path("input_files") / input_filename
 
     # Extract the file extension and convert to lowercase
-    ext = input_filename.suffix.lower() # Define 'ext' here
+    ext = input_filename.suffix.lower()
 
     # Calculate output path based on option or default BEFORE checks that might return
-    output_path = output_filename or (Path("output_files") / f"{input_filename.stem}_anonymise{ext}") # Ensure this line is present and here
+    output_path = output_filename or (Path("output_files") / f"{input_filename.stem}_anonymise{ext}")
 
     typer.echo(f"🔍 Lecture de : {input_path}")
     # Now perform the existence check after constructing the correct path
@@ -210,14 +211,17 @@ def anonymize(
 
 
     # --- Filtering global entities based on selected types ---
+    # Create a set of unique entities (text, label) regardless of their location
+    unique_entities = list(set(all_entities_for_replacement_generation))
+
     if entities:
         selected = set(entities)
         # Filter the global list of entities before generating replacements
-        all_entities_for_replacement_generation = [(t, l) for t, l in all_entities_for_replacement_generation if l in selected]
+        unique_entities = [(t, l) for t, l in unique_entities if l in selected]
         typer.echo(f"Entités filtrées : {selected}")
 
 
-    if not all_entities_for_replacement_generation:
+    if not unique_entities: # Check unique_entities as it's the base for replacements
         typer.echo("Aucune entité détectée selon les critères spécifiés.")
         # If no entities detected, the output file should ideally be a copy of the input
         # However, the current flow exits here, preventing output writing.
@@ -225,35 +229,73 @@ def anonymize(
         return # Exit the command if no entities found
 
 
-    # --- Generate *global* replacements based on unique filtered entities ---
-    # Use the collected entities (without offsets) for global replacement generation
-    unique_entities = list(set(all_entities_for_replacement_generation))
-    typer.echo(f"Entités uniques détectées: {unique_entities}")
+    # --- Generate *global* replacements AND the person code map ---
+    # Capture both return values from the modified generate_replacements
+    # replacements is the {original_text: replacement_text} map for all entity types processed
+    # person_code_map is the {original_name: code} map specifically for PER entities
+    replacements, person_code_map = generate_replacements(unique_entities)
 
-    replacements = generate_replacements(unique_entities)
-    typer.echo(f"Remplacements générés: {replacements}")
+    typer.echo(f"Entités uniques détectées ({len(unique_entities)}): {unique_entities[:10]}...") # Show only a sample
+    typer.echo(f"Remplacements générés (extrait): {dict(list(replacements.items())[:5])}...") # Show only a sample
 
-    # --- Export detected entities log ---
-    if log_entities and all_entities_for_replacement_generation:
+
+    # --- Export detected entities log (existing logic) ---
+    if log_entities and unique_entities: # Use unique_entities for log as it's the base for replacements
          log_path = Path("log") / log_entities
          log_path.parent.mkdir(parents=True, exist_ok=True)
-         with open(log_path, "w", newline="", encoding="utf-8") as f:
-             writer = csv.writer(f)
-             writer.writerow(["Entite", "Label"])
-             # Log the unique entities that were detected/filtered
-             for t, l in unique_entities:
-                 writer.writerow([t, l])
-         typer.echo(f"✅ Entités exportées vers {log_path}")
+         try:
+            with open(log_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Entite", "Label"])
+                # Log the unique entities that were detected/filtered
+                for t, l in unique_entities:
+                    writer.writerow([t, l])
+            typer.echo(f"✅ Entités exportées vers {log_path}")
+         except Exception as e:
+             typer.secho(f"⚠️ Erreur lors de l'export du log des entités : {e}", fg=typer.colors.YELLOW) # Changed to Warning
+
+
+    # --- Export Person Code Mapping (New Logic) ---
+    # Only save if there were person entities found and coded (person_code_map won't be empty if PER entities were processed)
+    if person_code_map:
+        # Determine mapping file path: default to same dir as output file, with _mapping suffix
+        mapping_file_path = mapping_output or (output_path.parent / f"{output_path.stem}_mapping.csv")
+
+        try:
+            # Ensure the directory exists
+            mapping_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            typer.echo(f"✍️ Export de la table de correspondance NOM->Code vers : {mapping_file_path}")
+
+            with open(mapping_file_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                # Write header: Code, Original Name
+                writer.writerow(["Code", "Nom Original"])
+                # Write mapping rows: iterate through the person_code_map
+                # person_code_map is {Original Name: Code}, need {Code: Original Name} for reversal
+                # Invert the map for saving
+                inverted_person_code_map = {code: name for name, code in person_code_map.items()}
+                # Sort by code (NOM001, NOM002...) for readability in the mapping file
+                for code in sorted(inverted_person_code_map.keys()):
+                     original_name = inverted_person_code_map[code]
+                     writer.writerow([code, original_name])
+
+            typer.secho(f"✅ Table de correspondance Nom original -> Code exportée.", fg=typer.colors.GREEN)
+
+        except Exception as e:
+            typer.secho(f"⚠️ Erreur lors de l'export de la table de correspondance : {e}", fg=typer.colors.YELLOW) # Changed to Warning
 
 
     if dry_run:
         typer.echo("--dry-run: aucun fichier de sortie généré.")
-        return # Exit the command if dry_run
+        return
 
 
     # --- Application des remplacements ---
     # Create output directory if it doesn't exist
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    typer.echo(f"💾 Écriture de : {output_path}")
 
     if ext == ".docx":
         typer.echo("Application remplacement positionnel Word (.docx)")
@@ -289,18 +331,16 @@ def anonymize(
     elif ext == ".txt":
         typer.echo("Application remplacement positionnel TXT (.txt)")
         # Apply positional replacement for the TXT file (already implemented)
+        # texts list has only one item for TXT files (the whole content)
         if texts and texts[0].strip(): # Ensure there's a non-empty block
              # entities_per_block_with_offsets is a list containing one list of entities for the TXT block
              replace_entities_in_txt(input_path, output_path, replacements, entities_per_block_with_offsets[0])
-        else: # If the TXT file was empty, just copy the empty file
-            with open(input_path, 'r', encoding='utf-8') as fin, \
-                 open(output_path, 'w', encoding='utf-8') as fout:
-                 fout.write(fin.read())
+        else: # If the TXT file was empty, just copy the empty file content (which is empty)
+            # This ensures an empty output file is created if the input is empty
+            output_path.write_text("")
 
 
-    else: # This else block should technically not be reached due to the checks above, but kept for completeness
-        typer.secho(f"Erreur interne: Type de fichier inattendu ({ext}).", fg=typer.colors.RED)
-        raise typer.Exit(code=1)
+    # Removed redundant else block for unhandled file types as it's checked earlier
 
 
     typer.secho(f"✅ Anonymisation terminée: {output_path}", fg=typer.colors.GREEN)
@@ -327,7 +367,7 @@ def list_entities(
             typer.echo(f"- {label}")
         # Also mention the custom EMAIL entity if applicable
         # Assuming EMAIL is added for these models
-        if model in ["fr_core_news_md", "fr_core_news_sm", "fr_dep_news_wangbert"]: # Add other models if EMAIL regex is used there
+        if model in ["fr_core_news_md", "fr_core_news_sm"]: # Add other models if EMAIL regex is used there
              typer.echo("- EMAIL (détecté par regex)")
 
     except OSError:
