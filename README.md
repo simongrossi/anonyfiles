@@ -299,21 +299,11 @@ npm run tauri dev
 
 ## 📝 Changelog
 
-### v1.4.0
-- Intégration complète de la configuration YAML
-- `--config`, `faker`, `placeholder`, `redact` par entité
-
-### v1.3.0
-- Mapping export Nom → Code
-
-### v1.2.0
-- GUI alpha, config.yaml.sample
-
-### v1.1.0
-- CSV/XLSX améliorés
-
-### v1.0.0
-- Version initiale
+-   **v1.4.0** – **NOUVEAU :** Intégration complète de la configuration des règles de remplacement par type d'entité via fichier YAML (--config). Introduction des types de remplacement 'faker' cohérent, 'redact', 'placeholder'. La sélection des entités à anonymiser se fait maintenant via la config (`entities_to_anonymize`). Suppression des anciennes options CLI `--entities` et `--fake-data/--redact`.
+-   **v1.3.0** – Remplacement des entités PER par codes séquentiels (NOMnnn) et ajout de l'option `--mapping-output` pour exporter la table de correspondance Nom Original -> Code.
+-   **v1.2.0** – GUI alpha, config YAML (structure initiale).
+-   **v1.1.0** – CSV/XLSX améliorés.
+-   **v1.0.0** – Première version.
 
 ---
 
