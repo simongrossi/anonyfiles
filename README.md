@@ -76,25 +76,60 @@ anonyfiles utilise un fichier de configuration YAML pour définir le modèle spa
 
 ---
 
+
 ## 💡 Utilisation CLI
 
-Commandes disponibles :
+Anonymise le fichier spécifié en détectant et remplaçant les entités sensibles selon les règles définies dans le fichier de configuration ou les options CLI. Le processus de remplacement respecte la structure et la lisibilité des fichiers.
 
-```bash
-python main.py anonymize input.docx --config config.yaml
-```
+Le comportement de remplacement (codes séquentiels, données Faker, texte fixe, placeholder) est **entièrement configurable par type d'entité** via le fichier YAML.
 
-Options disponibles :
-- `--config PATH`
-- `-o, --output`
-- `-l, --log-entities`
-- `--mapping-output`
-- `--dry-run`
-- `--verbose`
+### Options principales :
 
-Exemples complets disponibles dans le README initial.
+| Option                | Description |
+|-----------------------|-------------|
+| `--config PATH`       | Chemin vers le fichier de configuration YAML. Si non spécifié, utilise la configuration par défaut. |
+| `-o, --output`        | Chemin du fichier de sortie. Prioritaire sur la valeur `output_dir` du fichier config. |
+| `-l, --log-entities`  | Fichier CSV des entités détectées. Prioritaire sur `log.path` du fichier config. |
+| `--mapping-output`    | Fichier CSV pour la table de correspondance Nom original → Code. Généré uniquement si des codes sont utilisés. |
+| `--dry-run`           | Simule le traitement sans écrire de fichiers de sortie. |
+| `--verbose`           | Affiche les logs détaillés (mode debug). |
 
 ---
+
+### 🔁 Règles de remplacement :
+
+Le type de remplacement appliqué à chaque entité détectée dépend de la règle définie dans la section `replacements` du fichier YAML :
+
+- `type: codes` → Génère un code séquentiel unique (ex. NOM001)
+- `type: faker` → Données factices réalistes avec Faker
+- `type: redact` → Texte fixe (ex. [REDACTED])
+- `type: placeholder` → Placeholder formaté avec le label (ex. `[PER]`)
+
+Sans règle définie pour une entité : `[REDACTED]` est utilisé.
+
+Les remplacements sont **cohérents** au sein d’un même fichier : une même entité est toujours remplacée par la même valeur.
+
+---
+
+### 📌 Exemples d'utilisation
+
+```bash
+# Anonymiser un fichier Word avec config personnalisée
+python main.py anonymize input_files/mon_rapport.docx --config config.yaml
+
+# Anonymiser un CSV avec simulation (dry-run) et log CSV des entités
+python main.py anonymize input_files/clients.csv --log-entities log/entites.csv --dry-run
+
+# Anonymiser un Excel avec export de la table de mapping des noms codés
+python main.py anonymize input_files/donnees.xlsx --config config.yaml --mapping-output log/mapping_personnes.csv
+
+# Utiliser la configuration intégrée par défaut (sans fichier config)
+python main.py anonymize input_files/test.txt
+
+# Liste des entités détectables par le modèle spaCy
+python main.py list-entities --model fr_core_news_md
+```
+
 
 ## 🔍 Entités supportées
 
