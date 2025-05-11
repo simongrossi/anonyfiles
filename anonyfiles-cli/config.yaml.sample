@@ -1,0 +1,65 @@
+# Fichier d'exemple de configuration pour anonyfiles
+
+# Modèle spaCy à utiliser pour la détection d'entités
+spacy_model: fr_core_news_md
+
+# Liste des types d'entités à anonymiser.
+# Si cette liste est vide, toutes les entités détectées seront traitées.
+# Les labels courants sont PER, LOC, ORG, DATE, MISC, EMAIL.
+entities_to_anonymize:
+  - PER
+  - LOC
+  - ORG
+  - DATE
+  - EMAIL
+  # - MISC # Décommenter pour inclure MISC si besoin
+
+# Répertoire où les fichiers anonymisés seront sauvegardés
+output_dir: output_files
+
+# --- Règles de remplacement par type d'entité ---
+# Définit comment chaque type d'entité doit être remplacé.
+# Si un type d'entité détecté n'est pas listé ici, il sera remplacé par défaut par [REDACTED].
+# Les types de remplacement disponibles sont :
+# - codes: Génère un code séquentiel unique (ex: NOM001). Utilisé pour PER.
+#   options:
+#     prefix: Le préfixe du code (par défaut: "NOM")
+#     padding: Le nombre de chiffres pour le padding (par défaut: 3, ex: 001)
+# - faker: Utilise la librairie Faker pour générer des données synthétiques réalistes.
+#          Le même texte d'entité unique sera remplacé par la même donnée Faker générée lors d'une exécution.
+# - redact: Remplace l'entité par un texte fixe.
+#   options:
+#     text: Le texte de remplacement (par défaut: "[REDACTED]")
+# - placeholder: Remplace l'entité par un placeholder basé sur son label.
+#    options:
+#      format: Le format du placeholder (par défaut: "[TYPE_ANONYME]")
+
+replacements:
+  PER:
+    type: codes
+    options:
+      prefix: "PERSONNE" # Exemple: PERSONNE001
+      padding: 4        # Exemple: PERSONNE0001
+  LOC:
+    type: faker       # Remplacer les lieux par de fausses villes Faker (avec cohérence)
+  ORG:
+    type: redact      # Remplacer les organisations par un texte fixe
+    options:
+      text: "[ORGANISATION ANONYME]"
+  DATE:
+    type: faker       # Remplacer les dates par de fausses dates Faker (avec cohérence)
+  EMAIL:
+    type: faker       # Remplacer les emails par de faux emails Faker (avec cohérence)
+  MISC:
+    type: redact      # Remplacer les entités diverses par défaut
+
+# --- Options de journalisation ---
+# Configuration pour le journal des entités détectées (option -l, --log-entities)
+log:
+  # format: csv # Pour l'instant, seul le CSV est supporté
+  path: log/entities.csv # Chemin par défaut pour le fichier log
+
+# Note : Les options de ligne de commande (--entities, -o, --output, --mapping-output, --dry-run, --verbose)
+# surchargent toujours les valeurs définies dans ce fichier de configuration.
+# La désactivation / activation globale de fake_data (--fake-data / --redact) de l'ancienne version
+# est remplacée par la configuration fine dans la section 'replacements'.
