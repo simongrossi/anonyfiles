@@ -263,25 +263,28 @@ npm run tauri dev
 
 ## 🧭 Feuille de route (Roadmap)
 
-Phase 1 – Robustesse de base
-- ✅ Config YAML
-- 🔜 Logs & erreurs
+### Phase 1 – Robustesse de base
+- ✅ Fichier `config.yaml` (pour la configuration des remplacements et des entités)
+- 🔜 Gestion fine des erreurs et logs
 
-Phase 2 – Précision
-- 🔜 Préservation .docx
-- 🔜 Priorité entités
+### Phase 2 – Précision et rendu
+- 🔜 Préservation du formatage `.docx`
+- 🔜 Détection multi-entité (avec priorité)
 
-Phase 3 – Performance
-- 🔜 Streaming
-- 🔜 Mémoire
+### Phase 3 – Performance
+- 🔜 Streaming CSV/TXT
+- 🔜 Meilleure gestion mémoire
+**(Ces deux points correspondent à la priorité #4 "Performance et gestion mémoire")**
 
-Phase 4 – Extensibilité
-- 🔜 JSON, PDF
-- 🔜 Anonymisation personnalisée
+### Phase 4 – Extensibilité
+- 🔜 Support PDF / JSON
+- 🔜 Anonymisation personnalisée (déjà partiellement couverte par la config YAML)
+- 🔜 **Fonctionnalité de Désanonymisation** (ajout d'une commande CLI pour inverser l'anonymisation des codes via fichier mapping)
+**(Ce point correspond à la priorité #7 "Fonctionnalité de Désanonymisation")**
 
-Phase 5 – UX
-- 🔜 GUI complète
+### Phase 5 – UX
 - 🔜 Documentation Sphinx
+- 🔜 GUI complète et ergonomique
 
 ---
 
