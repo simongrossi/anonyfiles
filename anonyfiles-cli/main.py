@@ -1,3 +1,5 @@
+# main.py
+
 import typer
 from pathlib import Path
 from typing import Optional, List
@@ -31,11 +33,10 @@ def anonymize(
     exclude_entities: Optional[List[str]] = typer.Option(None, "--exclude-entity", help="Exclure une entité sous la forme Texte,Label (ex: Date,PER). Peut être spécifié plusieurs fois."),
 ):
     """
-    Anonymise le fichier spécifié (txt, docx, csv, xlsx).
+    Anonymise le fichier spécifié (txt, docx, csv, xlsx) selon la configuration.
     """
     config = load_config(config_path) or {}
 
-    # Exclusion passée en CLI, format ['Date,PER', ...] -> à passer au core
     engine = AnonyfilesEngine(config, exclude_entities_cli=exclude_entities)
     ext = input_file.suffix.lower()
     if not output_file:
@@ -43,48 +44,17 @@ def anonymize(
         output_dir.mkdir(exist_ok=True)
         output_file = output_dir / f"{input_file.stem}_anonymise{ext}"
 
-    if ext == ".txt":
-        result = engine.anonymize_txt(
-            input_path=input_file,
-            output_path=output_file,
-            entities=entities,
-            dry_run=dry_run,
-            log_entities_path=log_entities,
-            mapping_output_path=mapping_output,
-        )
-    elif ext == ".docx":
-        result = engine.anonymize_docx(
-            input_path=input_file,
-            output_path=output_file,
-            entities=entities,
-            dry_run=dry_run,
-            log_entities_path=log_entities,
-            mapping_output_path=mapping_output,
-        )
-    elif ext == ".csv":
-        result = engine.anonymize_csv(
-            input_path=input_file,
-            output_path=output_file,
-            entities=entities,
-            dry_run=dry_run,
-            log_entities_path=log_entities,
-            mapping_output_path=mapping_output,
-        )
-    elif ext == ".xlsx":
-        result = engine.anonymize_xlsx(
-            input_path=input_file,
-            output_path=output_file,
-            entities=entities,
-            dry_run=dry_run,
-            log_entities_path=log_entities,
-            mapping_output_path=mapping_output,
-        )
-    else:
-        typer.secho(f"Type de fichier non supporté : {ext}", fg=typer.colors.RED)
-        raise typer.Exit(code=1)
+    result = engine.anonymize(
+        input_path=input_file,
+        output_path=output_file,
+        entities=entities,
+        dry_run=dry_run,
+        log_entities_path=log_entities,
+        mapping_output_path=mapping_output,
+    )
 
     if result["status"] == "success":
-        typer.echo(f"✅ Fichier anonymisé : {result['output_path']}")
+        typer.echo(f"✅ Fichier anonymisé : {result.get('output_path', output_file)}")
         if "entities_detected" in result:
             typer.echo(f"Entités détectées : {len(result['entities_detected'])}")
         if "mapping_file" in result:
