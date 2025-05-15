@@ -31,20 +31,21 @@ Anonymiser rapidement et efficacement des documents `.docx`, `.xlsx`, `.csv`, `.
 
 ## 🚀 Fonctionnalités
 
-| Fonction                  | Description |
-|--------------------------|-------------|
-| Formats supportés        | `.docx`, `.xlsx`, `.csv`, `.txt` |
-| Détection NER            | SpaCy `fr_core_news_md` |
-| Détection EMAIL & DATE   | Regex robuste intégrée, tous formats de date classiques |
-| Remplacement positionnel | Respect des offsets `start_char` / `end_char` |
-| Données de remplacement  | Faker (fr_FR), `[REDACTED]`, codes séquentiels (NOMnnn), ou placeholder |
-| Fichier config YAML      | Modèle, entités, règles et options |
-| **Config Remplacement**  | **Configuration fine par type d'entité via YAML** |
-| **Filtre d’exclusion**   | **Filtre d’exclusion configurable (YAML/CLI) pour éviter les faux positifs** |
-| Mode simulation (`--dry`) | Analyse sans écrire |
-| Export CSV/JSON          | Journalisation des entités détectées |
-| **Export Mapping Codes** | **Table Nom Original → Code pour désanonymisation** |
-| Interface graphique (GUI) | Drag & drop, sélection visuelle |
+| Fonction                  | Description                                                                                  |
+|--------------------------|----------------------------------------------------------------------------------------------|
+| Formats supportés        | `.txt`, `.csv`, `.docx`, `.xlsx`, `.pdf`, `.json`                                           |
+| Détection NER            | SpaCy `fr_core_news_md`                                                                     |
+| Détection EMAIL & DATE   | Regex robuste intégrée, supporte tous formats de date classiques                             |
+| Remplacement positionnel | Respect strict des offsets `start_char` / `end_char`                                        |
+| Données de remplacement  | Faker (locale `fr_FR`), `[REDACTED]`, codes séquentiels (NOMnnn), ou placeholder             |
+| Fichier config YAML      | Modèle, entités, règles et options configurables                                            |
+| **Config Remplacement**  | **Configuration fine par type d'entité via YAML**                                           |
+| **Filtre d’exclusion**   | **Filtre d’exclusion configurable (YAML et CLI) pour éviter les faux positifs**              |
+| Mode simulation (`--dry-run`) | Analyse sans écriture dans les fichiers                                                  |
+| Export CSV/JSON          | Journalisation détaillée des entités détectées                                              |
+| **Export Mapping Codes** | **Table de correspondance Nom Original → Code pour désanonymisation et audit**               |
+| Interface graphique (GUI)| Drag & drop, sélection visuelle des entités à anonymiser                                   |
+
 
 ---
 
@@ -109,6 +110,39 @@ exclude_entities:
 
 ---
 
+## 🧩 Architecture
+
+Le projet est organisé autour d’une architecture modulaire et factorisée pour assurer robustesse et extensibilité :
+
+- **Pipeline métier central (`AnonyfilesEngine`)**  
+  Orchestration unique de l’anonymisation : détection des entités, génération des remplacements, application selon format.
+
+- **Processors spécialisés par format**  
+  Chaque format supporté (`.txt`, `.csv`, `.docx`, `.xlsx`, `.pdf`, `.json`) possède un *processor* dédié héritant d’une interface commune (`BaseProcessor`), qui définit :  
+  - Extraction des blocs de texte à anonymiser (ex : paragraphes, cellules, pages).  
+  - Remplacement positionnel des entités dans ces blocs.
+
+- **Gestion des remplacements**  
+  Moteur de remplacement configurable via YAML et CLI, supportant Faker, codes séquentiels, redaction et placeholders.
+
+- **Support PDF avancé**  
+  Anonymisation par annotations de redaction PyMuPDF, permettant de masquer les zones sensibles sans altérer la mise en page.
+
+- **Tests unitaires**  
+  Chaque composant (processor, core, utils) dispose de tests unitaires garantissant la stabilité et facilitant les évolutions.
+
+- **CLI légère**  
+  Interface en ligne de commande via Typer, déléguant toute la logique métier au core.
+
+- **Organisation pratique des fichiers**  
+  - `input_files/`, `output_files/` et `log/` pour gérer les fichiers sources, résultats et journaux.  
+  - `tests/` pour les tests et scripts de génération.
+
+Cette architecture permet d’ajouter facilement de nouveaux formats, de configurer finement les règles d’anonymisation et de maintenir le projet efficacement.
+
+---
+
+
 ## 💡 Utilisation CLI
 
 Lance le script principal pour anonymiser un fichier selon la configuration YAML (ou les options CLI).
@@ -132,6 +166,8 @@ python main.py input_files/message.txt -o output_files/anonymise.txt --log-entit
 python main.py input_files/message.txt --exclude-entity "Date,PER"
 python main.py input_files/rapport.docx --config config.yaml --mapping-output log/mapping.csv
 ```
+
+
 
 ---
 
