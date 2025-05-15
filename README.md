@@ -162,23 +162,35 @@ python main.py input_files/rapport.docx --config config.yaml --mapping-output lo
 
 ```text
 anonyfiles/
-├── main.py                 # Script principal de la CLI (Typer, point d'entrée)
-├── requirements.txt        # Dépendances Python nécessaires au projet
-├── config.yaml.sample      # Exemple complet de fichier de configuration YAML
+├── main.py                 # Script principal CLI (Typer)
+├── requirements.txt        # Dépendances Python
+├── config.yaml.sample      # Exemple de fichier de configuration YAML
 │
-├── anonymizer/             # Dossier avec toute la logique métier de l’anonymisation
-│   ├── anonyfiles_core.py  # Orchestration centrale (pipeline, filtres, offsets, exclusions...)
-│   ├── spacy_engine.py     # Chargement modèle spaCy + détection NER + regex dates/emails
-│   ├── replacer.py         # Génération cohérente des remplacements (faker, codes, redact...)
-│   ├── word_processor.py   # Lecture/remplacement entités dans fichiers Word (.docx)
-│   ├── excel_processor.py  # Lecture/anonymisation fichiers Excel (.xlsx)
-│   ├── csv_processor.py    # Lecture et traitement des fichiers CSV
-│   ├── txt_processor.py    # Lecture/anonymisation fichiers texte (.txt)
-│   └── utils.py            # Fonctions utilitaires (offsets, replacements, helpers)
+├── anonymizer/             # Logique métier d’anonymisation
+│   ├── anonyfiles_core.py  # Orchestration pipeline factorisé (core)
+│   ├── spacy_engine.py     # Chargement modèle spaCy, NER + regex emails/dates
+│   ├── replacer.py         # Gestion des règles de remplacement (faker, codes, redact, placeholder)
+│   ├── base_processor.py   # Classe abstraite commune aux processors
+│   ├── word_processor.py   # Processor pour fichiers Word (.docx)
+│   ├── excel_processor.py  # Processor pour fichiers Excel (.xlsx)
+│   ├── csv_processor.py    # Processor pour fichiers CSV (.csv)
+│   ├── txt_processor.py    # Processor pour fichiers texte (.txt)
+│   ├── pdf_processor.py    # Processor pour fichiers PDF (.pdf), avec redaction PyMuPDF
+│   ├── json_processor.py   # Processor pour fichiers JSON (.json)
+│   └── utils.py            # Fonctions utilitaires (offsets, remplacements)
 │
-├── input_files/            # Dossier pour les fichiers à traiter
-├── output_files/           # Dossier de sortie pour les fichiers anonymisés
-├── log/                    # Répertoire pour les logs d’entités et mapping (CSV)
+├── input_files/            # Dossier d’entrée pour fichiers à anonymiser
+├── output_files/           # Dossier de sortie pour fichiers anonymisés
+├── log/                    # Logs des entités détectées, mapping CSV pour désanonymisation
+├── tests/                  # Tests unitaires et scripts de génération de fichiers tests
+│   ├── generate_test_pdf.py
+│   ├── generate_test_json.py
+│   ├── test_txt_processor.py
+│   ├── test_csv_processor.py
+│   ├── test_docx_processor.py
+│   ├── test_excel_processor.py
+│   ├── test_json_processor.py
+│   └── ... (autres tests)
 ```
 
 ---
