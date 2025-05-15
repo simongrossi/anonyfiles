@@ -1,6 +1,6 @@
 from docx import Document
 import os
-from .anonymizer_core import apply_positional_replacements # Importer la fonction de remplacement positionnel
+from .utils import apply_positional_replacements # Importer la fonction de remplacement positionnel
 
 def extract_text_from_docx(path):
     """Extrait le texte d'un fichier .docx, paragraphe par paragraphe."""

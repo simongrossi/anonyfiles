@@ -63,3 +63,12 @@ log:
 # surchargent toujours les valeurs définies dans ce fichier de configuration.
 # La désactivation / activation globale de fake_data (--fake-data / --redact) de l'ancienne version
 # est remplacée par la configuration fine dans la section 'replacements'.
+
+
+
+
+# Filtres d'exclusion d'entités (ne seront jamais anonymisées)
+exclude_entities:
+  - [Date, PER]
+  # - [Nom, PER]
+  # - [Email, PER]

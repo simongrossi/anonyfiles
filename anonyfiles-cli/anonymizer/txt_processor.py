@@ -1,5 +1,5 @@
 import os
-from .anonymizer_core import apply_positional_replacements # Importer la fonction de remplacement positionnel
+from .utils import apply_positional_replacements  # Importer la fonction de remplacement positionnel
 
 def extract_text_from_txt(path):
     """Extrait le texte complet d'un fichier .txt."""

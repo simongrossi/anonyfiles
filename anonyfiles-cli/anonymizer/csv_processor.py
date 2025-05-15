@@ -1,6 +1,6 @@
 import csv
 import os
-from .anonymizer_core import apply_positional_replacements # Importer la fonction de remplacement positionnel
+from .utils import apply_positional_replacements # Importer la fonction de remplacement positionnel
 
 def extract_text_from_csv(path):
     """Extrait le texte cellule par cellule depuis un fichier CSV (pour détection globale)."""
