@@ -1,6 +1,7 @@
+
 # 🕵️‍♂️ anonyfiles
 
-**anonyfiles** est un outil open source complet pour anonymiser automatiquement des documents texte, tableurs ou bureautiques via une ligne de commande performante (CLI) et une interface graphique moderne (GUI), en s’appuyant sur le NLP avec **spaCy** et des données factices réalistes générées par **Faker**.
+**anonyfiles** est un outil open source de référence pour anonymiser automatiquement des documents texte, tableurs ou bureautiques via une ligne de commande performante (CLI) et une interface graphique moderne (GUI). Il exploite le NLP (avec **spaCy**) et génère des données factices réalistes (**Faker**).
 
 ---
 
@@ -10,15 +11,15 @@
 - [🚀 Fonctionnalités](#-fonctionnalités)
 - [💻 Prérequis](#-prérequis)
 - [⚙️ Installation CLI](#-installation-cli)
-- [🛠️ Configuration](#️-configuration)
+- [🛠️ Configuration](#-configuration)
 - [💡 Utilisation CLI](#-utilisation-cli)
 - [🔍 Entités supportées](#-entités-supportées)
-- [🗂️ Structure du projet](#️-structure-du-projet)
-- [🖼️ Interface Graphique (GUI)](#interface-graphique-gui)
-- [🧭 Feuille de route (Roadmap)](#-feuille-de-route-roadmap)
+- [🗂️ Structure du projet CLI](#-structure-du-projet-cli)
+- [🖼️ Structure du projet GUI](#-structure-du-projet-gui)
+- [📊 Feuille de route (Roadmap)](#-feuille-de-route-roadmap)
 - [🤝 Contribution](#-contribution)
 - [📝 Changelog](#-changelog)
-- [🛡️ Licence](#️-licence)
+- [🛡️ Licence](#-licence)
 
 ---
 
@@ -34,14 +35,15 @@ Anonymiser rapidement et efficacement des documents `.docx`, `.xlsx`, `.csv`, `.
 |--------------------------|-------------|
 | Formats supportés        | `.docx`, `.xlsx`, `.csv`, `.txt` |
 | Détection NER            | SpaCy `fr_core_news_md` |
-| Détection EMAIL          | Regex robuste intégrée |
+| Détection EMAIL & DATE   | Regex robuste intégrée, tous formats de date classiques |
 | Remplacement positionnel | Respect des offsets `start_char` / `end_char` |
 | Données de remplacement  | Faker (fr_FR), `[REDACTED]`, codes séquentiels (NOMnnn), ou placeholder |
-| Fichier config YAML      | Modèle, entités, options |
-| **NOUVEAU : Config Remplacement** | **Configuration fine des règles de remplacement par type d'entité via fichier YAML** |
+| Fichier config YAML      | Modèle, entités, règles et options |
+| **Config Remplacement**  | **Configuration fine par type d'entité via YAML** |
+| **Filtre d’exclusion**   | **Filtre d’exclusion configurable (YAML/CLI) pour éviter les faux positifs** |
 | Mode simulation (`--dry`) | Analyse sans écrire |
 | Export CSV/JSON          | Journalisation des entités détectées |
-| **Export Mapping Codes** | **Export de la table Nom Original -> Code pour désanonymisation des entités remplacées par codes** |
+| **Export Mapping Codes** | **Table Nom Original → Code pour désanonymisation** |
 | Interface graphique (GUI) | Drag & drop, sélection visuelle |
 
 ---
@@ -50,7 +52,7 @@ Anonymiser rapidement et efficacement des documents `.docx`, `.xlsx`, `.csv`, `.
 
 - Python ≥ 3.8 (recommandé 3.11)
 - pip
-- **NOUVEAU :** PyYAML
+- **PyYAML**
 - Node.js + Rust (pour la GUI)
 
 ---
@@ -61,7 +63,7 @@ Anonymiser rapidement et efficacement des documents `.docx`, `.xlsx`, `.csv`, `.
 git clone https://github.com/simongrossi/anonyfiles.git
 cd anonyfiles
 python3.11 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate      # ou .venv\Scripts\activate sous Windows
 pip install -r requirements.txt
 python -m spacy download fr_core_news_md
 ```
@@ -70,102 +72,113 @@ python -m spacy download fr_core_news_md
 
 ## 🛠️ Configuration
 
-anonyfiles utilise un fichier de configuration YAML pour définir le modèle spaCy, les entités à cibler et surtout les règles de remplacement spécifiques pour chaque type d'entité.
+anonyfiles utilise un fichier YAML pour définir :
+- le modèle spaCy,
+- les entités à cibler,
+- les règles de remplacement,
+- et (nouveau) les **entités à exclure** de l’anonymisation.
 
-> Voir exemple complet dans `config.yaml.sample`.
+> Voir un exemple dans `config.yaml.sample`.
+
+**Exemple :**
+
+```yaml
+spacy_model: fr_core_news_md
+
+replacements:
+  PER:
+    type: codes
+  LOC:
+    type: faker
+    options:
+      locale: fr_FR
+      provider: address
+  ORG:
+    type: redact
+    options:
+      text: "[ENTREPRISE]"
+  DATE:
+    type: redact
+    options:
+      text: "[REDACTED_DATE]"
+
+exclude_entities:
+  - [Date, PER]
+  # Ajoutez d'autres couples [Texte, Label] si besoin
+```
 
 ---
-
 
 ## 💡 Utilisation CLI
 
-Anonymise le fichier spécifié en détectant et remplaçant les entités sensibles selon les règles définies dans le fichier de configuration ou les options CLI. Le processus de remplacement respecte la structure et la lisibilité des fichiers.
+Lance le script principal pour anonymiser un fichier selon la configuration YAML (ou les options CLI).
 
-Le comportement de remplacement (codes séquentiels, données Faker, texte fixe, placeholder) est **entièrement configurable par type d'entité** via le fichier YAML.
-
-### Options principales :
+**Principales options :**
 
 | Option                | Description |
 |-----------------------|-------------|
-| `--config PATH`       | Chemin vers le fichier de configuration YAML. Si non spécifié, utilise la configuration par défaut. |
-| `-o, --output`        | Chemin du fichier de sortie. Prioritaire sur la valeur `output_dir` du fichier config. |
-| `-l, --log-entities`  | Fichier CSV des entités détectées. Prioritaire sur `log.path` du fichier config. |
-| `--mapping-output`    | Fichier CSV pour la table de correspondance Nom original → Code. Généré uniquement si des codes sont utilisés. |
-| `--dry-run`           | Simule le traitement sans écrire de fichiers de sortie. |
-| `--verbose`           | Affiche les logs détaillés (mode debug). |
+| `--config PATH`       | Fichier YAML de configuration |
+| `-o, --output`        | Fichier de sortie |
+| `-l, --log-entities`  | CSV des entités détectées |
+| `--mapping-output`    | CSV du mapping Nom original → Code |
+| `--dry-run`           | Simule, pas d’écriture |
+| `--exclude-entity`    | Entité à exclure sous la forme "Texte,Label" (plusieurs fois) |
+| `-e, --entities`      | Limite aux types d'entités (PER, LOC, ORG, DATE, EMAIL...) |
 
----
-
-### 🔁 Règles de remplacement :
-
-Le type de remplacement appliqué à chaque entité détectée dépend de la règle définie dans la section `replacements` du fichier YAML :
-
-- `type: codes` → Génère un code séquentiel unique (ex. NOM001)
-- `type: faker` → Données factices réalistes avec Faker
-- `type: redact` → Texte fixe (ex. [REDACTED])
-- `type: placeholder` → Placeholder formaté avec le label (ex. `[PER]`)
-
-Sans règle définie pour une entité : `[REDACTED]` est utilisé.
-
-Les remplacements sont **cohérents** au sein d’un même fichier : une même entité est toujours remplacée par la même valeur.
-
----
-
-### 📌 Exemples d'utilisation
+**Exemples :**
 
 ```bash
-# Anonymiser un fichier Word avec config personnalisée
-python main.py anonymize input_files/mon_rapport.docx --config config.yaml
-
-# Anonymiser un CSV avec simulation (dry-run) et log CSV des entités
-python main.py anonymize input_files/clients.csv --log-entities log/entites.csv --dry-run
-
-# Anonymiser un Excel avec export de la table de mapping des noms codés
-python main.py anonymize input_files/donnees.xlsx --config config.yaml --mapping-output log/mapping_personnes.csv
-
-# Utiliser la configuration intégrée par défaut (sans fichier config)
-python main.py anonymize input_files/test.txt
-
-# Liste des entités détectables par le modèle spaCy
-python main.py list-entities --model fr_core_news_md
+python main.py input_files/message.txt -o output_files/anonymise.txt --log-entities log/entities.csv
+python main.py input_files/message.txt --exclude-entity "Date,PER"
+python main.py input_files/rapport.docx --config config.yaml --mapping-output log/mapping.csv
 ```
 
+---
+
+### 🔁 Règles de remplacement (YAML)
+
+- `type: codes` → Code unique (NOM001)
+- `type: faker` → Données factices (faker)
+- `type: redact` → Texte fixe
+- `type: placeholder` → [LABEL]
+- Défaut : `[REDACTED]`
+
+---
 
 ## 🔍 Entités supportées
 
 | Code | Type | Source | Remplacement par défaut |
-|------|------|--------|--------------------------|
-| PER  | Personne | spaCy | code séquentiel |
-| LOC  | Lieu     | spaCy | Faker                  |
-| ORG  | Organisation | spaCy | `[REDACTED]`       |
-| DATE | Date     | spaCy | Faker                  |
-| EMAIL| Email    | Regex | Faker                  |
-| MISC | Divers   | spaCy | `[REDACTED]`           |
+|------|------|--------|------------------------|
+| PER  | Personne | spaCy | code séquentiel       |
+| LOC  | Lieu     | spaCy | Faker                 |
+| ORG  | Organisation | spaCy | `[REDACTED]`     |
+| DATE | Date     | Regex/spaCy | `[REDACTED_DATE]` ou Faker |
+| EMAIL| Email    | Regex | Faker                 |
+| MISC | Divers   | spaCy | `[REDACTED]` (autres entités non catégorisées) |
 
 ---
-
-# 🕵️‍♂️ anonyfiles
 
 ## 🗂️ Structure du projet CLI
 
 ```text
 anonyfiles/
-├── main.py                       # Script principal de la CLI avec Typer (point d’entrée)
-├── requirements.txt              # Liste des dépendances Python nécessaires
-├── config.yaml.sample            # Exemple complet de fichier de configuration YAML
+├── main.py                 # Script principal de la CLI (Typer, point d'entrée)
+├── requirements.txt        # Dépendances Python nécessaires au projet
+├── config.yaml.sample      # Exemple complet de fichier de configuration YAML
 │
-├── anonymizer/                   # Dossier contenant toute la logique métier de l’anonymisation
-│   ├── anonymizer_core.py        # (Optionnel/à venir) pour centraliser la logique si besoin
-│   ├── spacy_engine.py           # Chargement du modèle spaCy et détection des entités
-│   ├── replacer.py               # Génération cohérente des remplacements par règles (faker, codes, etc.)
-│   ├── word_processor.py         # Lecture et remplacement d'entités dans les fichiers Word (.docx)
-│   ├── excel_processor.py        # Lecture et anonymisation des fichiers Excel (.xlsx)
-│   ├── csv_processor.py          # Lecture et traitement des fichiers CSV
-│   └── txt_processor.py          # Lecture et anonymisation des fichiers texte (.txt)
+├── anonymizer/             # Dossier avec toute la logique métier de l’anonymisation
+│   ├── anonyfiles_core.py  # Orchestration centrale (pipeline, filtres, offsets, exclusions...)
+│   ├── spacy_engine.py     # Chargement modèle spaCy + détection NER + regex dates/emails
+│   ├── replacer.py         # Génération cohérente des remplacements (faker, codes, redact...)
+│   ├── word_processor.py   # Lecture/remplacement entités dans fichiers Word (.docx)
+│   ├── excel_processor.py  # Lecture/anonymisation fichiers Excel (.xlsx)
+│   ├── csv_processor.py    # Lecture et traitement des fichiers CSV
+│   ├── txt_processor.py    # Lecture/anonymisation fichiers texte (.txt)
+│   └── utils.py            # Fonctions utilitaires (offsets, replacements, helpers)
 │
-├── input_files/                  # Répertoire par défaut pour déposer les fichiers à traiter
-├── output_files/                 # Dossier de sortie pour les fichiers anonymisés générés
-├── log/                          # Répertoire destiné aux logs d’entités et mapping (CSV)
+├── input_files/            # Dossier pour les fichiers à traiter
+├── output_files/           # Dossier de sortie pour les fichiers anonymisés
+├── log/                    # Répertoire pour les logs d’entités et mapping (CSV)
 ```
 
 ---
@@ -174,117 +187,45 @@ anonyfiles/
 
 ```text
 anonyfiles-gui/
-├── src/                          # Frontend React en TypeScript
-│   ├── App.tsx                   # Point d’entrée principal de l’application
-│   ├── components/              # Composants réutilisables (Dropzone, Boutons, Barre de progression, etc.)
-│   ├── pages/                   # Pages principales (Accueil, Résultats, Paramètres…)
-│   ├── styles/                  # Feuilles de style (via Tailwind CSS ou CSS modules)
-│   ├── utils/                   # Fonctions utilitaires frontend
-│   └── index.tsx               # Point de montage ReactDOM
+├── src/                    # Frontend React (TypeScript)
+│   ├── App.tsx             # Point d'entrée principal
+│   ├── components/         # Composants réutilisables (Dropzone, boutons, progress bar, etc.)
+│   ├── pages/              # Pages principales (Accueil, Résultats, Paramètres…)
+│   ├── styles/             # Feuilles de style (Tailwind CSS ou CSS modules)
+│   ├── utils/              # Fonctions utilitaires frontend
+│   └── index.tsx           # Point de montage ReactDOM
 │
-├── public/                      # Fichiers statiques accessibles (favicon, HTML de base…)
-├── dist/                        # Dossier généré lors du build frontend (ne pas versionner)
+├── public/                 # Fichiers statiques (favicon, HTML, images…)
+├── dist/                   # Dossier de build frontend (ne pas versionner)
 │
-├── package.json                # Dépendances npm et scripts (dev, build, etc.)
-├── vite.config.ts              # Configuration du bundler Vite.js
+├── package.json            # Dépendances npm et scripts
+├── vite.config.ts          # Configuration du bundler Vite.js
 │
-└── src-tauri/                   # Backend Rust (intégré via Tauri)
+└── src-tauri/              # Backend Rust via Tauri
     ├── src/
-    │   └── main.rs              # Fichier principal Rust contenant la logique backend
-    ├── tauri.conf.json          # Fichier de configuration global de Tauri
-    └── target/                  # Fichiers compilés (ne pas versionner)
+    │   └── main.rs         # Logiciel backend principal
+    ├── tauri.conf.json     # Config globale Tauri
+    └── target/             # Binaries compilés (ne pas versionner)
 ```
 
 ---
 
-✅ Cette structure modulaire permet une séparation claire entre :
-- Le **noyau logique** de traitement (dans `anonymizer/`)
-- La **gestion de configuration** (via YAML)
-- Les **interfaces utilisateur**, avec une CLI robuste et une GUI intuitive
-- Une architecture **extensible et maintenable** pour ajouter de nouveaux formats ou comportements
+## 📊 Feuille de route (Roadmap)
 
---- 
+Le projet évolue en continu, voici la priorisation des prochaines phases de développement :
 
-
-```text
-anonyfiles/
-├── main.py
-├── requirements.txt
-├── config.yaml.sample
-│
-├── anonymizer/
-│   ├── anonymizer_core.py
-│   ├── spacy_engine.py
-│   ├── replacer.py
-│   ├── word_processor.py
-│   ├── excel_processor.py
-│   ├── csv_processor.py
-│   └── txt_processor.py
-│
-├── input_files/
-├── output_files/
-├── log/
-```
-
----
-
-## 🖼️ Interface Graphique (GUI)
-
-Développée avec React + Tailwind CSS (frontend) et Tauri en Rust (backend natif).
-
-Structure simplifiée :
-
-```text
-anonyfiles-gui/
-├── src/
-│   ├── App.tsx
-│   ├── components/
-│   ├── pages/
-│   ├── styles/
-│   └── utils/
-├── public/
-├── src-tauri/
-│   └── main.rs
-├── package.json
-├── vite.config.ts
-└── README.md
-```
-
-Commandes de développement :
-
-```bash
-cd anonyfiles-gui
-npm install
-cargo install tauri-cli
-npm run tauri dev
-```
-
----
-
-## 🧭 Feuille de route (Roadmap)
-
-### Phase 1 – Robustesse de base
-- ✅ Fichier `config.yaml` (pour la configuration des remplacements et des entités)
-- 🔜 Gestion fine des erreurs et logs
-
-### Phase 2 – Précision et rendu
-- 🔜 Préservation du formatage `.docx`
-- 🔜 Détection multi-entité (avec priorité)
-
-### Phase 3 – Performance
-- 🔜 Streaming CSV/TXT
-- 🔜 Meilleure gestion mémoire
-**(Ces deux points correspondent à la priorité #4 "Performance et gestion mémoire")**
-
-### Phase 4 – Extensibilité
-- 🔜 Support PDF / JSON
-- 🔜 Anonymisation personnalisée (déjà partiellement couverte par la config YAML)
-- 🔜 **Fonctionnalité de Désanonymisation** (ajout d'une commande CLI pour inverser l'anonymisation des codes via fichier mapping)
-**(Ce point correspond à la priorité #7 "Fonctionnalité de Désanonymisation")**
-
-### Phase 5 – UX
-- 🔜 Documentation Sphinx
-- 🔜 GUI complète et ergonomique
+| Priorité | Thème                | État      | Commentaire / Lien tâche |
+|----------|----------------------|-----------|-------------------------|
+| 1        | Robustesse multi-format (TXT, CSV, DOCX, XLSX) | ✅ Fait | Moteur factorisé, détection regex/NER commune |
+| 2        | Remplacement positionnel fiable                 | ✅ Fait | Prise en compte offsets dans tous les formats |
+| 3        | Détection universelle des dates et emails       | ✅ Fait | Regex avancée + spaCy |
+| 4        | Performance / gestion mémoire                   | 🔜 À venir | Streaming, lazy processing |
+| 5        | Règles de remplacement par type (YAML)          | ✅ Fait | Faker, code, redact, placeholder... |
+| 6        | Mapping codes <-> originaux                     | ✅ Fait | Export CSV pour désanonymisation possible |
+| 7        | Filtre exclusion (YAML / CLI)                   | ✅ Fait | Configurable, évite faux positifs |
+| 8        | Support PDF / JSON                              | 🔜 À venir | PDF en parsing natif |
+| 9        | Désanonymisation CLI (mapping inverse)          | 🔜 À venir | Rechercher dans mapping et restaurer |
+| 10       | GUI avancée (drag & drop, prévisualisation)     | 🔜 Alpha | Structure Tauri prête, développement en cours |
 
 ---
 
@@ -299,14 +240,19 @@ npm run tauri dev
 
 ## 📝 Changelog
 
--   **v1.4.0** – **NOUVEAU :** Intégration complète de la configuration des règles de remplacement par type d'entité via fichier YAML (--config). Introduction des types de remplacement 'faker' cohérent, 'redact', 'placeholder'. La sélection des entités à anonymiser se fait maintenant via la config (`entities_to_anonymize`). Suppression des anciennes options CLI `--entities` et `--fake-data/--redact`.
--   **v1.3.0** – Remplacement des entités PER par codes séquentiels (NOMnnn) et ajout de l'option `--mapping-output` pour exporter la table de correspondance Nom Original -> Code.
--   **v1.2.0** – GUI alpha, config YAML (structure initiale).
--   **v1.1.0** – CSV/XLSX améliorés.
--   **v1.0.0** – Première version.
+- **v1.5.0** – Détection universelle des dates et emails (regex), pipeline refactorisée, exclusion configurable (YAML/CLI)
+- **v1.4.0** – Configuration fine par type d’entité (YAML), logs améliorés, mapping désanonymisation.
+- **v1.3.0** – Codes séquentiels pour PER, mapping exportable.
+- **v1.2.0** – GUI alpha, config YAML initiale.
+- **v1.1.0** – Amélioration CSV/XLSX.
+- **v1.0.0** – Première version.
 
 ---
 
 ## 🛡️ Licence
 
 MIT © 2025 Simon Grossi
+
+---
+
+**Pour toute question, suggestion ou bug, ouvrez une issue ou contactez le mainteneur !**
