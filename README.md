@@ -1,3 +1,5 @@
+Voici le contenu complet du fichier README.md en une seule fois :
+
 # 🕵️‍♂️ anonyfiles
 
 **anonyfiles** est un outil open source de référence pour anonymiser automatiquement des documents texte, tableurs ou bureautiques via une ligne de commande performante (CLI) et une interface graphique moderne (GUI). Il exploite le NLP (avec **spaCy**) et génère des données factices réalistes (**Faker**).
@@ -13,6 +15,7 @@
 - [🛠️ Configuration](#-configuration)
 - [🧩 Architecture](#-architecture)
 - [💡 Utilisation CLI](#-utilisation-cli)
+- [🗂️ Support avancé des fichiers CSV](#-support-avancé-des-fichiers-csv)
 - [🔍 Entités supportées](#-entités-supportées)
 - [🗂️ Structure du projet CLI](#-structure-du-projet-cli)
 - [🖼️ Structure du projet GUI](#-structure-du-projet-gui)
@@ -31,20 +34,20 @@ Anonymiser rapidement et efficacement des documents `.docx`, `.xlsx`, `.csv`, `.
 
 ## 🚀 Fonctionnalités
 
-| Fonction                  | Description |
+| Fonction | Description |
 |--------------------------|-------------|
-| Formats supportés        | `.docx`, `.xlsx`, `.csv`, `.txt`, `.pdf`, `.json` |
-| Détection NER            | SpaCy `fr_core_news_md` |
-| Détection EMAIL & DATE   | Regex robuste intégrée, tous formats de date classiques |
+| Formats supportés | `.docx`, `.xlsx`, `.csv`, `.txt`, `.pdf`, `.json` |
+| Détection NER | SpaCy `fr_core_news_md` |
+| Détection EMAIL & DATE | Regex robuste intégrée, tous formats de date classiques |
 | Remplacement positionnel | Respect strict des offsets `start_char` / `end_char` |
-| Données de remplacement  | Faker (`fr_FR`), `[REDACTED]`, codes séquentiels (`NOMnnn`), placeholder |
-| Fichier config YAML      | Modèle, entités, règles et options configurables |
-| **Config Remplacement**  | **Configuration fine par type d'entité via YAML** |
-| **Filtre d’exclusion**   | **Filtre d’exclusion configurable (YAML/CLI) pour éviter les faux positifs** |
+| Données de remplacement | Faker (`fr_FR`), `[REDACTED]`, codes séquentiels (`NOMnnn`), placeholder |
+| Fichier config YAML | Modèle, entités, règles et options configurables |
+| **Config Remplacement** | **Configuration fine par type d'entité via YAML** |
+| **Filtre d’exclusion** | **Filtre d’exclusion configurable (YAML/CLI) pour éviter les faux positifs** |
 | Mode simulation (`--dry-run`) | Analyse sans écriture dans les fichiers |
-| Export CSV/JSON          | Journalisation détaillée des entités détectées |
+| Export CSV/JSON | Journalisation détaillée des entités détectées |
 | **Export Mapping Codes** | **Table Nom Original → Code pour désanonymisation et audit** |
-| Interface graphique (GUI)| Drag & drop, sélection visuelle des entités à anonymiser |
+| Interface graphique (GUI) | Drag & drop, sélection visuelle des entités à anonymiser |
 
 ---
 
@@ -63,7 +66,7 @@ Anonymiser rapidement et efficacement des documents `.docx`, `.xlsx`, `.csv`, `.
 git clone https://github.com/simongrossi/anonyfiles.git
 cd anonyfiles
 python3.11 -m venv .venv
-source .venv/bin/activate      # ou .venv\Scriptsctivate sous Windows
+source .venv/bin/activate      # ou .venv\\Scripts\\activate sous Windows
 pip install -r requirements.txt
 python -m spacy download fr_core_news_md
 ```
@@ -73,14 +76,15 @@ python -m spacy download fr_core_news_md
 ## 🛠️ Configuration
 
 anonyfiles utilise un fichier YAML pour définir :
+
 - le modèle spaCy,
 - les entités à cibler,
 - les règles de remplacement,
 - les entités à exclure de l’anonymisation (couples Texte, Label).
 
-> Voir un exemple dans `config.yaml.sample`.
+Voir un exemple dans `config.yaml.sample`.
 
-**Exemple :**
+Exemple :
 
 ```yaml
 spacy_model: fr_core_news_md
@@ -113,20 +117,13 @@ exclude_entities:
 
 Le projet est organisé autour d’une architecture modulaire et factorisée pour assurer robustesse et extensibilité :
 
-- **Pipeline métier central (`AnonyfilesEngine`)**
-  - Orchestration unique de l’anonymisation : détection des entités, génération des remplacements, application selon format.
-- **Processors spécialisés par format**
-  - Chaque format supporté (`.txt`, `.csv`, `.docx`, `.xlsx`, `.pdf`, `.json`) possède un *processor* dédié héritant d’une interface commune (`BaseProcessor`), qui définit l’extraction et le remplacement positionnel.
-- **Gestion des remplacements**
-  - Moteur de remplacement configurable via YAML et CLI, supportant Faker, codes séquentiels, redaction et placeholders.
-- **Support PDF avancé**
-  - Anonymisation par annotations PyMuPDF, pour masquer les zones sensibles sans altérer la mise en page.
-- **Tests unitaires**
-  - Chaque composant (processor, core, utils) dispose de tests unitaires garantissant la stabilité et facilitant les évolutions.
-- **CLI légère**
-  - Interface en ligne de commande via Typer, déléguant toute la logique métier au core.
-- **Organisation pratique des fichiers**
-  - `input_files/`, `output_files/`, `log/` et `mappings/` pour les fichiers sources, résultats et journaux.
+- **Pipeline métier central (AnonyfilesEngine)** : Orchestration unique de l’anonymisation : détection des entités, génération des remplacements, application selon format.
+- **Processors spécialisés par format** : Chaque format supporté (.txt, .csv, .docx, .xlsx, .pdf, .json) possède un processor dédié héritant d’une interface commune (BaseProcessor), qui définit l’extraction et le remplacement positionnel.
+- **Gestion des remplacements** : Moteur de remplacement configurable via YAML et CLI, supportant Faker, codes séquentiels, redaction et placeholders.
+- **Support PDF avancé** : Anonymisation par annotations PyMuPDF, pour masquer les zones sensibles sans altérer la mise en page.
+- **Tests unitaires** : Chaque composant (processor, core, utils) dispose de tests unitaires garantissant la stabilité et facilitant les évolutions.
+- **CLI légère** : Interface en ligne de commande via Typer, déléguant toute la logique métier au core.
+- **Organisation pratique des fichiers** : `input_files/`, `output_files/`, `log/` et `mappings/` pour les fichiers sources, résultats et journaux.
 
 Cette architecture permet d’ajouter facilement de nouveaux formats, de configurer finement les règles d’anonymisation et de maintenir le projet efficacement.
 
@@ -136,77 +133,102 @@ Cette architecture permet d’ajouter facilement de nouveaux formats, de configu
 
 Lance le script principal pour anonymiser ou désanonymiser un fichier selon la configuration YAML (ou les options CLI).
 
-**Principales options :**
+Principales options :
 
-| Option                | Description |
-|-----------------------|-------------|
-| `--config PATH`       | Fichier YAML de configuration |
-| `-o, --output`        | Fichier de sortie |
-| `-l, --log-entities`  | CSV des entités détectées |
-| `--mapping-output`    | CSV du mapping Nom original → Code |
-| `--dry-run`           | Simule, pas d’écriture |
-| `--exclude-entity`    | Entité à exclure sous la forme "Texte,Label" (plusieurs fois) |
-| `-e, --entities`      | Limite aux types d'entités (PER, LOC, ORG, DATE, EMAIL...) |
+| Option | Description |
+|--------------------------|-------------|
+| `--config PATH` | Fichier YAML de configuration |
+| `-o, --output` | Fichier de sortie |
+| `-l, --log-entities` | CSV des entités détectées |
+| `--mapping-output` | CSV du mapping Nom original → Code |
+| `--dry-run` | Simule, pas d’écriture |
+| `--exclude-entity` | Entité à exclure sous la forme "Texte,Label" (plusieurs fois) |
+| `-e, --entities` | Limite aux types d'entités (PER, LOC, ORG, DATE, EMAIL...) |
+| `--csv-no-header` | Considère que le CSV n'a PAS d'entête (la première ligne sera traitée comme donnée) |
+
+---
 
 ## 🗂️ Support avancé des fichiers CSV
 
-Par défaut, anonyfiles considère que votre fichier CSV possède une première ligne d’entête (noms de colonnes) **qui ne sera jamais anonymisée**.
+Par défaut, anonyfiles considère que votre fichier CSV possède une première ligne d’entête (noms de colonnes) qui ne sera jamais anonymisée.
 
-### ➡️ Option : `--csv-no-header`
+➡️ Option : `--csv-no-header`
 
-Si votre CSV **ne possède pas d’entête** (la première ligne contient des données), ajoutez l’option :
+Si votre CSV ne possède pas d’entête (la première ligne contient des données), ajoutez l’option :
 
 ```bash
 python main.py anonymize input.csv --config generated_config.yaml -o output_anonymise.csv --csv-no-header
-
-### Anonymisation
-
-```bash
-python main.py anonymize input_files/message.txt   --config generated_config.yaml   -o output_files/message_anonymise.txt   --log-entities log/entities.csv   --mapping-output mappings/mapping.csv
 ```
 
-### Désanonymisation
+Idem pour la désanonymisation :
 
 ```bash
-python main.py deanonymize output_files/message_anonymise.txt   --mapping-csv mappings/mapping.csv   -o output_files/message_restored.txt
+python main.py deanonymize output_anonymise.csv --mapping-csv mappings/mapping_csv.csv -o output_restored.csv --csv-no-header
 ```
 
-**Exemples :**
+Par défaut : la première ligne est considérée comme un entête (et jamais anonymisée/restaurée)
+
+Avec `--csv-no-header` : toutes les lignes sont traitées comme données (y compris la première)
+
+Cela garantit la préservation de la structure de vos fichiers CSV et la compatibilité avec tous les formats, bruts ou non.
+
+---
+
+## Exemples
+
+Fichier CSV avec entête (par défaut) :
 
 ```bash
-python main.py anonymize input_files/message.txt -o output_files/anonymise.txt --log-entities log/entities.csv
-python main.py anonymize input_files/message.txt --exclude-entity "Date,PER"
-python main.py anonymize input_files/rapport.docx --config config.yaml --mapping-output log/mapping.csv
+python main.py anonymize input_files/exemple.csv --config generated_config.yaml -o output_files/exemple_anonymise.csv
+```
+
+Fichier CSV sans entête :
+
+```bash
+python main.py anonymize input_files/exemple.csv --config generated_config.yaml -o output_files/exemple_anonymise.csv --csv-no-header
+```
+
+Anonymisation (tous formats) :
+
+```bash
+python main.py anonymize input_files/message.txt --config generated_config.yaml -o output_files/message_anonymise.txt --log-entities log/entities.csv --mapping-output mappings/mapping.csv
+```
+
+Désanonymisation (tous formats) :
+
+```bash
+python main.py deanonymize output_files/message_anonymise.txt --mapping-csv mappings/mapping.csv -o output_files/message_restored.txt
 ```
 
 ---
 
-### 🔁 Règles de remplacement (YAML)
+## 🔁 Règles de remplacement (YAML)
 
 - `type: codes` → Code unique (NOM001)
 - `type: faker` → Données factices (faker)
 - `type: redact` → Texte fixe
 - `type: placeholder` → [LABEL]
-- Défaut : `[REDACTED]`
+
+Défaut : `[REDACTED]`
 
 ---
 
 ## 🔍 Entités supportées
 
-| Code | Type         | Source       | Remplacement par défaut                   |
-|------|--------------|-------------|-------------------------------------------|
-| PER  | Personne     | spaCy       | code séquentiel (NOMnnn)                  |
-| LOC  | Lieu         | spaCy       | Faker                                     |
-| ORG  | Organisation | spaCy       | `[REDACTED]`                              |
-| DATE | Date         | Regex/spaCy | `[REDACTED_DATE]` ou Faker                |
-| EMAIL| Email        | Regex       | Faker                                     |
-| MISC | Divers       | spaCy       | `[REDACTED]` (autres entités non catégorisées) |
+| Code | Type | Source | Remplacement par défaut |
+|------|------|--------|-------------------------|
+| PER | Personne | spaCy | code séquentiel (NOMnnn) |
+| LOC | Lieu | spaCy | Faker |
+| ORG | Organisation | spaCy | [REDACTED] |
+| DATE | Date | Regex/spaCy | [REDACTED_DATE] ou Faker |
+| EMAIL | Email | Regex | Faker |
+| MISC | Divers | spaCy | [REDACTED] (autres entités non catégorisées) |
 
 ---
 
 ## 🗂️ Structure du projet CLI
 
-```text
+```
 anonyfiles/
 ├── main.py                 # Script principal CLI (Typer)
 ├── requirements.txt        # Dépendances Python
@@ -233,7 +255,7 @@ anonyfiles/
 
 ## 🖼️ Structure du projet GUI
 
-```text
+```
 anonyfiles-gui/
 ├── src/                    # Frontend React (TypeScript)
 │   ├── App.tsx             # Point d'entrée principal
@@ -262,18 +284,18 @@ anonyfiles-gui/
 
 Le projet évolue en continu, voici la priorisation des prochaines phases de développement :
 
-| Priorité | Thème                | État      | Commentaire / Lien tâche |
-|----------|----------------------|-----------|-------------------------|
-| 1        | Robustesse multi-format (TXT, CSV, DOCX, XLSX) | ✅ Fait | Moteur factorisé, détection regex/NER commune |
-| 2        | Remplacement positionnel fiable                 | ✅ Fait | Offsets stricts dans tous les formats |
-| 3        | Détection universelle des dates et emails       | ✅ Fait | Regex avancée + spaCy |
-| 4        | Performance / gestion mémoire                   | 🔜 À venir | Streaming, lazy processing |
-| 5        | Règles de remplacement par type (YAML)          | ✅ Fait | Faker, code, redact, placeholder... |
-| 6        | Mapping codes <-> originaux                     | ✅ Fait | Export CSV pour désanonymisation possible |
-| 7        | Filtre exclusion (YAML / CLI)                   | ✅ Fait | Configurable, évite faux positifs |
-| 8        | Support PDF / JSON                              | 🔜 À venir | PDF natif |
-| 9        | Désanonymisation CLI (mapping inverse)          | 🔜 À venir | Recherche mapping et restauration |
-| 10       | GUI avancée (drag & drop, prévisualisation)     | 🔜 Alpha | Structure Tauri prête, développement en cours |
+| Priorité | Thème | État | Commentaire / Lien tâche |
+|----------|-------|------|--------------------------|
+| 1 | Robustesse multi-format (TXT, CSV, DOCX, XLSX) | ✅ Fait | Moteur factorisé, détection regex/NER commune |
+| 2 | Remplacement positionnel fiable | ✅ Fait | Offsets stricts dans tous les formats |
+| 3 | Détection universelle des dates et emails | ✅ Fait | Regex avancée + spaCy |
+| 4 | Performance / gestion mémoire | 🔜 À venir | Streaming, lazy processing |
+| 5 | Règles de remplacement par type (YAML) | ✅ Fait | Faker, code, redact, placeholder... |
+| 6 | Mapping codes <-> originaux | ✅ Fait | Export CSV pour désanonymisation possible |
+| 7 | Filtre exclusion (YAML / CLI) | ✅ Fait | Configurable, évite faux positifs |
+| 8 | Support PDF / JSON | 🔜 À venir | PDF natif |
+| 9 | Désanonymisation CLI (mapping inverse) | 🔜 À venir | Recherche mapping et restauration |
+| 10 | GUI avancée (drag & drop, prévisualisation) | 🔜 Alpha | Structure Tauri prête, développement en cours |
 
 ---
 
@@ -290,20 +312,38 @@ Le projet évolue en continu, voici la priorisation des prochaines phases de dé
 
 ### v1.6.0 - 2025-05-16
 
-- **Nouvelle commande CLI `deanonymize`** : restauration de fichiers anonymisés via un fichier mapping CSV.
-- **Refactorisation `AnonyfilesEngine`** : gestion améliorée des mappings, exclusions d’entités passées en CLI.
-- **Validation YAML avec Cerberus** : remplacement de Yamale pour plus de robustesse.
-- **Organisation des fichiers mapping** dans un dossier dédié `mappings/` pour plus de clarté.
-- **Logs DEBUG ajoutés** pour le contenu du mapping lors de l’anonymisation.
-- **Correction de la gestion des chemins** pour éviter les erreurs d’accès fichier.
-- **Documentation CLI mise à jour** avec exemples complets d’utilisation.
+- Nouvelle commande CLI `deanonymize` : restauration de fichiers anonymisés via un fichier mapping CSV.
+- Option CLI `--csv-no-header` : gestion robuste des CSV sans entête, jamais d’anonymisation du header par défaut.
+- Refactorisation `AnonyfilesEngine` : gestion améliorée des mappings, exclusions d’entités passées en CLI.
+- Validation YAML avec Cerberus : remplacement de Yamale pour plus de robustesse.
+- Organisation des fichiers mapping dans un dossier dédié `mappings/` pour plus de clarté.
+- Logs DEBUG ajoutés pour le contenu du mapping lors de l’anonymisation.
+- Correction de la gestion des chemins pour éviter les erreurs d’accès fichier.
+- Documentation CLI mise à jour avec exemples complets d’utilisation.
 
-- **v1.5.0** – Détection universelle des dates et emails (regex), pipeline refactorisée, exclusion configurable (YAML/CLI), assistant CLI de génération et validation de config YAML
-- **v1.4.0** – Configuration fine par type d’entité (YAML), logs améliorés, mapping désanonymisation.
-- **v1.3.0** – Codes séquentiels pour PER, mapping exportable.
-- **v1.2.0** – GUI alpha, config YAML initiale.
-- **v1.1.0** – Amélioration CSV/XLSX.
-- **v1.0.0** – Première version.
+### v1.5.0
+
+- Détection universelle des dates et emails (regex), pipeline refactorisée, exclusion configurable (YAML/CLI), assistant CLI de génération et validation de config YAML
+
+### v1.4.0
+
+- Configuration fine par type d’entité (YAML), logs améliorés, mapping désanonymisation.
+
+### v1.3.0
+
+- Codes séquentiels pour PER, mapping exportable.
+
+### v1.2.0
+
+- GUI alpha, config YAML initiale.
+
+### v1.1.0
+
+- Amélioration CSV/XLSX.
+
+### v1.0.0
+
+- Première version.
 
 ---
 
@@ -311,6 +351,7 @@ Le projet évolue en continu, voici la priorisation des prochaines phases de dé
 
 MIT © 2025 Simon Grossi
 
----
+Pour toute question, suggestion ou bug, ouvrez une issue ou contactez le mainteneur !
+```
 
-**Pour toute question, suggestion ou bug, ouvrez une issue ou contactez le mainteneur !**
+Vous pouvez maintenant copier tout ce contenu d'un seul coup et l'enregistrer dans un fichier `README.md`.
