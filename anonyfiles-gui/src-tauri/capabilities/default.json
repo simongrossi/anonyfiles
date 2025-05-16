@@ -5,9 +5,8 @@
   "windows": [
     "main"
   ],
-  "permissions": [
-    "core:default",
-    "opener:default",
-    "dialog:default"  // <--- Ajoutez cette ligne
-  ]
+ "permissions": [
+  "core:default",
+  "log:default"
+]
 }
