@@ -1,5 +1,3 @@
-Voici le contenu complet du fichier README.md en une seule fois :
-
 # 🕵️‍♂️ anonyfiles
 
 **anonyfiles** est un outil open source de référence pour anonymiser automatiquement des documents texte, tableurs ou bureautiques via une ligne de commande performante (CLI) et une interface graphique moderne (GUI). Il exploite le NLP (avec **spaCy**) et génère des données factices réalistes (**Faker**).
