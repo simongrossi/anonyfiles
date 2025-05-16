@@ -1,17 +1,30 @@
-exclude_entities: []
+spacy_model: fr_core_news_md
+
 replacements:
-  DATE:
+  PER:
+    type: codes
+    options:
+      prefix: "NOM"
+      padding: 3
+  LOC:
     type: faker
+    options:
+      locale: fr_FR
+      provider: address
+  ORG:
+    type: redact
+    options:
+      text: "[ENTREPRISE]"
+  DATE:
+    type: redact
+    options:
+      text: "[REDACTED_DATE]"
   EMAIL:
     type: faker
-  LOC:
     options:
-      text: '*localalisation*'
-    type: redact
-  ORG:
-    type: faker
-  PER:
-    options:
-      text: '*REMPLACEMENT*'
-    type: redact
-spacy_model: fr_core_news_md
+      locale: fr_FR
+
+exclude_entities:
+  - [Date, PER]
+  - [Claire Lefevre, PER]
+  # ajoute ici d'autres couples [Texte, Label] à exclure si besoin

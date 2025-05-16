@@ -2,22 +2,75 @@ type: map
 mapping:
   spacy_model:
     type: str
-    required: yes
+    required: true
+
   replacements:
     type: map
-    required: yes
+    required: true
     mapping:
       PER:
         type: map
+        required: false
         mapping:
           type:
             type: str
             enum: ["codes", "faker", "redact", "placeholder"]
+            required: true
           options:
             type: map
             required: false
+
+      LOC:
+        type: map
+        required: false
+        mapping:
+          type:
+            type: str
+            enum: ["codes", "faker", "redact", "placeholder"]
+            required: true
+          options:
+            type: map
+            required: false
+
+      ORG:
+        type: map
+        required: false
+        mapping:
+          type:
+            type: str
+            enum: ["codes", "faker", "redact", "placeholder"]
+            required: true
+          options:
+            type: map
+            required: false
+
+      DATE:
+        type: map
+        required: false
+        mapping:
+          type:
+            type: str
+            enum: ["codes", "faker", "redact", "placeholder"]
+            required: true
+          options:
+            type: map
+            required: false
+
+      EMAIL:
+        type: map
+        required: false
+        mapping:
+          type:
+            type: str
+            enum: ["codes", "faker", "redact", "placeholder"]
+            required: true
+          options:
+            type: map
+            required: false
+
   exclude_entities:
     type: seq
+    required: false
     sequence:
       - type: seq
         sequence:

@@ -12,6 +12,7 @@ from .pdf_processor import PdfProcessor
 from .json_processor import JsonProcessor
 import pandas as pd
 from docx import Document
+import typer
 
 PROCESSOR_MAP = {
     ".txt": TxtProcessor,
@@ -89,8 +90,16 @@ class AnonyfilesEngine:
                     output_path.write_text("")
             return {"status": "success", "entities_detected": []}
 
+        typer.echo(f"DEBUG - Entités uniques détectées : {unique_entities}")
+
         session = ReplacementSession()
         replacements, person_code_map = session.generate_replacements(unique_entities)
+
+        # Ne garder dans le mapping que les entités PER
+        person_code_map = {
+            orig: code for orig, code in person_code_map.items()
+            if any(label == "PER" for t, label in unique_entities if t == orig)
+        }
 
         if not dry_run and output_path:
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,6 +114,8 @@ class AnonyfilesEngine:
 
         if mapping_output_path and person_code_map:
             mapping_output_path.parent.mkdir(parents=True, exist_ok=True)
+            typer.echo(f"DEBUG: Écriture du fichier mapping ici : {mapping_output_path}")
+            typer.echo(f"DEBUG: Contenu mapping : {person_code_map}")
             with open(mapping_output_path, "w", encoding="utf-8") as f:
                 f.write("Code,Nom Original\n")
                 for original, code in person_code_map.items():
