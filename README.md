@@ -22,6 +22,7 @@
 - [📝 Changelog](#changelog)
 - [🛡️ Licence](#licence)
 
+
 ---
 
 ## 🎯 Objectif
@@ -156,12 +157,14 @@ Si votre CSV ne possède pas d’entête (la première ligne contient des donné
 
 ```bash
 python main.py anonymize input.csv --config generated_config.yaml -o output_anonymise.csv --csv-no-header
+
 ```
 
 Idem pour la désanonymisation :
 
 ```bash
 python main.py deanonymize output_anonymise.csv --mapping-csv mappings/mapping_csv.csv -o output_restored.csv --csv-no-header
+
 ```
 
 Par défaut : la première ligne est considérée comme un entête (et jamais anonymisée/restaurée)
@@ -310,14 +313,14 @@ Le projet évolue en continu, voici la priorisation des prochaines phases de dé
 
 ### v1.6.0 - 2025-05-16
 
-- Nouvelle commande CLI `deanonymize` : restauration de fichiers anonymisés via un fichier mapping CSV.
-- Option CLI `--csv-no-header` : gestion robuste des CSV sans entête, jamais d’anonymisation du header par défaut.
-- Refactorisation `AnonyfilesEngine` : gestion améliorée des mappings, exclusions d’entités passées en CLI.
-- Validation YAML avec Cerberus : remplacement de Yamale pour plus de robustesse.
-- Organisation des fichiers mapping dans un dossier dédié `mappings/` pour plus de clarté.
-- Logs DEBUG ajoutés pour le contenu du mapping lors de l’anonymisation.
-- Correction de la gestion des chemins pour éviter les erreurs d’accès fichier.
-- Documentation CLI mise à jour avec exemples complets d’utilisation.
+- Nouvelle commande CLI `deanonymize` : restauration via mapping CSV.
+- Option CLI `--csv-no-header` : gestion des CSV sans entête.
+- Refactorisation AnonyfilesEngine : meilleure gestion mappings et exclusions CLI.
+- Validation YAML avec Cerberus.
+- Organisation des fichiers mapping dans `mappings/`.
+- Logs DEBUG détaillés.
+- Correction gestion chemins fichiers.
+- Documentation CLI enrichie avec exemples.
 
 ### v1.5.0
 

@@ -1,0 +1,21 @@
+spacy_model: fr_core_news_md
+
+replacements:
+  PER:
+    type: codes
+  LOC:
+    type: faker
+    options:
+      locale: fr_FR
+      provider: address
+  ORG:
+    type: redact
+    options:
+      text: "[ENTREPRISE]"
+  DATE:
+    type: redact
+    options:
+      text: "[REDACTED_DATE]"
+
+exclude_entities:
+  - [Date, PER]

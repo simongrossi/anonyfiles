@@ -1,7 +1,7 @@
-# main.py
-
 import typer
 from pathlib import Path
+from datetime import datetime
+import os
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.csv_processor import CsvProcessor
 from anonymizer.txt_processor import TxtProcessor
@@ -10,7 +10,6 @@ from anonymizer.excel_processor import ExcelProcessor
 from anonymizer.pdf_processor import PdfProcessor
 from anonymizer.json_processor import JsonProcessor
 from anonymizer.deanonymize import Deanonymizer
-
 import yaml
 
 app = typer.Typer()
@@ -25,8 +24,30 @@ PROCESSOR_MAP = {
 }
 
 def load_config(config_path):
-    with open(config_path, encoding="utf-8") as f:
+    with open(str(config_path), encoding="utf-8") as f:  # Conversion en str ici
         return yaml.safe_load(f)
+
+def timestamp():
+    return datetime.now().strftime("%Y%m%d-%H%M%S")
+
+def ensure_folder(folder):
+    os.makedirs(folder, exist_ok=True)
+
+def default_output(input_file, prefix="anonymise"):
+    base = input_file.stem
+    ext = input_file.suffix
+    ensure_folder("output_files")
+    return Path("output_files") / f"{base}_{prefix}{ext}"
+
+def default_mapping(input_file):
+    base = input_file.stem
+    ensure_folder("mappings")
+    return Path("mappings") / f"{base}_mapping_{timestamp()}.csv"
+
+def default_log(input_file):
+    base = input_file.stem
+    ensure_folder("log")
+    return Path("log") / f"{base}_entities_{timestamp()}.csv"
 
 @app.command()
 def anonymize(
@@ -44,6 +65,11 @@ def anonymize(
     """
     typer.echo(f"📂 Anonymisation du fichier : {input_file}")
 
+    # Déterminer les chemins par défaut si non fournis
+    output = output or default_output(input_file)
+    mapping_output = mapping_output or default_mapping(input_file)
+    log_entities = log_entities or default_log(input_file)
+
     config_data = load_config(config)
     engine = AnonyfilesEngine(config=config_data, exclude_entities_cli=exclude_entities)
 
@@ -56,14 +82,10 @@ def anonymize(
 
     has_header = not csv_no_header
 
-    # Extraction des blocs
     if ext == ".csv":
         blocks = processor.extract_blocks(input_file, has_header=has_header)
     else:
         blocks = processor.extract_blocks(input_file)
-
-    # Détection des entités (centralisé)
-    # (La logique est déjà dans AnonyfilesEngine, donc on passe juste tout)
 
     result = engine.anonymize(
         input_path=input_file,
@@ -79,9 +101,9 @@ def anonymize(
     typer.echo("✅ Anonymisation terminée.")
     if result.get("entities_detected"):
         typer.echo(f"Entités détectées : {result.get('entities_detected')}")
-    if result.get("output_path"):
-        typer.echo(f"Fichier anonymisé écrit dans : {result.get('output_path')}")
-
+    typer.echo(f"Fichier anonymisé : {output}")
+    typer.echo(f"Mapping CSV : {mapping_output}")
+    typer.echo(f"Log des entités : {log_entities}")
 
 @app.command()
 def deanonymize(
@@ -103,24 +125,19 @@ def deanonymize(
     ext = input_file.suffix.lower()
     has_header = not csv_no_header
 
-    # Pour CSV, on traite header selon has_header
     if ext == ".csv":
         processor = CsvProcessor()
-        # On relit tout le fichier, header inclus, pour remplacement
+        import csv as pycsv
         with open(input_file, encoding="utf-8") as f:
-            import csv as pycsv
             reader = pycsv.reader(f)
             rows = [row for row in reader]
-        # Extraction blocs = toutes cellules sauf header si has_header
         start_idx = 1 if has_header else 0
         flat_cells = [cell for row in rows[start_idx:] for cell in row]
     else:
         with open(input_file, encoding="utf-8") as f:
             flat_cells = [line.strip() for line in f if line.strip()]
 
-    # Mapping
     deanonymizer = Deanonymizer(str(mapping_csv), strict=strict)
-    # Ici, dry_run = True pour voir warnings, sinon on restaure tout
     with open(input_file, encoding="utf-8") as f:
         content = f.read()
     result, report_txt = deanonymizer.deanonymize_text(content, dry_run=dry_run)
