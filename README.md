@@ -281,7 +281,9 @@ anonyfiles-gui/
 
 ---
 
-# ✅ État des fonctionnalités
+# 🛣️ Feuille de route `anonyfiles-cli`
+
+## ✅ État des fonctionnalités
 
 | Priorité | Thème                                         | État     | Commentaire / Lien tâche                                      |
 |----------|-----------------------------------------------|----------|---------------------------------------------------------------|
@@ -292,8 +294,8 @@ anonyfiles-gui/
 | 5        | Règles de remplacement par type (YAML)        | ✅ Fait  | Faker, code, redact, placeholder…                             |
 | 6        | Mapping codes <-> originaux                   | ✅ Fait  | Export CSV pour désanonymisation possible                     |
 | 7        | Filtre exclusion (YAML / CLI)                 | ✅ Fait  | Configurable, évite faux positifs                             |
-| 8        | Support PDF / JSON                            | ✅ Fait  | PDF natif                                                     |
-| 9        | Désanonymisation CLI (mapping inverse)        | 🔜 À venir | Recherche mapping et restauration                            |
+| 8        | Support PDF / JSON                            | ✅ Fait  | Support natif via `PyMuPDF` pour PDF, JSON processor dédié    |
+| 9        | Désanonymisation CLI (mapping inverse)        | ✅ Fait  | Classe `Deanonymizer` et commande CLI `deanonymize`           |
 | 10       | GUI avancée (drag & drop, prévisualisation)   | 🔜 Alpha | Structure Tauri prête, développement en cours                 |
 
 ---
@@ -308,7 +310,7 @@ anonyfiles-gui/
 - Standardiser les messages d’erreur (niveau, contenu, affichage CLI).
 
 ### 🧠 Optimisation mémoire
-- **JSON** : implémenter un traitement itératif/streaming (ex: `ijson`, `json.load` avec `object_hook`) pour éviter le chargement complet.
+- **JSON** : implémenter un traitement itératif/streaming (ex: `ijson`) pour éviter le chargement complet.
 - **TXT/CSV/XLSX** : étudier une lecture par ligne ou par blocs pour les très gros fichiers.
 
 ### 📚 Documentation du code
@@ -326,11 +328,12 @@ anonyfiles-gui/
 ### 📦 Dépendances
 - Fixer les versions dans `requirements.txt` :
   - Exemple : `spacy==3.7.2`, `pandas>=1.5.0,<2.0.0`
-  - Garantir la reproductibilité (via `pip freeze > requirements.lock`).
+  - Garantir la reproductibilité (`pip freeze > requirements.lock`).
 
 ### 🌍 Encodage
 - Vérifier que tous les fichiers sont bien lus/écrits en **UTF-8**.
 - Ajouter un fallback ou une détection automatique si l’encodage échoue.
+
 ---
 
 ## 🤝 Contribution
