@@ -46,17 +46,17 @@ Anonymiser rapidement et efficacement des documents `.docx`, `.xlsx`, `.csv`, `.
 | **Export Mapping Codes** | **Table de correspondance Nom Original → Code pour désanonymisation et audit**               |
 | Interface graphique (GUI)| Drag & drop, sélection visuelle des entités à anonymiser                                   |
 
-
 ---
 
 ## 💻 Prérequis
 
-- Python ≥ 3.8 (recommandé 3.11)
-- pip
-- **PyYAML**
+- Python ≥ 3.8 (recommandé 3.11 pour meilleure compatibilité avec spaCy et ses dépendances)  
+- pip  
+- **PyYAML**, **Typer**, **Faker**, **python-docx**, **pandas**, **PyMuPDF** (installation facilitée via `requirements.txt`)  
 - Node.js + Rust (pour la GUI)
 
 ---
+
 
 ## ⚙️ Installation CLI
 
@@ -74,14 +74,15 @@ python -m spacy download fr_core_news_md
 ## 🛠️ Configuration
 
 anonyfiles utilise un fichier YAML pour définir :
+
 - le modèle spaCy,
 - les entités à cibler,
 - les règles de remplacement,
-- et (nouveau) les **entités à exclure** de l’anonymisation.
+- les entités à exclure de l’anonymisation (couples Texte, Label).
 
 > Voir un exemple dans `config.yaml.sample`.
 
-**Exemple :**
+### Exemple :
 
 ```yaml
 spacy_model: fr_core_news_md
@@ -288,7 +289,7 @@ Le projet évolue en continu, voici la priorisation des prochaines phases de dé
 
 ## 📝 Changelog
 
-- **v1.5.0** – Détection universelle des dates et emails (regex), pipeline refactorisée, exclusion configurable (YAML/CLI)
+- **v1.5.0** – Détection universelle des dates et emails (regex), pipeline refactorisée, exclusion configurable (YAML/CLI), assistant CLI de génération et validation de config YAML
 - **v1.4.0** – Configuration fine par type d’entité (YAML), logs améliorés, mapping désanonymisation.
 - **v1.3.0** – Codes séquentiels pour PER, mapping exportable.
 - **v1.2.0** – GUI alpha, config YAML initiale.
