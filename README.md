@@ -390,5 +390,3 @@ MIT © 2025 Simon Grossi
 
 Pour toute question, suggestion ou bug, ouvrez une issue ou contactez le mainteneur !
 ```
-
-Vous pouvez maintenant copier tout ce contenu d'un seul coup et l'enregistrer dans un fichier `README.md`.
