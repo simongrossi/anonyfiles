@@ -281,23 +281,56 @@ anonyfiles-gui/
 
 ---
 
-## 📊 Feuille de route (Roadmap)
+# ✅ État des fonctionnalités
 
-Le projet évolue en continu, voici la priorisation des prochaines phases de développement :
+| Priorité | Thème                                         | État     | Commentaire / Lien tâche                                      |
+|----------|-----------------------------------------------|----------|---------------------------------------------------------------|
+| 1        | Robustesse multi-format (TXT, CSV, DOCX, XLSX)| ✅ Fait  | Moteur factorisé, détection regex/NER commune                |
+| 2        | Remplacement positionnel fiable               | ✅ Fait  | Offsets stricts dans tous les formats                         |
+| 3        | Détection universelle des dates et emails     | ✅ Fait  | Regex avancée + spaCy                                        |
+| 4        | Performance / gestion mémoire                 | 🔜 À venir | Streaming, lazy processing                                   |
+| 5        | Règles de remplacement par type (YAML)        | ✅ Fait  | Faker, code, redact, placeholder…                             |
+| 6        | Mapping codes <-> originaux                   | ✅ Fait  | Export CSV pour désanonymisation possible                     |
+| 7        | Filtre exclusion (YAML / CLI)                 | ✅ Fait  | Configurable, évite faux positifs                             |
+| 8        | Support PDF / JSON                            | ✅ Fait  | PDF natif                                                     |
+| 9        | Désanonymisation CLI (mapping inverse)        | 🔜 À venir | Recherche mapping et restauration                            |
+| 10       | GUI avancée (drag & drop, prévisualisation)   | 🔜 Alpha | Structure Tauri prête, développement en cours                 |
 
-| Priorité | Thème | État | Commentaire / Lien tâche |
-|----------|-------|------|--------------------------|
-| 1 | Robustesse multi-format (TXT, CSV, DOCX, XLSX) | ✅ Fait | Moteur factorisé, détection regex/NER commune |
-| 2 | Remplacement positionnel fiable | ✅ Fait | Offsets stricts dans tous les formats |
-| 3 | Détection universelle des dates et emails | ✅ Fait | Regex avancée + spaCy |
-| 4 | Performance / gestion mémoire | 🔜 À venir | Streaming, lazy processing |
-| 5 | Règles de remplacement par type (YAML) | ✅ Fait | Faker, code, redact, placeholder... |
-| 6 | Mapping codes <-> originaux | ✅ Fait | Export CSV pour désanonymisation possible |
-| 7 | Filtre exclusion (YAML / CLI) | ✅ Fait | Configurable, évite faux positifs |
-| 8 | Support PDF / JSON | 🔜 À venir | PDF natif |
-| 9 | Désanonymisation CLI (mapping inverse) | 🔜 À venir | Recherche mapping et restauration |
-| 10 | GUI avancée (drag & drop, prévisualisation) | 🔜 Alpha | Structure Tauri prête, développement en cours |
+---
 
+## 💡 Axes d'amélioration suggérés
+
+### 🔧 Gestion des erreurs
+- Introduire une gestion plus fine des exceptions (`try...except`) pour capter :
+  - fichiers corrompus,
+  - problèmes d'encodage,
+  - formats inattendus.
+- Standardiser les messages d’erreur (niveau, contenu, affichage CLI).
+
+### 🧠 Optimisation mémoire
+- **JSON** : implémenter un traitement itératif/streaming (ex: `ijson`, `json.load` avec `object_hook`) pour éviter le chargement complet.
+- **TXT/CSV/XLSX** : étudier une lecture par ligne ou par blocs pour les très gros fichiers.
+
+### 📚 Documentation du code
+- Ajouter des **docstrings complètes** à toutes les fonctions, classes, et méthodes :
+  - rôle,
+  - paramètres,
+  - valeur de retour.
+- Utiliser un format standard (reStructuredText ou Google-style).
+
+### 🧾 Typage statique
+- Généraliser l’usage des **type hints** :
+  - `List[str]`, `Optional[Path]`, `Dict[str, Any]`, etc.
+- Faciliter la détection d’erreurs via `mypy` ou équivalent.
+
+### 📦 Dépendances
+- Fixer les versions dans `requirements.txt` :
+  - Exemple : `spacy==3.7.2`, `pandas>=1.5.0,<2.0.0`
+  - Garantir la reproductibilité (via `pip freeze > requirements.lock`).
+
+### 🌍 Encodage
+- Vérifier que tous les fichiers sont bien lus/écrits en **UTF-8**.
+- Ajouter un fallback ou une détection automatique si l’encodage échoue.
 ---
 
 ## 🤝 Contribution
