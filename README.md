@@ -6,21 +6,21 @@
 
 ## 📌 Sommaire
 
-- [🎯 Objectif](#-objectif)
-- [🚀 Fonctionnalités](#-fonctionnalités)
-- [💻 Prérequis](#-prérequis)
-- [⚙️ Installation CLI](#-installation-cli)
-- [🛠️ Configuration](#-configuration)
-- [🧩 Architecture](#-architecture)
-- [💡 Utilisation CLI](#-utilisation-cli)
-- [🗂️ Support avancé des fichiers CSV](#-support-avancé-des-fichiers-csv)
-- [🔍 Entités supportées](#-entités-supportées)
-- [🗂️ Structure du projet CLI](#-structure-du-projet-cli)
-- [🖼️ Structure du projet GUI](#-structure-du-projet-gui)
-- [📊 Feuille de route (Roadmap)](#-feuille-de-route-roadmap)
-- [🤝 Contribution](#-contribution)
-- [📝 Changelog](#-changelog)
-- [🛡️ Licence](#-licence)
+- [🎯 Objectif](#objectif)
+- [🚀 Fonctionnalités](#fonctionnalités)
+- [💻 Prérequis](#prérequis)
+- [⚙️ Installation CLI](#installation-cli)
+- [🛠️ Configuration](#configuration)
+- [🧩 Architecture](#architecture)
+- [💡 Utilisation CLI](#utilisation-cli)
+- [🗂️ Support avancé des fichiers CSV](#support-avancé-des-fichiers-csv)
+- [🔍 Entités supportées](#entités-supportées)
+- [🗂️ Structure du projet CLI](#structure-du-projet-cli)
+- [🖼️ Structure du projet GUI](#structure-du-projet-gui)
+- [📊 Feuille de route (Roadmap)](#feuille-de-route-roadmap)
+- [🤝 Contribution](#contribution)
+- [📝 Changelog](#changelog)
+- [🛡️ Licence](#licence)
 
 ---
 
