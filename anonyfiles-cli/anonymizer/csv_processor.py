@@ -9,17 +9,21 @@ class CsvProcessor(BaseProcessor):
     """
     Processor pour les fichiers .csv.
     - Chaque cellule est considérée comme un bloc.
+    - Ne touche jamais l'entête (header) si présent.
     """
 
-    def extract_blocks(self, input_path):
+    def extract_blocks(self, input_path, has_header=True):
         """
         Extrait chaque cellule du CSV comme un bloc de texte à traiter.
-        Retourne une liste à plat contenant toutes les cellules (par lignes puis colonnes).
+        Retourne une liste à plat contenant toutes les cellules de data (pas de header si has_header=True).
         """
         cell_texts = []
         with open(input_path, mode='r', encoding='utf-8') as f:
             reader = csv.reader(f)
-            for row in reader:
+            for i, row in enumerate(reader):
+                # Si has_header : on skip la première ligne
+                if has_header and i == 0:
+                    continue
                 cell_texts.extend(row)
         return cell_texts
 
@@ -28,10 +32,12 @@ class CsvProcessor(BaseProcessor):
         input_path,
         output_path,
         replacements,
-        entities_per_block_with_offsets
+        entities_per_block_with_offsets,
+        has_header=True
     ):
         """
         Remplace les entités dans chaque cellule du CSV et écrit le résultat dans output_path.
+        Ne touche pas la première ligne (header) si has_header=True.
         """
         original_rows_data = []
         with open(input_path, mode='r', encoding='utf-8') as f:
@@ -47,7 +53,14 @@ class CsvProcessor(BaseProcessor):
 
         anonymized_rows = []
         cell_index_counter = 0
-        for row in original_rows_data:
+
+        # Gestion de l'en-tête
+        start_idx = 0
+        if has_header:
+            anonymized_rows.append(original_rows_data[0])  # recopie le header sans modif
+            start_idx = 1
+
+        for row in original_rows_data[start_idx:]:
             new_row = []
             for cell in row:
                 cell_text = str(cell)

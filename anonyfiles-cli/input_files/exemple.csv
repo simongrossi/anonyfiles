@@ -1,3 +1,7 @@
-Nom,Ville,Email
-Jean Dupont,Paris,jean.dupont@email.com
-Alice Martin,Lyon,alice.martin@email.com
+Nom1,Email1,DateNaiss1,Ville1,Entreprise1,Nom2,Email2,DateNaiss2,Ville2,Entreprise2,DateEvent,LieuEvent,Organisateur
+Alain Aubry,samsonleon@example.org,10/11/1914,JacquesVille,Fischer SA,Élodie Guérin-Vincent,anastasie29@example.com,08/07/1963,Marchand-sur-Mer,Bernier Allain S.A.R.L.,2003-09-06,Saint MaggieVille,Normand et Fils
+Mathilde Maillet,marcelle30@example.org,17/11/1921,Couturierboeuf,Bonneau SARL,Pauline Gauthier,vidalbernadette@example.com,22/03/1911,Buisson,Perrin et Fils,2014-09-05,Saint Patricia,Voisin S.A.R.L.
+Nicolas-Pierre Fournier,gerardvallet@example.com,01/08/1988,Munoz,Lelièvre Vallée SA,Paulette Launay,andreecarpentier@example.com,03/11/1954,Masson,Bonnet,2012-01-30,Lecomte,Boyer Guilbert SARL
+Étienne Lebreton,lemairetristan@example.com,30/12/1957,Sainte AlexBourg,Raymond Weiss S.A.,Agnès Legrand de la Auger,launayandree@example.org,18/08/1989,Delaunaydan,Germain,1990-06-20,Bourdon-sur-Marques,Sauvage Bazin S.A.
+Alexandria-Suzanne Guichard,dda-costa@example.org,14/10/1985,Moreau-les-Bains,Pelletier,Marthe Jacquot,josephinehenry@example.com,03/05/1987,Rivière,Leclercq S.A.S.,2023-12-03,Tessierdan,Vasseur Legendre S.A.R.L.
+Olivie Masse,guibertthibaut@example.org,05/12/1941,Perrier-sur-Mer,Munoz,Alix-Denise Blanchet,qrocher@example.org,29/07/1956,Saint Édouardboeuf,Maillet,1991-06-21,Cohen-les-Bains,Bonnin Marin SA

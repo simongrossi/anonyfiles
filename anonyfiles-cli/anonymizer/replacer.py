@@ -1,4 +1,3 @@
-# anonymizer/replacer.py
 from faker import Faker
 from typing import List, Tuple, Dict, Any, Optional
 
@@ -74,8 +73,8 @@ class ReplacementSession:
 
             replacements[clean_text] = replacement_text
 
-        return replacements, dict(self.person_code_map)  # copie pour ne pas exposer l’état interne
+        return replacements, replacements.copy()  # mapping universel pour toutes les entités
 
 # Utilisation :
 # session = ReplacementSession()
-# replacements, person_map = session.generate_replacements(entities, replacement_rules)
+# replacements, mapping = session.generate_replacements(entities, replacement_rules)

@@ -1,6 +1,140 @@
-{
-  "name": "Jean Dupont",
-  "email": "jean.dupont@example.com",
-  "address": "10 rue de Paris",
-  "notes": "Rendez-vous le 15 mars 2025."
-}
+[
+  {
+    "event": {
+      "date": "1985-12-05",
+      "place": "Bruneau-sur-Mer",
+      "organizer": "Dijoux"
+    },
+    "participants": [
+      {
+        "name": "Jérôme Perez",
+        "email": "jguillou@example.net",
+        "birth": "23/01/2010",
+        "city": "Hernandez-les-Bains",
+        "company": "Ollivier"
+      },
+      {
+        "name": "Patricia Rossi",
+        "email": "emmanuel64@example.net",
+        "birth": "10/10/1994",
+        "city": "Sainte Agathe",
+        "company": "Berger S.A.R.L."
+      }
+    ]
+  },
+  {
+    "event": {
+      "date": "2006-11-03",
+      "place": "Lemonnier-sur-Rossi",
+      "organizer": "Lecoq S.A.S."
+    },
+    "participants": [
+      {
+        "name": "Benoît Guérin",
+        "email": "sda-costa@example.net",
+        "birth": "05/10/1954",
+        "city": "Sainte Aimée",
+        "company": "Hebert S.A."
+      },
+      {
+        "name": "Manon Thibault",
+        "email": "ijacob@example.net",
+        "birth": "20/12/1912",
+        "city": "Sainte Antoine",
+        "company": "Bouvet"
+      }
+    ]
+  },
+  {
+    "event": {
+      "date": "2004-08-31",
+      "place": "Diallo",
+      "organizer": "Simon"
+    },
+    "participants": [
+      {
+        "name": "Nathalie Mace",
+        "email": "dnguyen@example.net",
+        "birth": "02/10/1944",
+        "city": "Leduc",
+        "company": "Étienne"
+      },
+      {
+        "name": "Maryse Munoz",
+        "email": "dleduc@example.net",
+        "birth": "25/07/1911",
+        "city": "Sainte PierreVille",
+        "company": "Duhamel Lucas S.A.S."
+      }
+    ]
+  },
+  {
+    "event": {
+      "date": "1995-01-31",
+      "place": "Henry",
+      "organizer": "Prévost S.A.R.L."
+    },
+    "participants": [
+      {
+        "name": "Isabelle-Marthe Gaillard",
+        "email": "victor19@example.org",
+        "birth": "06/10/1998",
+        "city": "Sainte Pauline",
+        "company": "Benard SA"
+      },
+      {
+        "name": "Alex Mallet",
+        "email": "celine73@example.net",
+        "birth": "03/05/2023",
+        "city": "Lefort-sur-Huet",
+        "company": "Gérard Vidal S.A."
+      }
+    ]
+  },
+  {
+    "event": {
+      "date": "2017-06-05",
+      "place": "Brun-les-Bains",
+      "organizer": "Dumont SARL"
+    },
+    "participants": [
+      {
+        "name": "Jules Étienne",
+        "email": "loiseaunoemi@example.org",
+        "birth": "09/08/1948",
+        "city": "Hardy",
+        "company": "Daniel Berger S.A.R.L."
+      },
+      {
+        "name": "Hélène Pinto",
+        "email": "cdelattre@example.com",
+        "birth": "01/08/1935",
+        "city": "Hardyboeuf",
+        "company": "Morvan Camus S.A.R.L."
+      }
+    ]
+  },
+  {
+    "event": {
+      "date": "2022-01-07",
+      "place": "Ledoux",
+      "organizer": "Labbé S.A.R.L."
+    },
+    "participants": [
+      {
+        "name": "Nicolas Loiseau",
+        "email": "juliette19@example.com",
+        "birth": "03/09/1972",
+        "city": "Thibaultnec",
+        "company": "Delahaye Guérin SARL"
+      },
+      {
+        "name": "Alexandre Bègue",
+        "email": "clercmargot@example.net",
+        "birth": "21/01/2004",
+        "city": "Gauthier-les-Bains",
+        "company": "Dupuy et Fils"
+      }
+    ]
+  }
+]

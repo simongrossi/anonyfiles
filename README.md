@@ -148,6 +148,17 @@ Lance le script principal pour anonymiser ou désanonymiser un fichier selon la 
 | `--exclude-entity`    | Entité à exclure sous la forme "Texte,Label" (plusieurs fois) |
 | `-e, --entities`      | Limite aux types d'entités (PER, LOC, ORG, DATE, EMAIL...) |
 
+## 🗂️ Support avancé des fichiers CSV
+
+Par défaut, anonyfiles considère que votre fichier CSV possède une première ligne d’entête (noms de colonnes) **qui ne sera jamais anonymisée**.
+
+### ➡️ Option : `--csv-no-header`
+
+Si votre CSV **ne possède pas d’entête** (la première ligne contient des données), ajoutez l’option :
+
+```bash
+python main.py anonymize input.csv --config generated_config.yaml -o output_anonymise.csv --csv-no-header
+
 ### Anonymisation
 
 ```bash

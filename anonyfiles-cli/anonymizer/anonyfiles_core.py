@@ -52,6 +52,11 @@ class AnonyfilesEngine:
                     Document().save(output_path)
                 else:
                     output_path.write_text("")
+            # mapping généré même vide
+            if mapping_output_path:
+                mapping_output_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(mapping_output_path, "w", encoding="utf-8") as f:
+                    f.write("Code,Type,Nom Original\n")
             return {"status": "success", "entities_detected": []}
 
         all_entities = []
@@ -88,18 +93,24 @@ class AnonyfilesEngine:
                     Document().save(output_path)
                 else:
                     output_path.write_text("")
+            # mapping généré même vide
+            if mapping_output_path:
+                mapping_output_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(mapping_output_path, "w", encoding="utf-8") as f:
+                    f.write("Code,Type,Nom Original\n")
             return {"status": "success", "entities_detected": []}
 
         typer.echo(f"DEBUG - Entités uniques détectées : {unique_entities}")
 
-        session = ReplacementSession()
-        replacements, person_code_map = session.generate_replacements(unique_entities)
+        # --> Récupère les règles de remplacement par type depuis la config (YAML)
+        replacement_rules = self.config.get("replacements", {})
 
-        # Ne garder dans le mapping que les entités PER
-        person_code_map = {
-            orig: code for orig, code in person_code_map.items()
-            if any(label == "PER" for t, label in unique_entities if t == orig)
-        }
+        session = ReplacementSession()
+        replacements, mapping_dict = session.generate_replacements(unique_entities, replacement_rules=replacement_rules)
+
+        typer.echo(f"DEBUG: entity_code_map brut : {mapping_dict}")
+        typer.echo(f"DEBUG: mapping_dict construit : {mapping_dict}")
+        typer.echo(f"DEBUG: unique_entities utilisés : {unique_entities}")
 
         if not dry_run and output_path:
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -112,14 +123,16 @@ class AnonyfilesEngine:
                 for t, l in unique_entities:
                     f.write(f"{t},{l}\n")
 
-        if mapping_output_path and person_code_map:
+        # mapping toujours généré, même vide
+        if mapping_output_path:
             mapping_output_path.parent.mkdir(parents=True, exist_ok=True)
             typer.echo(f"DEBUG: Écriture du fichier mapping ici : {mapping_output_path}")
-            typer.echo(f"DEBUG: Contenu mapping : {person_code_map}")
+            typer.echo(f"DEBUG: Contenu mapping : {mapping_dict}")
             with open(mapping_output_path, "w", encoding="utf-8") as f:
-                f.write("Code,Nom Original\n")
-                for original, code in person_code_map.items():
-                    f.write(f"{code},{original}\n")
+                f.write("Code,Type,Nom Original\n")
+                for original, code in mapping_dict.items():
+                    label = next((lbl for txt, lbl in unique_entities if txt == original), "")
+                    f.write(f"{code},{label},{original}\n")
 
         return {
             "status": "success",

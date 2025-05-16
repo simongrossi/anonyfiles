@@ -2,130 +2,138 @@
 
 import typer
 from pathlib import Path
-from typing import Optional, List
-import yaml
-import csv
-import re
-
 from anonymizer.anonyfiles_core import AnonyfilesEngine
+from anonymizer.csv_processor import CsvProcessor
+from anonymizer.txt_processor import TxtProcessor
+from anonymizer.word_processor import DocxProcessor
+from anonymizer.excel_processor import ExcelProcessor
+from anonymizer.pdf_processor import PdfProcessor
+from anonymizer.json_processor import JsonProcessor
+from anonymizer.deanonymize import Deanonymizer
 
-app = typer.Typer(help="Anonymisation automatique de fichiers (.docx, .xlsx, .csv, .txt)")
+import yaml
 
-DEFAULT_CONFIG_PATH = Path("config.yaml.sample")
-DEFAULT_MAPPING_PATH = Path("mappings/mapping.csv")
+app = typer.Typer()
 
+PROCESSOR_MAP = {
+    ".txt": TxtProcessor,
+    ".csv": CsvProcessor,
+    ".docx": DocxProcessor,
+    ".xlsx": ExcelProcessor,
+    ".pdf": PdfProcessor,
+    ".json": JsonProcessor,
+}
 
-def load_config(config_path: Optional[Path]):
-    if config_path is not None and config_path.exists():
-        with open(config_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
-    elif DEFAULT_CONFIG_PATH.exists():
-        with open(DEFAULT_CONFIG_PATH, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
-    else:
-        return {}
-
+def load_config(config_path):
+    with open(config_path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 @app.command()
 def anonymize(
-    input_file: Path = typer.Argument(..., exists=True, help="Fichier à anonymiser"),
-    output_file: Optional[Path] = typer.Option(None, "-o", "--output", help="Fichier de sortie"),
-    config_path: Optional[Path] = typer.Option(None, "--config", "-c", help="Fichier de configuration YAML"),
-    entities: Optional[List[str]] = typer.Option(None, "-e", "--entities", help="Types d'entités à anonymiser (PER, LOC, ORG, DATE, EMAIL...)"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Simule sans écrire le fichier"),
-    log_entities: Optional[Path] = typer.Option(None, "-l", "--log-entities", help="CSV des entités détectées"),
-    mapping_output: Optional[Path] = typer.Option(None, "--mapping-output", help="CSV mapping code PER <-> nom original"),
-    exclude_entities: Optional[List[str]] = typer.Option(None, "--exclude-entity", help="Exclure une entité sous la forme Texte,Label (ex: Date,PER). Peut être spécifié plusieurs fois."),
+    input_file: Path = typer.Argument(..., help="Fichier à anonymiser"),
+    config: Path = typer.Option(..., help="Fichier de configuration YAML"),
+    output: Path = typer.Option(None, help="Fichier de sortie anonymisé"),
+    log_entities: Path = typer.Option(None, help="Fichier CSV de log des entités détectées"),
+    mapping_output: Path = typer.Option(None, help="Fichier CSV du mapping anonymisation"),
+    dry_run: bool = typer.Option(False, help="Simulation sans écriture de fichiers"),
+    csv_no_header: bool = typer.Option(False, help="Le CSV n'a PAS d'entête (première ligne)"),
+    exclude_entities: list[str] = typer.Option(None, help="Types d'entités à exclure (ex: PER,LOC)"),
 ):
     """
-    Anonymise le fichier spécifié (txt, docx, csv, xlsx) selon la configuration.
+    Anonymise un fichier texte, tableur, bureautique ou JSON.
     """
-    config = load_config(config_path) or {}
+    typer.echo(f"📂 Anonymisation du fichier : {input_file}")
 
-    engine = AnonyfilesEngine(config, exclude_entities_cli=exclude_entities)
+    config_data = load_config(config)
+    engine = AnonyfilesEngine(config=config_data, exclude_entities_cli=exclude_entities)
+
     ext = input_file.suffix.lower()
-    if not output_file:
-        output_dir = Path("output_files")
-        output_dir.mkdir(exist_ok=True)
-        output_file = output_dir / f"{input_file.stem}_anonymise{ext}"
+    processor_class = PROCESSOR_MAP.get(ext)
+    if not processor_class:
+        typer.echo(f"❌ Type de fichier non supporté : {ext}")
+        raise typer.Exit(1)
+    processor = processor_class()
 
-    if not mapping_output:
-        mapping_output = DEFAULT_MAPPING_PATH
-    mapping_output.parent.mkdir(parents=True, exist_ok=True)
+    has_header = not csv_no_header
 
-    if log_entities:
-        log_entities.parent.mkdir(parents=True, exist_ok=True)
+    # Extraction des blocs
+    if ext == ".csv":
+        blocks = processor.extract_blocks(input_file, has_header=has_header)
+    else:
+        blocks = processor.extract_blocks(input_file)
+
+    # Détection des entités (centralisé)
+    # (La logique est déjà dans AnonyfilesEngine, donc on passe juste tout)
 
     result = engine.anonymize(
         input_path=input_file,
-        output_path=output_file,
-        entities=entities,
+        output_path=output,
+        entities=None,
         dry_run=dry_run,
         log_entities_path=log_entities,
         mapping_output_path=mapping_output,
     )
-
-    if result["status"] == "success":
-        typer.echo(f"✅ Fichier anonymisé : {result.get('output_path', output_file)}")
-        if "entities_detected" in result:
-            typer.echo(f"Entités détectées : {len(result['entities_detected'])}")
-        if "mapping_file" in result:
-            typer.echo(f"Mapping PER : {result['mapping_file']}")
-        else:
-            # Afficher chemin mapping généré si pas dans result
-            typer.echo(f"Mapping PER : {mapping_output}")
-        if "log_file" in result:
-            typer.echo(f"Log entités : {result['log_file']}")
-    else:
-        typer.secho(f"Erreur : {result.get('error', 'Erreur inconnue')}", fg=typer.colors.RED)
+    if result.get("status") == "error":
+        typer.echo(f"❌ Erreur : {result.get('error')}")
+        raise typer.Exit(1)
+    typer.echo("✅ Anonymisation terminée.")
+    if result.get("entities_detected"):
+        typer.echo(f"Entités détectées : {result.get('entities_detected')}")
+    if result.get("output_path"):
+        typer.echo(f"Fichier anonymisé écrit dans : {result.get('output_path')}")
 
 
 @app.command()
 def deanonymize(
-    input_file: Path = typer.Argument(..., exists=True, help="Fichier anonymisé à restaurer"),
-    mapping_csv: Optional[Path] = typer.Option(None, "--mapping-csv", "-m", help="CSV mapping code <-> nom original"),
-    output_file: Optional[Path] = typer.Option(None, "-o", "--output", help="Fichier désanonymisé de sortie"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Simule sans écrire le fichier"),
+    input_file: Path = typer.Argument(..., help="Fichier à désanonymiser"),
+    mapping_csv: Path = typer.Option(..., help="Mapping CSV à utiliser"),
+    output: Path = typer.Option(None, help="Fichier de sortie restauré"),
+    report: Path = typer.Option(None, help="Fichier de rapport détaillé"),
+    dry_run: bool = typer.Option(False, help="Simulation sans écriture"),
+    permissive: bool = typer.Option(False, help="Tolère les codes inconnus (restaure tout ce qu'on peut)"),
+    csv_no_header: bool = typer.Option(False, help="Le CSV n'a PAS d'entête (première ligne)"),
 ):
     """
-    Désanonymise un fichier texte en remplaçant les codes par leurs noms originaux via un mapping CSV.
+    Désanonymise un fichier anonymisé à partir d'un mapping CSV généré par anonyfiles.
     """
-    if not mapping_csv:
-        mapping_csv = DEFAULT_MAPPING_PATH
-    if not mapping_csv.exists():
-        typer.secho(f"❌ Fichier mapping CSV introuvable : {mapping_csv}", fg=typer.colors.RED)
-        raise typer.Exit(code=1)
+    typer.echo(f"🔁 Désanonymisation du fichier : {input_file}")
 
-    mapping = {}
-    with open(mapping_csv, newline="", encoding="utf-8") as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            if len(row) >= 2:
-                code, original = row[0], row[1]
-                mapping[code] = original
+    strict = not permissive
 
-    text = input_file.read_text(encoding="utf-8")
+    ext = input_file.suffix.lower()
+    has_header = not csv_no_header
 
-    pattern = re.compile(r"\b(" + "|".join(re.escape(k) for k in mapping.keys()) + r")\b")
+    # Pour CSV, on traite header selon has_header
+    if ext == ".csv":
+        processor = CsvProcessor()
+        # On relit tout le fichier, header inclus, pour remplacement
+        with open(input_file, encoding="utf-8") as f:
+            import csv as pycsv
+            reader = pycsv.reader(f)
+            rows = [row for row in reader]
+        # Extraction blocs = toutes cellules sauf header si has_header
+        start_idx = 1 if has_header else 0
+        flat_cells = [cell for row in rows[start_idx:] for cell in row]
+    else:
+        with open(input_file, encoding="utf-8") as f:
+            flat_cells = [line.strip() for line in f if line.strip()]
 
-    def replace_code(match):
-        code = match.group(0)
-        return mapping.get(code, code)
+    # Mapping
+    deanonymizer = Deanonymizer(str(mapping_csv), strict=strict)
+    # Ici, dry_run = True pour voir warnings, sinon on restaure tout
+    with open(input_file, encoding="utf-8") as f:
+        content = f.read()
+    result, report_txt = deanonymizer.deanonymize_text(content, dry_run=dry_run)
 
-    restored_text = pattern.sub(replace_code, text)
-
-    if dry_run:
-        typer.echo("=== Contenu désanonymisé (dry run) ===")
-        typer.echo(restored_text)
-        return
-
-    if not output_file:
-        output_file = Path("output_files") / f"{input_file.stem}_restored{input_file.suffix}"
-        output_file.parent.mkdir(exist_ok=True)
-
-    output_file.write_text(restored_text, encoding="utf-8")
-    typer.echo(f"✅ Fichier désanonymisé sauvegardé : {output_file}")
-
+    if output:
+        with open(output, "w", encoding="utf-8") as f:
+            f.write(result)
+        typer.echo(f"✅ Fichier restauré écrit dans : {output}")
+    if report:
+        with open(report, "w", encoding="utf-8") as f:
+            f.write(report_txt)
+        typer.echo(f"📊 Rapport détaillé écrit dans : {report}")
 
 if __name__ == "__main__":
+    typer.echo("anonyfiles v1.6.0 (2025-05-16)")
     app()
