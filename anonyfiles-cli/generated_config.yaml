@@ -1,0 +1,17 @@
+exclude_entities: []
+replacements:
+  DATE:
+    type: faker
+  EMAIL:
+    type: faker
+  LOC:
+    options:
+      text: '*localalisation*'
+    type: redact
+  ORG:
+    type: faker
+  PER:
+    options:
+      text: '*REMPLACEMENT*'
+    type: redact
+spacy_model: fr_core_news_md

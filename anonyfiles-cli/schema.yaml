@@ -1,0 +1,25 @@
+type: map
+mapping:
+  spacy_model:
+    type: str
+    required: yes
+  replacements:
+    type: map
+    required: yes
+    mapping:
+      PER:
+        type: map
+        mapping:
+          type:
+            type: str
+            enum: ["codes", "faker", "redact", "placeholder"]
+          options:
+            type: map
+            required: false
+  exclude_entities:
+    type: seq
+    sequence:
+      - type: seq
+        sequence:
+          - type: str
+          - type: str

@@ -7,7 +7,13 @@ import yaml
 
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 
+# Import du Typer app du module cli_config
+from cli_config import app as config_app
+
 app = typer.Typer(help="Anonymisation automatique de fichiers (.docx, .xlsx, .csv, .txt)")
+
+# Ajout du sous-typer 'config' avec ses commandes
+app.add_typer(config_app, name="config")
 
 DEFAULT_CONFIG_PATH = Path("config.yaml.sample")
 
