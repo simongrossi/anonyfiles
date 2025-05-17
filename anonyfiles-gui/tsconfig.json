@@ -1,17 +1,10 @@
 {
   "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
-    "strict": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "allowJs": true,
-    "checkJs": false
+    "module": "esnext",
+    "target": "esnext",
+    "types": ["svelte"]
   },
-  "include": ["src/**/*", "src-tauri/**/*"],
-  "exclude": ["node_modules/*", "dist", ".vercel", ".next"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules/*", "src-tauri/*"]
 }

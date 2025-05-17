@@ -43,6 +43,7 @@
   tabindex="0"
   role="button"
   on:click={() => document.getElementById('fileInput').click()}
+  on:keydown={(e) => { if(e.key === 'Enter' || e.key === ' ') document.getElementById('fileInput').click(); }}
 >
   <p>Glissez-déposez un fichier texte ici, ou cliquez pour sélectionner</p>
   <input

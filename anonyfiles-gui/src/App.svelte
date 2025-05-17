@@ -14,6 +14,6 @@
   <DropZone on:fileContent={handleFileContent} />
   <TextAnonymizer bind:fileContent={droppedContent} />
 
-  <h3>Contenu drag & drop :</h3>
+  <h3>Contenu drag & drop :</h3>
   <textarea bind:value={droppedContent} rows="10" cols="80"></textarea>
 </main>
