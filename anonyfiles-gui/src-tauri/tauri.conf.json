@@ -13,9 +13,11 @@
     "windows": [
       {
         "title": "anonyfiles-gui",
-        "width": 800,
-        "height": 600,
-        "resizable": true
+        "width": 900,
+        "height": 1000,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
       }
     ]
   }
