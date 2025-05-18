@@ -53,7 +53,8 @@ def default_log(input_file):
 def anonymize(
     input_file: Path = typer.Argument(..., help="Fichier à anonymiser"),
     config: Path = typer.Option(..., help="Fichier de configuration YAML"),
-    output: Path = typer.Option(None, help="Fichier de sortie anonymisé"),
+    # C'EST CETTE LIGNE QUI EST MODIFIÉE POUR AJOUTER "--output", "-o"
+    output: Path = typer.Option(None, "--output", "-o", help="Fichier de sortie anonymisé"),
     log_entities: Path = typer.Option(None, help="Fichier CSV de log des entités détectées"),
     mapping_output: Path = typer.Option(None, help="Fichier CSV du mapping anonymisation"),
     dry_run: bool = typer.Option(False, help="Simulation sans écriture de fichiers"),
