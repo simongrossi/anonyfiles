@@ -1,56 +1,65 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { readTextFile } from "@tauri-apps/api/fs";
-
   const dispatch = createEventDispatcher();
-  let dragging = false;
 
-  function onDrop(event) {
+  function handleDrop(event) {
     event.preventDefault();
-    dragging = false;
-    const files = event.dataTransfer.files;
-    if (files.length) {
-      handleFile(files[0]);
-    }
+    const file = event.dataTransfer.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      dispatch('fileContent', { content: reader.result });
+    };
+    reader.readAsText(file);
   }
 
-  function onDragOver(event) {
+  function handleDragOver(event) {
     event.preventDefault();
-    dragging = true;
   }
 
-  function onDragLeave() {
-    dragging = false;
-  }
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-  async function handleFile(file) {
-    if (file.path) {
-      const content = await readTextFile(file.path);
-      dispatch('fileContent', { content });
-    } else {
-      const content = await file.text();
-      dispatch('fileContent', { content });
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      dispatch('fileContent', { content: reader.result });
+    };
+    reader.readAsText(file);
   }
 </script>
 
-<div
-  class="drop-zone"
-  on:drop={onDrop}
-  on:dragover={onDragOver}
-  on:dragleave={onDragLeave}
-  class:dragging={dragging}
-  tabindex="0"
-  role="button"
-  on:click={() => document.getElementById('fileInput').click()}
-  on:keydown={(e) => { if(e.key === 'Enter' || e.key === ' ') document.getElementById('fileInput').click(); }}
->
-  <p>Glissez-déposez un fichier texte ici, ou cliquez pour sélectionner</p>
-  <input
-    type="file"
-    accept=".txt"
-    on:change={(e) => handleFile(e.target.files[0])}
-    style="display: none;"
-    id="fileInput"
-  />
+<div class="drop-zone"
+     on:drop={handleDrop}
+     on:dragover={handleDragOver}
+     tabindex="0">
+  <p>📄 Glissez-déposez un fichier texte ici,<br>ou cliquez pour sélectionner</p>
+  <input type="file" accept=".txt" on:change={handleFileSelect} />
 </div>
+
+<style>
+  .drop-zone {
+    border: 2px dashed #888;
+    padding: 2rem;
+    text-align: center;
+    border-radius: 12px;
+    background-color: #1a1a1a;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    cursor: pointer;
+  }
+
+  .drop-zone:hover {
+    border-color: #646cff;
+    background-color: #2a2a2a;
+  }
+
+  .drop-zone input[type="file"] {
+    display: none;
+  }
+
+  .drop-zone:focus {
+    outline: none;
+    border-color: #535bf2;
+  }
+</style>
