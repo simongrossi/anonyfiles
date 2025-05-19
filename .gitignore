@@ -35,3 +35,5 @@ anonyfiles-gui/anonyfiles_outputs/mappings/anonyfiles_input_mapping_20250519-133
 anonyfiles-gui/package-lock.json
 anonyfiles-gui/package-lock.json
 *.csv
+anonyfiles-gui/package-lock.json
+anonyfiles-gui/src-tauri/Cargo.lock
