@@ -8,6 +8,9 @@
 	let isLoading = false;
 	let anonymizePersons = true;
 
+	let showToast = false;
+	let toastTimeout = null;
+
 	async function anonymize() {
 		if (!inputText.trim()) return;
 		isLoading = true;
@@ -35,11 +38,16 @@
 	function copyResult() {
 		if (outputText) {
 			navigator.clipboard.writeText(outputText);
+			showToast = true;
+			if (toastTimeout) clearTimeout(toastTimeout);
+			toastTimeout = setTimeout(() => {
+				showToast = false;
+			}, 1600);
 		}
 	}
 </script>
 
-<div class="bg-zinc-900 rounded-xl p-6 shadow-lg flex flex-col gap-4 border border-zinc-700">
+<div class="bg-zinc-900 rounded-xl p-6 shadow-lg flex flex-col gap-4 border border-zinc-700 relative">
 	<textarea
 		class="border border-zinc-600 bg-zinc-950 text-white p-3 rounded-lg resize-y min-h-[100px] text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
 		bind:value={inputText}
@@ -71,7 +79,7 @@
 	</button>
 
 	{#if outputText}
-		<div class="border border-green-400 bg-green-100 text-green-800 rounded-lg p-4 flex flex-col gap-2 mt-2">
+		<div class="border border-green-400 bg-green-100 text-green-800 rounded-lg p-4 flex flex-col gap-2 mt-2 relative">
 			<div class="flex items-center gap-2 mb-1">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -91,6 +99,11 @@
 			>
 				Copier
 			</button>
+			{#if showToast}
+				<div class="absolute right-4 top-2 bg-green-600 text-white text-xs rounded px-3 py-1 shadow-lg animate-fadeInOut z-10 select-none">
+					✔️ Copié !
+				</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -101,3 +114,15 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	@keyframes fadeInOut {
+		0%   { opacity: 0; transform: translateY(-8px);}
+		10%  { opacity: 1; transform: translateY(0);}
+		90%  { opacity: 1;}
+		100% { opacity: 0; transform: translateY(-8px);}
+	}
+	.animate-fadeInOut {
+		animation: fadeInOut 1.6s both;
+	}
+</style>
