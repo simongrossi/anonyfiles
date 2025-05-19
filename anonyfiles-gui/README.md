@@ -1,98 +1,57 @@
-# 🕵️‍♂️ anonyfiles-gui
+# 🖼️ Anonyfiles GUI
 
-**anonyfiles-gui** est l’interface graphique moderne et officielle du projet [anonyfiles](https://github.com/simongrossi/anonyfiles).
-Elle vous permet d’anonymiser facilement vos fichiers textes via une interface épurée, rapide et intuitive, tout en s’appuyant sur la puissance du moteur CLI Python du projet principal.
+**Anonyfiles GUI** est l’interface graphique multiplateforme d’Anonyfiles,  
+développée en Svelte, Rust et Tauri pour une expérience utilisateur moderne et efficace.
 
 ---
 
 ## 🚀 Fonctionnalités
 
-- **Glisser-déposer** (drag & drop) de fichiers `.txt` et aperçu du contenu.
-- **Zone de saisie** pour l’anonymisation de texte à la volée.
-- **Sélection des entités à anonymiser** (personnes, lieux...).
-- **Affichage instantané** du texte anonymisé, avec copie en un clic (toast “Copié !”).
-- **Thème sombre** responsive, design épuré et accessible.
-- **Feedbacks visuels** (loading, drag, toast, erreurs...).
-- **Intégration native** avec le moteur Python via Tauri (Rust bridge).
-- **Aucun chemin codé en dur** : portable sur n’importe quel poste.
+- Glisser-déposer de fichiers texte ou sélection par dialogue
+- Zone de saisie manuelle pour anonymisation à la volée
+- Sélection intuitive des types d’entités à anonymiser (Personnes, Lieux, Orgs, Emails, Dates…)
+- Affichage immédiat du texte anonymisé
+- Copie en un clic du résultat (avec confirmation visuelle)
+- Indicateurs de progression, gestion des erreurs
+- Thème sombre / responsive (expérience fluide desktop)
+- **Aucune dépendance à un serveur externe** (tout local)
 
 ---
 
-## 🛠️ Installation & Prérequis
+## 🛠️ Prérequis & Installation
 
-### Prérequis
-
-- [Node.js](https://nodejs.org/) v18 ou supérieur
-- [npm](https://www.npmjs.com/) ou [pnpm](https://pnpm.io/)
-- [Rust](https://rustup.rs/) (pour Tauri)
-- Python 3.9+ (avec les dépendances du projet CLI)
-- Le dossier `anonyfiles-cli` doit être **à côté** du dossier `anonyfiles-gui`
-
-### Installation
+- [Node.js](https://nodejs.org/)
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Tauri CLI](https://tauri.app/v1/guides/getting-started/prerequisites/)
 
 ```sh
-git clone https://github.com/simongrossi/anonyfiles.git
-cd anonyfiles/anonyfiles-gui
+cd anonyfiles-gui
 npm install
-# (facultatif) Installer Tauri si besoin
-npm install -g @tauri-apps/cli
-# Lancer en mode développement
 npm run tauri dev
-🖱️ Utilisation
-Glissez-déposez un fichier texte ou saisissez/collez le texte à anonymiser.
+💡 Utilisation
+Lancer l’application (npm run tauri dev)
 
-Cochez ou décochez les entités à anonymiser.
+Glisser-déposer un fichier texte ou coller du texte brut dans la zone prévue
 
-Cliquez sur Anonymiser.
+Cocher/décocher les entités à anonymiser selon besoin
 
-Copiez le résultat en un clic (toast visuel “Copié !”).
+Cliquer sur "Anonymiser"
 
-Visualisez, recommencez, ou passez à un autre fichier.
+Copier ou enregistrer le texte anonymisé
 
-📂 Structure du projet
-graphql
-Copier
-Modifier
-anonyfiles/
-├── anonyfiles-cli/        # Projet Python CLI (moteur)
-└── anonyfiles-gui/        # GUI Svelte + Tailwind + Tauri
-    ├── src/
-    │   ├── App.svelte
-    │   └── lib/
-    │       ├── DropZone.svelte
-    │       └── TextAnonymizer.svelte
-    ├── src-tauri/         # Backend Rust (pont avec Python CLI)
-    ├── anonyfiles_outputs/ # Temp files (jamais dans cli)
-    ├── tailwind.config.cjs
-    ├── package.json
-    └── README.md          # Ce fichier
+📸 Capture d’écran
+(Insérer ici une capture de l’interface, optionnel)
+
 🤖 Intégration CLI
-La GUI appelle en interne anonyfiles-cli/main.py avec des chemins dynamiques.
-⚠️ Ne modifiez pas la structure des dossiers sans adapter les chemins dans le code Rust (src-tauri/main.rs).
+La GUI utilise le moteur CLI Python sous le capot (via Tauri/Rust)
+Assurez-vous que anonyfiles-cli et Python sont accessibles depuis votre environnement.
 
-🧑‍💻 Pour les devs
-Le style est 100% Tailwind CSS.
+🧩 Roadmap / Améliorations prévues
+Support natif des fichiers Word, Excel, PDF, JSON en drag & drop
 
-Frontend Svelte (composants séparés : DropZone, TextAnonymizer, etc.)
+Paramétrage visuel avancé (options de remplacement, simulation…)
 
-Backend Rust (Tauri) : simple passerelle pour le CLI Python.
+Internationalisation
 
-Tous les fichiers temporaires restent dans anonyfiles_outputs/ (jamais dans cli).
-
-🐞 Dépannage
-Erreur : main.py introuvable
-→ Vérifiez que anonyfiles-cli est bien à côté de anonyfiles-gui.
-
-Erreur : Python non trouvé
-→ Ajoutez Python à votre PATH.
-
-Bug ou question ?
-→ Lancez la GUI depuis le dossier adéquat. Si besoin, ouvrez une Issue avec vos logs et OS.
-
-📝 Licence
-Ce projet est open-source sous licence MIT.
-
-✨ Auteur
-Développé par @simongrossi.
-Pour toute question : ouvrez une issue GitHub ou contactez-moi directement.
-
+📜 Licence
+MIT
