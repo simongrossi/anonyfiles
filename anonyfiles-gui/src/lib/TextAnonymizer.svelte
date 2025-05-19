@@ -4,121 +4,77 @@
 	export let fileContent = '';
 	let inputText = '';
 	let outputText = '';
+	let errorMessage = '';
 	let isLoading = false;
 
-	// --- Nouvelle variable d'état pour l'option PER ---
-	let anonymizePersons = true; // Option activée par défaut
-	// ---------------------------------------------
+	let anonymizePersons = true;
 
 	async function anonymize() {
 		if (!inputText.trim()) return;
 		isLoading = true;
-		outputText = ''; // Clear previous output
+		outputText = '';
+		errorMessage = '';
 
-		// --- Construire l'objet de configuration ---
-		// Nous allons passer un objet 'config' au backend
 		const config = {
-			// Inclure l'état de l'option pour les personnes
 			anonymizePersons: anonymizePersons
-			// On pourra ajouter d'autres options ici plus tard
+			// Ajoute d'autres options ici si besoin
 		};
-		// ------------------------------------------
 
 		try {
-			// Appel vers Rust -> Python via la commande enregistrée dans main.rs
-			// --- Passer l'objet de configuration au backend comme deuxième argument ---
-			// Tauri permet de passer des objets JSON dans les arguments des commandes
-			const result = await invoke('anonymize_text', { input: inputText, config: config });
-			// -----------------------------------------------------------------------
+			const result = await invoke('anonymize_text', { input: inputText, config });
 			outputText = result;
 		} catch (error) {
-			// La structure de l'erreur peut varier, afficher l'objet entier pour débogage
 			console.error("Anonymization Error:", error);
-			outputText = 'Erreur lors de l’anonymisation : ' + JSON.stringify(error, null, 2);
+			errorMessage = typeof error === 'object' ? JSON.stringify(error, null, 2) : String(error);
 		} finally {
 			isLoading = false;
 		}
 	}
 
-	// Synchronise le champ si un fichier est glissé/déposé
 	$: if (fileContent) {
 		inputText = fileContent;
 		outputText = '';
+		errorMessage = '';
 	}
 </script>
 
-<div class="anonymizer">
+<div class="flex flex-col gap-4 max-w-xl mx-auto mt-10 p-4 bg-white rounded-xl shadow-lg">
 	<textarea
+		class="border border-slate-300 p-3 rounded-lg resize-y min-h-[100px] text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
 		bind:value={inputText}
 		placeholder="Texte à anonymiser"
 		rows="6"
 	></textarea>
 
-	<div class="options-row">
-		<label for="anonymizePersons">Anonymiser les personnes (PER)</label>
-		<input type="checkbox" id="anonymizePersons" bind:checked={anonymizePersons} />
+	<div class="flex items-center gap-2">
+		<input type="checkbox" id="anonymizePersons" bind:checked={anonymizePersons}
+			class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-400" />
+		<label for="anonymizePersons" class="select-none text-gray-700 text-base">
+			Anonymiser les personnes (PER)
+		</label>
 	</div>
-	<button on:click={anonymize} disabled={isLoading}>
+
+	<button
+		class="px-6 py-3 font-semibold text-white rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition disabled:bg-gray-400 disabled:cursor-wait"
+		on:click={anonymize} disabled={isLoading}
+	>
 		{isLoading ? 'Traitement en cours…' : 'Anonymiser'}
 	</button>
 
-	<textarea
-		bind:value={outputText}
-		placeholder="Texte anonymisé"
-		rows="6"
-		readonly
-	></textarea>
+	{#if outputText}
+		<textarea
+			class="border border-green-300 bg-green-50 text-green-800 p-3 rounded-lg resize-y min-h-[100px] text-base"
+			bind:value={outputText}
+			placeholder="Texte anonymisé"
+			rows="6"
+			readonly
+		></textarea>
+	{/if}
+
+	{#if errorMessage}
+		<div class="border border-red-400 bg-red-50 text-red-800 rounded-lg p-3">
+			<strong>Erreur lors de l’anonymisation :</strong>
+			<pre class="whitespace-pre-wrap text-xs">{errorMessage}</pre>
+		</div>
+	{/if}
 </div>
-
-<style>
-	.anonymizer {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	textarea {
-		width: 100%;
-		padding: 1rem;
-		border-radius: 8px;
-		border: 1px solid #444;
-		font-size: 1rem;
-		background-color: #fff;
-		color: #000;
-		resize: vertical;
-		box-sizing: border-box;
-	}
-
-	textarea[readonly] {
-		background-color: #f8f8f8;
-	}
-
-	button {
-		padding: 0.75rem;
-		font-size: 1rem;
-		border-radius: 8px;
-		background-color: #646cff;
-		color: white;
-		border: none;
-		cursor: pointer;
-		transition: background-color 0.3s ease;
-	}
-
-	button:disabled {
-		background-color: #999;
-		cursor: wait;
-	}
-
-	button:hover:enabled {
-		background-color: #535bf2;
-	}
-
-	/* --- Style pour aligner label et checkbox --- */
-	.options-row {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		color: #f0f0f0; /* Assurez-vous que le label est visible avec le fond sombre */
-	}
-	/* ------------------------------------------- */
-</style>
