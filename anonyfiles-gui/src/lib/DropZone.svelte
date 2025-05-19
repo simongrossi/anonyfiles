@@ -39,29 +39,11 @@
   }
 </script>
 
-<style>
-  .drop-zone {
-    border: 2px dashed #ddd;
-    padding: 2rem;
-    border-radius: 1rem;
-    text-align: center;
-    transition: background 0.2s, color 0.2s;
-    cursor: pointer;
-    background: #f1f5f9;    /* Gris clair avec contraste */
-    color: #22223b;         /* Texte foncé et lisible */
-  }
-  .drop-zone.dragging {
-    background: #e0e7ef;
-    border-color: #3b82f6;
-    color: #1e293b;         /* Texte un peu plus foncé */
-  }
-  input[type="file"] {
-    display: none;
-  }
-</style>
-
 <div
-  class="drop-zone {isDragging ? 'dragging' : ''}"
+  class="transition-colors duration-200 border-2 border-dashed rounded-xl text-center cursor-pointer select-none px-4 py-8 bg-slate-100 text-slate-700
+    focus:outline-none focus:ring-2 focus:ring-blue-400
+    hover:border-blue-400
+    {isDragging ? 'bg-blue-50 border-blue-500 text-blue-700' : ''}"
   role="region"
   aria-label="Zone de dépôt de fichiers"
   tabindex="0"
@@ -70,7 +52,6 @@
   on:drop={handleDrop}
   on:click={handleClick}
   on:keydown={(e) => {
-    // accessibilité clavier : touche Espace ou Entrée
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       handleClick();
@@ -78,13 +59,14 @@
   }}
 >
   <slot>
-    <p style="margin:0;">Déposez vos fichiers ici ou cliquez pour sélectionner.</p>
+    <p class="text-base m-0">Déposez vos fichiers ici ou cliquez pour sélectionner.</p>
   </slot>
   <input
     type="file"
     bind:this={fileInput}
     {accept}
     {multiple}
+    class="hidden"
     on:change={handleFileChange}
   />
 </div>
