@@ -4,23 +4,35 @@ use std::process::Command;
 use std::env::current_dir;
 use std::path::{Path, PathBuf};
 
-// --- Structure pour la configuration reçue ---
 #[derive(Debug, serde::Deserialize)]
 struct AnonymizationConfig {
     #[serde(rename = "anonymizePersons")]
     anonymize_persons: bool,
-    // Ajoutez d'autres options ici (anonymizeLocations, etc.)
+    // Ajoutez d'autres options ici si besoin
 }
-// --------------------------------------------
 
 #[tauri::command]
 fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, String> {
-    // --- Dossier temporaire local au projet ---
-    let temp_dir = current_dir()
-        .map_err(|e| format!("Erreur accès current_dir : {:?}", e))?
-        .join("temp_files");
+    // Chemin dynamique : on remonte d'un niveau depuis anonyfiles-gui, puis anonyfiles-cli
+    let project_root = current_dir()
+        .map_err(|e| format!("Erreur accès current_dir : {:?}", e))?;
+
+    // Vérifie si on est dans anonyfiles-gui ou dans anonyfiles-gui/src-tauri
+    // (la racine du projet ou src-tauri, les 2 cas courants)
+    let gui_root = if project_root.ends_with("src-tauri") {
+        project_root.parent().unwrap().to_path_buf()
+    } else {
+        project_root
+    };
+
+    let cli_dir = gui_root.parent()
+        .map(|p| p.join("anonyfiles-cli"))
+        .ok_or("Impossible de déterminer le chemin du dossier anonyfiles-cli")?;
+
+    // Dossier d'outputs à la racine du GUI (propre)
+    let temp_dir = gui_root.join("anonyfiles_outputs");
     std::fs::create_dir_all(&temp_dir)
-        .map_err(|e| format!("Erreur création dossier temp_files : {:?}", e))?;
+        .map_err(|e| format!("Erreur création dossier anonyfiles_outputs : {:?}", e))?;
 
     let input_path = temp_dir.join("anonyfiles_input.txt");
     let output_path = temp_dir.join("anonyfiles_output.txt");
@@ -36,48 +48,45 @@ fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, 
     input_file.write_all(input.as_bytes()).map_err(|e| format!("Erreur écriture fichier temporaire entrée: {:?}", e))?;
     let _ = input_file.flush();
 
-    // --- Calcul du chemin cli_root ---
-    let current_working_dir = current_dir()
-        .map_err(|e| format!("Erreur lors de la détermination du répertoire de travail : {:?}", e))?;
-    let cli_root_relative = current_working_dir.join("../../anonyfiles-cli");
-    let absolute_cli_root = cli_root_relative.canonicalize()
-        .map_err(|e| format!("Erreur lors de la canonicalisation du chemin CLI ({:?}): {:?}", cli_root_relative, e))?;
-
-    // --- Début de la construction de la commande Python ---
-
-    let main_py_path = absolute_cli_root.join("main.py");
+    // CHEMIN VERS main.py et generated_config.yaml (dynamique)
+    let main_py_path = cli_dir.join("main.py");
     let python_executable = Path::new("python");
+    let config_file_path = cli_dir.join("generated_config.yaml");
+    let output_dir = &temp_dir;
 
-    // --- CORRECTION : Stocker le chemin du fichier de config dans une variable ---
-    let config_file_path = absolute_cli_root.join("generated_config.yaml"); // TODO: Remplacer par un fichier généré dynamiquement
-
-    // --- CONSTRUCTION DYNAMIQUE DES ARGUMENTS DU CLI EN FONCTION DE LA CONFIG ---
-    let mut command_args = vec![
-        main_py_path.as_os_str(),
-        "anonymize".as_ref(),
-        input_path.as_os_str(),
-        "--config".as_ref(),
-        config_file_path.as_os_str(),
-        "-o".as_ref(),
-        output_path.as_os_str(),
-    ];
-
-    // --- AJOUTE l'argument --exclude-entities PER si anonymize_persons est FALSE ---
-    if !config.anonymize_persons {
-        println!("DEBUG: Exclure les entités PER basé sur la config frontend.");
-        command_args.push("--exclude-entities".as_ref());
-        command_args.push("PER".as_ref());
+    // Vérification existence CLI
+    if !main_py_path.exists() {
+        return Err(format!("main.py introuvable à cet emplacement : {:?}", main_py_path));
+    }
+    if !config_file_path.exists() {
+        return Err(format!("generated_config.yaml introuvable à cet emplacement : {:?}", config_file_path));
     }
 
-    // Afficher la commande complète qui va être exécutée
+    // Construction des arguments de la commande
+    let mut command_args = vec![
+        main_py_path.to_str().unwrap(),
+        "anonymize",
+        input_path.to_str().unwrap(),
+        "--config",
+        config_file_path.to_str().unwrap(),
+        "-o",
+        output_path.to_str().unwrap(),
+        "--output-dir",
+        output_dir.to_str().unwrap(),
+    ];
+
+    if !config.anonymize_persons {
+        println!("DEBUG: Exclure les entités PER basé sur la config frontend.");
+        command_args.push("--exclude-entities");
+        command_args.push("PER");
+    }
+
     println!("DEBUG: Commande Python complète (pour affichage): python {:?}", command_args);
 
-    // Exécuter la commande Python
     let command_execution_result = Command::new(python_executable)
         .args(&command_args)
         .output();
 
-    // Gérer le résultat de l'exécution (inchangé)
     match command_execution_result {
         Ok(output) => {
             println!("DEBUG: Sortie standard Python :\n{}", String::from_utf8_lossy(&output.stdout));
@@ -88,7 +97,7 @@ fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, 
                 let mut output_text = String::new();
                 output_file.read_to_string(&mut output_text).map_err(|e| format!("Erreur lecture fichier sortie temporaire : {:?}", e))?;
 
-                // Nettoyage des fichiers temporaires
+                // Nettoyage
                 let _ = remove_file(&input_path);
                 let _ = remove_file(&output_path);
                 let _ = remove_file(&error_output_path);
