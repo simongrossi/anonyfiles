@@ -1,96 +1,94 @@
 use std::fs::{File, remove_file};
-use std::io::{Write, Read}; // Read is needed if you read the output file
+use std::io::{Write, Read};
 use std::process::Command;
 use std::env::{temp_dir, current_dir};
-use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf}; // PathBuf est toujours importé, même si inutilisé ici.
+
+// --- Structure pour la configuration reçue ---
+#[derive(Debug, serde::Deserialize)]
+struct AnonymizationConfig {
+    #[serde(rename = "anonymizePersons")]
+    anonymize_persons: bool,
+    // Ajoutez d'autres options ici (anonymizeLocations, etc.)
+}
+// --------------------------------------------
 
 #[tauri::command]
-fn anonymize_text(input: String) -> Result<String, String> {
-    // Dossier temporaire
+fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, String> {
     let temp_dir = temp_dir();
     let input_path = temp_dir.join("anonyfiles_input.txt");
     let output_path = temp_dir.join("anonyfiles_output.txt");
-    let error_output_path = temp_dir.join("anonyfiles_error_output.txt"); // Used for temporary error file if needed, but we'll return the string directly
+    let error_output_path = temp_dir.join("anonyfiles_error_output.txt");
 
-    // Écrit le texte reçu dans le fichier d'entrée
+    // --- Afficher la configuration reçue pour débogage ---
+    println!("DEBUG: Configuration reçue du frontend: {:?}", config);
+
+    // Écrit le texte reçu dans le fichier d'entrée temporaire
     let mut input_file = File::create(&input_path).map_err(|e| format!("Erreur création fichier temporaire entrée: {:?}", e))?;
     input_file.write_all(input.as_bytes()).map_err(|e| format!("Erreur écriture fichier temporaire entrée: {:?}", e))?;
-    let _ = input_file.flush(); // Ensure data is written to disk
+    let _ = input_file.flush();
 
 
-    // --- Calcul du chemin cli_root et canonicalisation (inchangé) ---
+    // --- Calcul du chemin cli_root ---
     let current_working_dir = current_dir()
         .map_err(|e| format!("Erreur lors de la détermination du répertoire de travail : {:?}", e))?;
-
     let cli_root_relative = current_working_dir.join("../../anonyfiles-cli");
-
     let absolute_cli_root = cli_root_relative.canonicalize()
         .map_err(|e| format!("Erreur lors de la canonicalisation du chemin CLI ({:?}): {:?}", cli_root_relative, e))?;
 
-    let cli_root_str = absolute_cli_root.to_str()
-        .ok_or_else(|| "Chemin CLI canonicalisé invalide (non-UTF8)".to_string())?;
-
-    // --- Prints de débogage (existants) ---
-    println!("DEBUG: Répertoire de travail courant: {}", current_working_dir.display());
-    println!("DEBUG: cli_root calculé (avant canonicalisation): {}", cli_root_relative.display());
-    println!("DEBUG: cli_root canonicalisé: {}", absolute_cli_root.display());
-
-    match std::env::var("PATH") {
-        Ok(val) => println!("DEBUG: PATH dans l'application Tauri: {}", val),
-        Err(e) => println!("DEBUG: PATH non trouvé : {:?}", e),
-    }
-    // --- Fin des prints de débogage ---
+    // --- Les warnings de code mort ou de nommage seront corrigés plus tard si vous lancez 'cargo fix' ---
+    // let cli_root_str = absolute_cli_root.to_str()
+    //     .ok_or_else(|| "Chemin CLI canonicalisé invalide (non-UTF8)".to_string())?;
 
 
-    // --- Début de la gestion robuste de l'exécution de commande Python ---
+    // --- Début de la construction de la commande Python ---
 
-    // Chemin absolu vers le fichier de configuration YAML et le script main.py (utilisent le chemin canonicalisé)
-    let config_path = absolute_cli_root.join("generated_config.yaml");
-    let main_py_path = absolute_cli_root.join("main.py"); // Chemin vers main.py
+    let main_py_path = absolute_cli_root.join("main.py");
+    let python_executable = Path::new("python");
 
-    // Utiliser le nom de l'exécutable Python qui devrait être dans le PATH sur Windows
-    let python_executable = Path::new("python"); // MODIFIÉ ICI POUR WINDOWS. Peut être "python3" selon votre install.
+    // --- CORRECTION : Stocker le chemin du fichier de config dans une variable ---
+    // Ceci est la correction pour l'erreur E0716. Cette variable doit vivre assez longtemps.
+    let config_file_path = absolute_cli_root.join("generated_config.yaml"); // TODO: Remplacer par un fichier généré dynamiquement
 
-
-    // Construire la liste complète des arguments pour la commande Python
-    let command_args = vec![
-        main_py_path.as_os_str(), // Passer PathBuf/Path as OsStr for robustness
-        "anonymize".as_ref(), // Arg simple
-        input_path.as_os_str(), // Passer PathBuf
-        "--config".as_ref(), // Option
-        config_path.as_os_str(), // Passer PathBuf
-        "-o".as_ref(), // Option
-        output_path.as_os_str(), // Passer PathBuf
+    // --- CONSTRUCTION DYNAMIQUE DES ARGUMENTS DU CLI EN FONCTION DE LA CONFIG ---
+    // On commence avec les arguments de base
+    let mut command_args = vec![
+        main_py_path.as_os_str(),
+        "anonymize".as_ref(),
+        input_path.as_os_str(),
+        // Pour l'instant, on utilise toujours generated_config.yaml par défaut
+        "--config".as_ref(),
+        config_file_path.as_os_str(), // Utiliser la référence de la variable corrigée
+        "-o".as_ref(),
+        output_path.as_os_str(),
     ];
 
-    // Afficher la commande complète qui va être exécutée (pour débogage)
-    // Attention : afficher les OsStr peut donner des formats variés selon l'OS.
-    // Pour un print lisible, reconstruire la chaîne comme avant :
-    let debug_command_string = format!("{} {} anonymize {} --config {} -o {}",
-        python_executable.display(),
-        main_py_path.display(),
-        input_path.display(),
-        config_path.display(),
-        output_path.display()
-    );
-    println!("DEBUG: Commande Python complète (pour affichage): {}", debug_command_string);
+    // --- AJOUTE l'argument --exclude-entities PER si anonymize_persons est FALSE ---
+    if !config.anonymize_persons {
+        println!("DEBUG: Exclure les entités PER basé sur la config frontend.");
+        // Note : Le CLI s'attend à --exclude-entities TYPE1 TYPE2 ...
+        // Donc pour exclure un seul type, on ajoute deux arguments.
+        command_args.push("--exclude-entities".as_ref());
+        command_args.push("PER".as_ref());
+    }
 
 
-    // Exécuter la commande Python et capturer le résultat ou l'erreur de Lancement OS
+    // Afficher la commande complète qui va être exécutée
+    println!("DEBUG: Commande Python complète (pour affichage): python {:?}", command_args);
+
+
+    // Exécuter la commande Python
     let command_execution_result = Command::new(python_executable)
-        .args(&command_args) // Passe tous les arguments (OsStr)
-        .output(); // Retourne un Result<Output, Error>
+        .args(&command_args) // Passe les arguments dynamiquement construits
+        .output();
 
-    // Gérer le résultat de l'exécution de la commande
+    // Gérer le résultat de l'exécution (inchangé)
     match command_execution_result {
-        Ok(output) => { // La commande a été lancée avec succès par l'OS, maintenant vérifier le statut de sortie du processus Python
-            // Print stdout/stderr au terminal pour débogage
+        Ok(output) => {
             println!("DEBUG: Sortie standard Python :\n{}", String::from_utf8_lossy(&output.stdout));
             println!("DEBUG: Erreur standard Python :\n{}", String::from_utf8_lossy(&output.stderr));
 
             if output.status.success() {
-                // Le script Python s'est terminé avec succès (code 0)
-                // Lire le contenu du fichier de sortie temporaire
                 let mut output_file = File::open(&output_path).map_err(|e| format!("Erreur lecture fichier sortie temporaire : {:?}", e))?;
                 let mut output_text = String::new();
                 output_file.read_to_string(&mut output_text).map_err(|e| format!("Erreur lecture fichier sortie temporaire : {:?}", e))?;
@@ -98,41 +96,28 @@ fn anonymize_text(input: String) -> Result<String, String> {
                 // Nettoyage des fichiers temporaires
                 let _ = remove_file(&input_path);
                 let _ = remove_file(&output_path);
-                let _ = remove_file(&error_output_path); // Clean up error file if created
+                let _ = remove_file(&error_output_path);
 
-                // Renvoyer le texte anonymisé au frontend
                 Ok(output_text)
             } else {
-                // Le script Python s'est terminé avec un code d'erreur non nul
-                // Capturer et renvoyer stdout et stderr au frontend comme une erreur
                 let error_message = if output.stderr.is_empty() {
-                    // Si stderr est vide, renvoyer stdout (parfois le script met des messages d'erreur sur stdout)
                     format!("Le script Python a échoué (code {}). Sortie standard:\n{}", output.status.code().unwrap_or(-1), String::from_utf8_lossy(&output.stdout))
                 } else {
-                    // Sinon, renvoyer stderr
                     format!("Le script Python a échoué (code {}). Erreur standard:\n{}", output.status.code().unwrap_or(-1), String::from_utf8_lossy(&output.stderr))
                 };
-
-                // Nettoyage des fichiers temporaires
                 let _ = remove_file(&input_path);
                 let _ = remove_file(&output_path);
-                 let _ = remove_file(&error_output_path); // Clean up error file if created
-
-                // Renvoyer le message d'erreur au frontend via Result::Err
+                let _ = remove_file(&error_output_path);
                 Err(error_message)
             }
         }
-        Err(e) => { // Erreur au lancement de la commande par l'OS (ex: exécutable introuvable)
-            // Nettoyage des fichiers temporaires (s'ils ont été créés avant l'erreur de lancement)
+        Err(e) => {
             let _ = remove_file(&input_path);
             let _ = remove_file(&output_path);
-             let _ = remove_file(&error_output_path); // Clean up error file if created
-
-            // Renvoyer l'erreur de lancement de l'OS au frontend
-            Err(format!("Erreur critique au lancement du processus Python: {:?}", e))
+            let _ = remove_file(&error_output_path);
+            Err(format!("Erreur critique au lancement du processus Python par l'OS: {:?}", e))
         }
     }
-    // --- Fin de la gestion robuste de l'exécution de commande Python ---
 }
 
 // La fonction main reste inchangée
