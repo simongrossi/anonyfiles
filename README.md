@@ -67,6 +67,21 @@ Voir [`anonyfiles-gui/README.md`](anonyfiles-gui/README.md)
 
 ---
 
+## 🛣️ Roadmap
+Priorité	Thème	État	Commentaire / Lien tâche
+1	Robustesse multi-format (TXT, CSV, DOCX, XLSX)	✅ Fait	Moteur factorisé, détection commune
+2	Remplacement positionnel fiable	⚠️ Test/Debug	En cours de vérification sur jeux de données variés
+3	Détection universelle des dates et emails	✅ Fait	Regex avancée + spaCy
+4	Performance / gestion mémoire	🔜 À venir	Streaming, lazy processing
+5	Règles de remplacement par type (YAML)	⚠️ Test/Debug	Règles personnalisées en cours de test et validation
+6	Mapping codes <-> originaux	⚠️ Test/Debug	Mapping inverse, audit, déanon : tests et debug
+7	Filtre exclusion (YAML / CLI)	✅ Fait	Configurable, évite faux positifs
+8	Support PDF / JSON	🔜 À venir	PDF natif, JSON complet
+9	Désanonymisation CLI (mapping inverse)	⚠️ Test/Debug	Recherche mapping, restauration en cours de test
+10	GUI avancée (drag & drop, prévisualisation)	🚧 En cours	Tauri/Svelte, anim, UX moderne
+11	Copie, export, gestion multi-fichier dans la GUI	🚧 En cours	Copier/coller, sélection, batch
+12	Support anglais, espagnol, allemand	🔜 À venir	Modèles spaCy additionnels
+
 ## 🤝 Contribuer
 
 * Toute contribution est la bienvenue : bugfix, traduction, documentation, suggestion !
