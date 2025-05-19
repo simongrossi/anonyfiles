@@ -40,10 +40,8 @@
 </script>
 
 <div
-  class="transition-colors duration-200 border-2 border-dashed rounded-xl text-center cursor-pointer select-none px-4 py-8 bg-slate-100 text-slate-700
-    focus:outline-none focus:ring-2 focus:ring-blue-400
-    hover:border-blue-400
-    {isDragging ? 'bg-blue-50 border-blue-500 text-blue-700' : ''}"
+  class={`transition-colors duration-200 border-2 border-dashed rounded-xl text-center cursor-pointer select-none px-4 py-8 w-full
+    ${isDragging ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-zinc-950 text-zinc-300 border-zinc-500'}`}
   role="region"
   aria-label="Zone de dépôt de fichiers"
   tabindex="0"
