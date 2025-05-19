@@ -60,9 +60,13 @@ def anonymize(
     log_entities: Path = typer.Option(None, help="Fichier CSV de log des entités détectées"),
     mapping_output: Path = typer.Option(None, help="Fichier CSV du mapping anonymisation"),
     dry_run: bool = typer.Option(False, help="Simulation sans écriture de fichiers"),
-    csv_no_header: bool = typer.Option(False, help="Le CSV n'a PAS d'entête (première ligne)"),
+    csv_no_header: bool = typer.Option(False, help="Le CSV n'a PAS d'entête (ancienne option pour compatibilité CLI)"),
+    has_header_opt: str = typer.Option(
+        None,
+        help="Spécifie explicitement si le fichier a une ligne d'entête ('true'/'false'). Prioritaire sur --csv-no-header.",
+    ),
     exclude_entities: list[str] = typer.Option(None, help="Types d'entités à exclure (ex: PER,LOC)"),
-    output_dir: Path = typer.Option(".", "--output-dir", help="Dossier où écrire tous les outputs")  # Ajout ici !
+    output_dir: Path = typer.Option(".", "--output-dir", help="Dossier où écrire tous les outputs")
 ):
     """
     Anonymise un fichier texte, tableur, bureautique ou JSON.
@@ -84,7 +88,13 @@ def anonymize(
         raise typer.Exit(1)
     processor = processor_class()
 
-    has_header = not csv_no_header
+    # Priorité à --has-header (venant du frontend/Rust), sinon compatibilité --csv-no-header
+    if has_header_opt is not None:
+        has_header = has_header_opt.lower() == "true"
+    else:
+        has_header = not csv_no_header
+
+    typer.echo(f"[DEBUG] --has-header transmis : {has_header} (opt={has_header_opt!r}, csv_no_header={csv_no_header})")
 
     if ext == ".csv":
         blocks = processor.extract_blocks(input_file, has_header=has_header)

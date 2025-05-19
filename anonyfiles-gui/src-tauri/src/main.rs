@@ -16,12 +16,17 @@ struct AnonymizationConfig {
     anonymize_emails: bool,
     #[serde(rename = "anonymizeDates")]
     anonymize_dates: bool,
-    // Ajoute d’autres options ici au besoin
+    // Ajoute d’autres options ici si besoin
 }
 
 #[tauri::command]
-fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, String> {
-    // Chemin dynamique : on remonte d'un niveau depuis anonyfiles-gui, puis anonyfiles-cli
+fn anonymize_text(
+    input: String,
+    config: AnonymizationConfig,
+    file_type: Option<String>,    // "csv", "xlsx", "txt" si fourni
+    has_header: Option<bool>      // true/false si fourni
+) -> Result<String, String> {
+    // Chemin dynamique : on remonte d'un niveau depuis anonyfiles-gui, puis anonyfiles-cli
     let project_root = current_dir()
         .map_err(|e| format!("Erreur accès current_dir : {:?}", e))?;
 
@@ -46,13 +51,15 @@ fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, 
 
     println!("DEBUG: Tous les fichiers temporaires dans {:?}", temp_dir);
     println!("DEBUG: Configuration reçue du frontend: {:?}", config);
+    println!("DEBUG: file_type reçu : {:?}", file_type);
+    println!("DEBUG: has_header reçu : {:?}", has_header);
 
     // Écrit le texte reçu dans le fichier d'entrée temporaire
     let mut input_file = File::create(&input_path).map_err(|e| format!("Erreur création fichier temporaire entrée: {:?}", e))?;
     input_file.write_all(input.as_bytes()).map_err(|e| format!("Erreur écriture fichier temporaire entrée: {:?}", e))?;
     let _ = input_file.flush();
 
-    // CHEMIN VERS main.py et generated_config.yaml (dynamique)
+    // Chemin vers main.py et generated_config.yaml (dynamique)
     let main_py_path = cli_dir.join("main.py");
     let python_executable = Path::new("python");
     let config_file_path = cli_dir.join("generated_config.yaml");
@@ -79,7 +86,7 @@ fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, 
         output_dir.to_str().unwrap().to_string(),
     ];
 
-    // Construction dynamique de la liste des entités à exclure selon config
+    // Détection des entités à exclure selon config
     let mut exclude_entities = Vec::new();
     if !config.anonymize_persons {
         exclude_entities.push("PER");
@@ -101,6 +108,16 @@ fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, 
     if !exclude_entities.is_empty() {
         command_args.push("--exclude-entities".into());
         command_args.push(exclude_entities.join(","));
+    }
+
+    // Ajout paramètre --has-header si pertinent (uniquement csv/xlsx)
+    if let Some(file_type) = &file_type {
+        if file_type == "csv" || file_type == "xlsx" {
+            if let Some(has_header) = has_header {
+                command_args.push("--has-header".into());
+                command_args.push(if has_header { "true".into() } else { "false".into() });
+            }
+        }
     }
 
     println!("DEBUG: Commande Python complète (pour affichage): python {:?}", command_args);
