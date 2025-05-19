@@ -48,8 +48,9 @@ fn anonymize_text(input: String) -> Result<String, String> {
     let config_path = absolute_cli_root.join("generated_config.yaml");
     let main_py_path = absolute_cli_root.join("main.py"); // Chemin vers main.py
 
-    // Utiliser le chemin explicite de l'exécutable Python
-    let python_executable = Path::new("/Library/Frameworks/Python.framework/Versions/3.11/bin/python3"); // CONFIRMEZ QUE PYTHON3 EST ICI ET C'EST LE BON EXECUTABLE
+    // Utiliser le nom de l'exécutable Python qui devrait être dans le PATH sur Windows
+    let python_executable = Path::new("python"); // MODIFIÉ ICI POUR WINDOWS. Peut être "python3" selon votre install.
+
 
     // Construire la liste complète des arguments pour la commande Python
     let command_args = vec![
