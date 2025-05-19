@@ -1,65 +1,90 @@
-<script>
-  import { createEventDispatcher } from 'svelte';
+<script lang="ts">
+  import { createEventDispatcher } from "svelte";
+  export let accept: string = "";
+  export let multiple: boolean = false;
+
   const dispatch = createEventDispatcher();
 
-  function handleDrop(event) {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (!file) return;
+  let isDragging = false;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      dispatch('fileContent', { content: reader.result });
-    };
-    reader.readAsText(file);
+  function handleDragOver(event: DragEvent) {
+    event.preventDefault();
+    isDragging = true;
   }
 
-  function handleDragOver(event) {
+  function handleDragLeave(event: DragEvent) {
     event.preventDefault();
+    isDragging = false;
   }
 
-  function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  function handleDrop(event: DragEvent) {
+    event.preventDefault();
+    isDragging = false;
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      dispatch("drop", { files });
+    }
+  }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      dispatch('fileContent', { content: reader.result });
-    };
-    reader.readAsText(file);
+  function handleClick() {
+    fileInput.click();
+  }
+
+  let fileInput: HTMLInputElement;
+  function handleFileChange(event: Event) {
+    const files = (event.target as HTMLInputElement).files;
+    if (files && files.length > 0) {
+      dispatch("drop", { files });
+    }
   }
 </script>
 
-<div class="drop-zone"
-     on:drop={handleDrop}
-     on:dragover={handleDragOver}
-     tabindex="0">
-  <p>📄 Glissez-déposez un fichier texte ici,<br>ou cliquez pour sélectionner</p>
-  <input type="file" accept=".txt" on:change={handleFileSelect} />
-</div>
-
 <style>
   .drop-zone {
-    border: 2px dashed #888;
+    border: 2px dashed #ddd;
     padding: 2rem;
+    border-radius: 1rem;
     text-align: center;
-    border-radius: 12px;
-    background-color: #1a1a1a;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    transition: background 0.2s, color 0.2s;
     cursor: pointer;
+    background: #f1f5f9;    /* Gris clair avec contraste */
+    color: #22223b;         /* Texte foncé et lisible */
   }
-
-  .drop-zone:hover {
-    border-color: #646cff;
-    background-color: #2a2a2a;
+  .drop-zone.dragging {
+    background: #e0e7ef;
+    border-color: #3b82f6;
+    color: #1e293b;         /* Texte un peu plus foncé */
   }
-
-  .drop-zone input[type="file"] {
+  input[type="file"] {
     display: none;
   }
-
-  .drop-zone:focus {
-    outline: none;
-    border-color: #535bf2;
-  }
 </style>
+
+<div
+  class="drop-zone {isDragging ? 'dragging' : ''}"
+  role="region"
+  aria-label="Zone de dépôt de fichiers"
+  tabindex="0"
+  on:dragover={handleDragOver}
+  on:dragleave={handleDragLeave}
+  on:drop={handleDrop}
+  on:click={handleClick}
+  on:keydown={(e) => {
+    // accessibilité clavier : touche Espace ou Entrée
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  }}
+>
+  <slot>
+    <p style="margin:0;">Déposez vos fichiers ici ou cliquez pour sélectionner.</p>
+  </slot>
+  <input
+    type="file"
+    bind:this={fileInput}
+    {accept}
+    {multiple}
+    on:change={handleFileChange}
+  />
+</div>
