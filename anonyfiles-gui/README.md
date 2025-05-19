@@ -49,7 +49,7 @@ npm run tauri dev
 
 ## 📸 Capture d’écran
 
-*(Insérer ici une capture de l’interface utilisateur — optionnel)*
+![alt text](https://i.imgur.com/JTDyxmm.jpeg)
 
 ---
 
