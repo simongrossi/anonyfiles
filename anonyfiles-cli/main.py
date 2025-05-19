@@ -24,7 +24,7 @@ PROCESSOR_MAP = {
 }
 
 def load_config(config_path):
-    with open(str(config_path), encoding="utf-8") as f:  # Conversion en str ici
+    with open(str(config_path), encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 def timestamp():
@@ -33,33 +33,36 @@ def timestamp():
 def ensure_folder(folder):
     os.makedirs(folder, exist_ok=True)
 
-def default_output(input_file, prefix="anonymise"):
+def default_output(input_file, output_dir, prefix="anonymise"):
     base = input_file.stem
     ext = input_file.suffix
-    ensure_folder("output_files")
-    return Path("output_files") / f"{base}_{prefix}{ext}"
+    folder = Path(output_dir) / "output_files"
+    ensure_folder(folder)
+    return folder / f"{base}_{prefix}{ext}"
 
-def default_mapping(input_file):
+def default_mapping(input_file, output_dir):
     base = input_file.stem
-    ensure_folder("mappings")
-    return Path("mappings") / f"{base}_mapping_{timestamp()}.csv"
+    folder = Path(output_dir) / "mappings"
+    ensure_folder(folder)
+    return folder / f"{base}_mapping_{timestamp()}.csv"
 
-def default_log(input_file):
+def default_log(input_file, output_dir):
     base = input_file.stem
-    ensure_folder("log")
-    return Path("log") / f"{base}_entities_{timestamp()}.csv"
+    folder = Path(output_dir) / "log"
+    ensure_folder(folder)
+    return folder / f"{base}_entities_{timestamp()}.csv"
 
 @app.command()
 def anonymize(
     input_file: Path = typer.Argument(..., help="Fichier à anonymiser"),
     config: Path = typer.Option(..., help="Fichier de configuration YAML"),
-    # C'EST CETTE LIGNE QUI EST MODIFIÉE POUR AJOUTER "--output", "-o"
     output: Path = typer.Option(None, "--output", "-o", help="Fichier de sortie anonymisé"),
     log_entities: Path = typer.Option(None, help="Fichier CSV de log des entités détectées"),
     mapping_output: Path = typer.Option(None, help="Fichier CSV du mapping anonymisation"),
     dry_run: bool = typer.Option(False, help="Simulation sans écriture de fichiers"),
     csv_no_header: bool = typer.Option(False, help="Le CSV n'a PAS d'entête (première ligne)"),
     exclude_entities: list[str] = typer.Option(None, help="Types d'entités à exclure (ex: PER,LOC)"),
+    output_dir: Path = typer.Option(".", "--output-dir", help="Dossier où écrire tous les outputs")  # Ajout ici !
 ):
     """
     Anonymise un fichier texte, tableur, bureautique ou JSON.
@@ -67,9 +70,9 @@ def anonymize(
     typer.echo(f"📂 Anonymisation du fichier : {input_file}")
 
     # Déterminer les chemins par défaut si non fournis
-    output = output or default_output(input_file)
-    mapping_output = mapping_output or default_mapping(input_file)
-    log_entities = log_entities or default_log(input_file)
+    output = output or default_output(input_file, output_dir)
+    mapping_output = mapping_output or default_mapping(input_file, output_dir)
+    log_entities = log_entities or default_log(input_file, output_dir)
 
     config_data = load_config(config)
     engine = AnonyfilesEngine(config=config_data, exclude_entities_cli=exclude_entities)
