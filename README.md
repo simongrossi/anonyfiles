@@ -39,9 +39,11 @@ anonyfiles/
 
 ### Pré-requis
 
-* Python 3.8+ (pour la CLI)
+* Python 3.11 (recommandé, testé en production)
 * Node.js 18+, npm/yarn (pour la GUI)
 * Rust & Cargo (pour la GUI)
+
+**Note** : Le projet a été principalement testé avec **Python 3.11**. Les autres versions (>3.8) sont théoriquement compatibles mais non garanties.
 
 ### Clonage du projet
 
