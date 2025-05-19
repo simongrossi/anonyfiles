@@ -3,7 +3,31 @@ use std::io::{Write, Read};
 use std::process::Command;
 use std::env::current_dir;
 use std::path::{Path, PathBuf};
+use serde_json::Value as JsonValue;
 
+// --- Pour la gestion de la configuration YAML ---
+#[tauri::command]
+fn load_config_command() -> Result<JsonValue, String> {
+    let config_path = "anonyfiles_outputs/generated_config.yaml";
+    if !Path::new(config_path).exists() {
+        // Retourne un objet vide si jamais le fichier n’existe pas encore
+        return Ok(serde_json::json!({}));
+    }
+    let file = File::open(config_path).map_err(|e| e.to_string())?;
+    let yaml: serde_yaml::Value = serde_yaml::from_reader(file).map_err(|e| e.to_string())?;
+    let json = serde_json::to_value(yaml).map_err(|e| e.to_string())?;
+    Ok(json)
+}
+
+#[tauri::command]
+fn save_config_command(config: JsonValue) -> Result<(), String> {
+    let config_path = "anonyfiles_outputs/generated_config.yaml";
+    let yaml = serde_yaml::to_string(&config).map_err(|e| e.to_string())?;
+    std::fs::write(config_path, yaml).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// --- Struct de config anonymisation (inchangé) ---
 #[derive(Debug, serde::Deserialize)]
 struct AnonymizationConfig {
     #[serde(rename = "anonymizePersons")]
@@ -19,6 +43,7 @@ struct AnonymizationConfig {
     // Ajoute d’autres options ici si besoin
 }
 
+// --- Commande d’anonymisation texte (inchangée) ---
 #[tauri::command]
 fn anonymize_text(
     input: String,
@@ -26,7 +51,6 @@ fn anonymize_text(
     file_type: Option<String>,    // "csv", "xlsx", "txt" si fourni
     has_header: Option<bool>      // true/false si fourni
 ) -> Result<String, String> {
-    // Chemin dynamique : on remonte d'un niveau depuis anonyfiles-gui, puis anonyfiles-cli
     let project_root = current_dir()
         .map_err(|e| format!("Erreur accès current_dir : {:?}", e))?;
 
@@ -40,7 +64,6 @@ fn anonymize_text(
         .map(|p| p.join("anonyfiles-cli"))
         .ok_or("Impossible de déterminer le chemin du dossier anonyfiles-cli")?;
 
-    // Dossier d'outputs à la racine du GUI (propre)
     let temp_dir = gui_root.join("anonyfiles_outputs");
     std::fs::create_dir_all(&temp_dir)
         .map_err(|e| format!("Erreur création dossier anonyfiles_outputs : {:?}", e))?;
@@ -54,18 +77,15 @@ fn anonymize_text(
     println!("DEBUG: file_type reçu : {:?}", file_type);
     println!("DEBUG: has_header reçu : {:?}", has_header);
 
-    // Écrit le texte reçu dans le fichier d'entrée temporaire
     let mut input_file = File::create(&input_path).map_err(|e| format!("Erreur création fichier temporaire entrée: {:?}", e))?;
     input_file.write_all(input.as_bytes()).map_err(|e| format!("Erreur écriture fichier temporaire entrée: {:?}", e))?;
     let _ = input_file.flush();
 
-    // Chemin vers main.py et generated_config.yaml (dynamique)
     let main_py_path = cli_dir.join("main.py");
     let python_executable = Path::new("python");
     let config_file_path = cli_dir.join("generated_config.yaml");
     let output_dir = &temp_dir;
 
-    // Vérification existence CLI
     if !main_py_path.exists() {
         return Err(format!("main.py introuvable à cet emplacement : {:?}", main_py_path));
     }
@@ -73,7 +93,6 @@ fn anonymize_text(
         return Err(format!("generated_config.yaml introuvable à cet emplacement : {:?}", config_file_path));
     }
 
-    // Construction des arguments de la commande (tout en String)
     let mut command_args: Vec<String> = vec![
         main_py_path.to_str().unwrap().to_string(),
         "anonymize".into(),
@@ -86,7 +105,6 @@ fn anonymize_text(
         output_dir.to_str().unwrap().to_string(),
     ];
 
-    // Détection des entités à exclure selon config
     let mut exclude_entities = Vec::new();
     if !config.anonymize_persons {
         exclude_entities.push("PER");
@@ -103,14 +121,11 @@ fn anonymize_text(
     if !config.anonymize_dates {
         exclude_entities.push("DATE");
     }
-    // Ajoute ici tes autres options si besoin
-
     if !exclude_entities.is_empty() {
         command_args.push("--exclude-entities".into());
         command_args.push(exclude_entities.join(","));
     }
 
-    // Ajout paramètre --has-header si pertinent (uniquement csv/xlsx)
     if let Some(file_type) = &file_type {
         if file_type == "csv" || file_type == "xlsx" {
             if let Some(has_header) = has_header {
@@ -136,7 +151,6 @@ fn anonymize_text(
                 let mut output_text = String::new();
                 output_file.read_to_string(&mut output_text).map_err(|e| format!("Erreur lecture fichier sortie temporaire : {:?}", e))?;
 
-                // Nettoyage
                 let _ = remove_file(&input_path);
                 let _ = remove_file(&output_path);
                 let _ = remove_file(&error_output_path);
@@ -165,7 +179,11 @@ fn anonymize_text(
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![anonymize_text])
+        .invoke_handler(tauri::generate_handler![
+            anonymize_text,
+            load_config_command,
+            save_config_command,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
