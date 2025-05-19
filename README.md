@@ -54,11 +54,11 @@ cd anonyfiles
 
 ### Installation CLI
 
-Voir [`anonyfiles-cli/README.md`](anonyfiles-cli/README.md)
+Voir [`anonyfiles-cli/RREADME.anonyfiles-cli.md`](anonyfiles-cli/README.anonyfiles-cli.md)
 
 ### Installation GUI
 
-Voir [`anonyfiles-gui/README.md`](anonyfiles-gui/README.md)
+Voir [`anonyfiles-gui/README.anonyfiles-gui.md`](anonyfiles-gui/README.anonyfiles-gui.md)
 
 ---
 
