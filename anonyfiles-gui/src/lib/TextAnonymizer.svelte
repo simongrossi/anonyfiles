@@ -1,13 +1,35 @@
 <script>
   import { invoke } from '@tauri-apps/api/tauri';
 
+  // Props pour du drag & drop ou autre (optionnel)
   export let fileContent = '';
+
   let inputText = '';
   let outputText = '';
   let errorMessage = '';
   let isLoading = false;
-  let anonymizePersons = true;
   let showCopiedToast = false;
+
+  // Liste des options dynamiques (à synchroniser avec main.rs)
+  let options = [
+    { key: 'anonymizePersons', label: 'Personnes (PER)', default: true },
+    { key: 'anonymizeLocations', label: 'Lieux (LOC)', default: false },
+    { key: 'anonymizeOrgs', label: 'Organisations (ORG)', default: false },
+    { key: 'anonymizeEmails', label: 'Emails', default: false },
+    { key: 'anonymizeDates', label: 'Dates', default: false }
+    // Ajoute d'autres ici si besoin
+  ];
+
+  // Construction automatique de l’état sélectionné
+  let selected = {};
+  options.forEach(opt => selected[opt.key] = opt.default);
+
+  // MAJ auto quand on droppe un fichier (optionnel)
+  $: if (fileContent) {
+    inputText = fileContent;
+    outputText = '';
+    errorMessage = '';
+  }
 
   async function anonymize() {
     if (!inputText.trim()) return;
@@ -15,7 +37,12 @@
     outputText = '';
     errorMessage = '';
 
-    const config = { anonymizePersons };
+    // Construction dynamique du config à envoyer à Rust
+    // { anonymizePersons: true, anonymizeLocations: false, ... }
+    let config = {};
+    for (const opt of options) {
+      config[opt.key] = !!selected[opt.key];
+    }
 
     try {
       const result = await invoke('anonymize_text', { input: inputText, config });
@@ -25,12 +52,6 @@
     } finally {
       isLoading = false;
     }
-  }
-
-  $: if (fileContent) {
-    inputText = fileContent;
-    outputText = '';
-    errorMessage = '';
   }
 
   function copyResult() {
@@ -50,12 +71,20 @@
     rows="6"
   ></textarea>
 
-  <div class="flex items-center gap-2">
-    <input type="checkbox" id="anonymizePersons" bind:checked={anonymizePersons}
-      class="w-5 h-5 text-blue-600 rounded border-zinc-400 focus:ring-blue-400 bg-zinc-950" />
-    <label for="anonymizePersons" class="select-none text-zinc-200 text-base">
-      Anonymiser les personnes (PER)
-    </label>
+  <div class="flex flex-wrap gap-4 mb-2">
+    {#each options as opt}
+      <div class="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id={opt.key}
+          bind:checked={selected[opt.key]}
+          class="w-5 h-5 text-blue-600 rounded border-zinc-400 focus:ring-blue-400 bg-zinc-950"
+        />
+        <label for={opt.key} class="select-none text-zinc-200 text-base">
+          {opt.label}
+        </label>
+      </div>
+    {/each}
   </div>
 
   <button
