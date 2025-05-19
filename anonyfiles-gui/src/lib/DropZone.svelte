@@ -40,11 +40,13 @@
 </script>
 
 <div
-  class={`transition-colors duration-200 border-2 border-dashed rounded-xl text-center cursor-pointer select-none px-4 py-8 w-full
-    ${isDragging ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-zinc-950 text-zinc-300 border-zinc-500'}`}
+  class="border-2 border-dashed rounded-xl border-zinc-500 transition-all bg-zinc-950 text-zinc-100 text-center px-4 py-6 mb-5 cursor-pointer select-none relative
+         hover:border-blue-400 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+  class:ring-4={isDragging}
+  class:ring-blue-400={isDragging}
+  tabindex="0"
   role="region"
   aria-label="Zone de dépôt de fichiers"
-  tabindex="0"
   on:dragover={handleDragOver}
   on:dragleave={handleDragLeave}
   on:drop={handleDrop}
@@ -57,7 +59,16 @@
   }}
 >
   <slot>
-    <p class="text-base m-0">Déposez vos fichiers ici ou cliquez pour sélectionner.</p>
+    <span class="text-zinc-200">Déposez vos fichiers ici ou cliquez pour sélectionner.</span>
+    {#if isDragging}
+      <div class="absolute inset-0 flex items-center justify-center pointer-events-none animate-pulse">
+        <svg class="h-12 w-12 text-blue-300 opacity-70" fill="none" stroke="currentColor" stroke-width="2"
+          viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M7 16V8a4 4 0 014-4h2a4 4 0 014 4v8m1 0a2 2 0 002-2V8a6 6 0 00-6-6H9a6 6 0 00-6 6v6a2 2 0 002 2h12z" />
+        </svg>
+      </div>
+    {/if}
   </slot>
   <input
     type="file"

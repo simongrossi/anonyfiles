@@ -2,40 +2,45 @@
   import DropZone from './lib/DropZone.svelte';
   import TextAnonymizer from './lib/TextAnonymizer.svelte';
 
-  let droppedContent = '';
+  let droppedText = '';
 
   function handleDrop(event) {
-    // Récupère le contenu du premier fichier texte drag & drop
-    const files = event.detail.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        droppedContent = e.target.result;
-      };
-      reader.readAsText(file);
+    // Si fichier texte, lecture du contenu...
+    if (event.detail && event.detail.files) {
+      const file = event.detail.files[0];
+      if (file && file.type.startsWith('text/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          droppedText = e.target.result;
+        };
+        reader.readAsText(file);
+      }
     }
   }
 </script>
 
-<div class="min-h-screen bg-zinc-900 py-8 px-4">
-  <div class="max-w-3xl mx-auto bg-zinc-800 rounded-2xl p-8 shadow-xl flex flex-col gap-8">
-    <h1 class="text-3xl font-semibold text-white mb-2">Anonyfiles GUI</h1>
-    <p class="text-zinc-200 mb-2">
-      Glissez-déposez un fichier texte ici, ou cliquez pour sélectionner
-    </p>
-    <!-- DropZone avec gestion d'événement -->
-    <DropZone accept=".txt" on:drop={handleDrop} />
-    <!-- Composant d'anonymisation (transmet le contenu drag&drop) -->
-    <TextAnonymizer fileContent={droppedContent} />
-    <!-- Zone de preview drag & drop -->
+<!-- Police moderne (exemple: Inter) -->
+<svelte:head>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;400&display=swap" rel="stylesheet" />
+</svelte:head>
+
+<div class="min-h-screen flex flex-col items-center justify-center bg-zinc-900 font-sans">
+  <div class="bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-800 max-w-md w-full mx-4 mt-10 mb-10 p-8 flex flex-col gap-6">
+    <!-- HEADER / LOGO -->
     <div>
-      <h2 class="text-lg font-bold text-white mt-8 mb-2">Contenu drag & drop :</h2>
-      <textarea
-        class="w-full rounded-xl border border-zinc-400 p-3 min-h-[120px] bg-zinc-900 text-white"
-        placeholder="Aperçu du contenu..." readonly
-        bind:value={droppedContent}
-      />
+      <h1 class="text-3xl font-extrabold select-none" style="font-family: Inter, sans-serif;">
+        <span class="text-blue-400">anonyfiles</span><span class="text-zinc-200">GUI</span>
+      </h1>
+      <a href="https://github.com/simongrossi" target="_blank"
+         class="text-xs text-blue-300 hover:underline ml-1">@simongrossi</a>
     </div>
+
+    <!-- DROPZONE -->
+    <DropZone class="mb-2" on:drop={handleDrop}>
+      <span class="text-zinc-200">Déposez vos fichiers ici ou cliquez pour sélectionner.</span>
+    </DropZone>
+
+    <!-- ANONYMIZER -->
+    <TextAnonymizer fileContent={droppedText} />
   </div>
 </div>
