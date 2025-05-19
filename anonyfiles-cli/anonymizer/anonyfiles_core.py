@@ -28,9 +28,13 @@ class AnonyfilesEngine:
         self.config = config or {}
         model = self.config.get("spacy_model", "fr_core_news_md")
         self.engine = SpaCyEngine(model=model)
-        self.entities_exclude = set(tuple(e) for e in self.config.get("exclude_entities", []))
+        # --- PATCH: Construction du set des labels à exclure (PER, LOC, etc.) ---
+        self.entities_exclude = set()
+        self.entities_exclude.update(self.config.get("exclude_entities", []))
         if exclude_entities_cli:
-            self.entities_exclude.update(tuple(e.split(',')) for e in exclude_entities_cli)
+            for e in exclude_entities_cli:
+                self.entities_exclude.update(e.split(","))
+        typer.echo(f"DEBUG: Entités à exclure : {self.entities_exclude}")
 
     def anonymize(self, input_path: Path, output_path: Optional[Path], entities: Optional[List[str]],
                   dry_run: bool, log_entities_path: Optional[Path], mapping_output_path: Optional[Path]):
@@ -80,9 +84,15 @@ class AnonyfilesEngine:
                 entities_per_block_with_offsets.append([])
 
         unique_entities = list(set(all_entities))
+        typer.echo(f"DEBUG - Entités uniques détectées AVANT filtre exclusion : {unique_entities}")
+
         if entities:
             unique_entities = [(t, l) for t, l in unique_entities if l in set(entities)]
-        unique_entities = [e for e in unique_entities if e not in self.entities_exclude]
+            typer.echo(f"DEBUG - Après filtre par liste 'entities' param : {unique_entities}")
+
+        # --- PATCH: Filtrage par exclusion, sur le LABEL ---
+        unique_entities = [e for e in unique_entities if e[1] not in self.entities_exclude]
+        typer.echo(f"DEBUG - Entités uniques détectées APRÈS filtre exclusion : {unique_entities}")
 
         if not unique_entities:
             if not dry_run and output_path:
@@ -100,7 +110,7 @@ class AnonyfilesEngine:
                     f.write("Code,Type,Nom Original\n")
             return {"status": "success", "entities_detected": []}
 
-        typer.echo(f"DEBUG - Entités uniques détectées : {unique_entities}")
+        typer.echo(f"DEBUG - Entités uniques utilisées pour anonymisation : {unique_entities}")
 
         # --> Récupère les règles de remplacement par type depuis la config (YAML)
         replacement_rules = self.config.get("replacements", {})
