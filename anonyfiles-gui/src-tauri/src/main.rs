@@ -8,7 +8,15 @@ use std::path::{Path, PathBuf};
 struct AnonymizationConfig {
     #[serde(rename = "anonymizePersons")]
     anonymize_persons: bool,
-    // Ajoutez d'autres options ici si besoin
+    #[serde(rename = "anonymizeLocations")]
+    anonymize_locations: bool,
+    #[serde(rename = "anonymizeOrgs")]
+    anonymize_orgs: bool,
+    #[serde(rename = "anonymizeEmails")]
+    anonymize_emails: bool,
+    #[serde(rename = "anonymizeDates")]
+    anonymize_dates: bool,
+    // Ajoute d’autres options ici au besoin
 }
 
 #[tauri::command]
@@ -17,8 +25,6 @@ fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, 
     let project_root = current_dir()
         .map_err(|e| format!("Erreur accès current_dir : {:?}", e))?;
 
-    // Vérifie si on est dans anonyfiles-gui ou dans anonyfiles-gui/src-tauri
-    // (la racine du projet ou src-tauri, les 2 cas courants)
     let gui_root = if project_root.ends_with("src-tauri") {
         project_root.parent().unwrap().to_path_buf()
     } else {
@@ -39,8 +45,6 @@ fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, 
     let error_output_path = temp_dir.join("anonyfiles_error_output.txt");
 
     println!("DEBUG: Tous les fichiers temporaires dans {:?}", temp_dir);
-
-    // --- Afficher la configuration reçue pour débogage ---
     println!("DEBUG: Configuration reçue du frontend: {:?}", config);
 
     // Écrit le texte reçu dans le fichier d'entrée temporaire
@@ -62,23 +66,41 @@ fn anonymize_text(input: String, config: AnonymizationConfig) -> Result<String, 
         return Err(format!("generated_config.yaml introuvable à cet emplacement : {:?}", config_file_path));
     }
 
-    // Construction des arguments de la commande
-    let mut command_args = vec![
-        main_py_path.to_str().unwrap(),
-        "anonymize",
-        input_path.to_str().unwrap(),
-        "--config",
-        config_file_path.to_str().unwrap(),
-        "-o",
-        output_path.to_str().unwrap(),
-        "--output-dir",
-        output_dir.to_str().unwrap(),
+    // Construction des arguments de la commande (tout en String)
+    let mut command_args: Vec<String> = vec![
+        main_py_path.to_str().unwrap().to_string(),
+        "anonymize".into(),
+        input_path.to_str().unwrap().to_string(),
+        "--config".into(),
+        config_file_path.to_str().unwrap().to_string(),
+        "-o".into(),
+        output_path.to_str().unwrap().to_string(),
+        "--output-dir".into(),
+        output_dir.to_str().unwrap().to_string(),
     ];
 
+    // Construction dynamique de la liste des entités à exclure selon config
+    let mut exclude_entities = Vec::new();
     if !config.anonymize_persons {
-        println!("DEBUG: Exclure les entités PER basé sur la config frontend.");
-        command_args.push("--exclude-entities");
-        command_args.push("PER");
+        exclude_entities.push("PER");
+    }
+    if !config.anonymize_locations {
+        exclude_entities.push("LOC");
+    }
+    if !config.anonymize_orgs {
+        exclude_entities.push("ORG");
+    }
+    if !config.anonymize_emails {
+        exclude_entities.push("EMAIL");
+    }
+    if !config.anonymize_dates {
+        exclude_entities.push("DATE");
+    }
+    // Ajoute ici tes autres options si besoin
+
+    if !exclude_entities.is_empty() {
+        command_args.push("--exclude-entities".into());
+        command_args.push(exclude_entities.join(","));
     }
 
     println!("DEBUG: Commande Python complète (pour affichage): python {:?}", command_args);
