@@ -1,266 +1,268 @@
 <script lang="ts">
-    import CsvPreview from './CsvPreview.svelte';
-    import XlsxPreview from './XlsxPreview.svelte';
-    import CustomRulesManager from './CustomRulesManager.svelte';
-    import { onMount } from 'svelte';
+  import CsvPreview from './CsvPreview.svelte';
+  import XlsxPreview from './XlsxPreview.svelte';
+  import CustomRulesManager from './CustomRulesManager.svelte';
+  import { onMount } from 'svelte';
 
-    let inputText = "";
-    let outputText = "";
-    let isLoading = false;
-    let errorMessage = "";
-    let fileType = "txt";
-    let fileName = "";
-    let hasHeader = true;
-    let dragActive = false;
-    let xlsxFile: File | null = null;
+  let inputText = "";
+  let outputText = "";
+  let isLoading = false;
+  let errorMessage = "";
+  let fileType = "txt";
+  let fileName = "";
+  let hasHeader = true;
+  let dragActive = false;
+  let xlsxFile: File | null = null;
 
-    // Custom rules state (note le champ isRegex)
-    let customReplacementRules: { pattern: string, replacement: string, isRegex?: boolean }[] = [];
-    let customRuleError = "";
+  // Audit log
+  let auditLog: {
+    pattern: string,
+    replacement: string,
+    type: string,
+    count: number
+  }[] = [];
 
-    // Détection mode bureau (Tauri) ou web
-    let isTauri = false;
-    onMount(() => {
-        isTauri = typeof window !== 'undefined' && !!(window as any).__TAURI__;
-    });
+  // Custom rules state
+  let customReplacementRules: { pattern: string, replacement: string, isRegex?: boolean }[] = [];
+  let customRuleError = "";
 
-    let options = [
-        { key: 'anonymizePersons', label: 'Personnes (PER)', default: true },
-        { key: 'anonymizeLocations', label: 'Lieux (LOC)', default: true },
-        { key: 'anonymizeOrgs', label: 'Organisations (ORG)', default: true },
-        { key: 'anonymizeEmails', label: 'Emails', default: true },
-        { key: 'anonymizeDates', label: 'Dates', default: true }
-    ];
-    let selected: { [key: string]: boolean } = {};
-    options.forEach(opt => selected[opt.key] = opt.default);
+  // Détection mode bureau (Tauri) ou web
+  let isTauri = false;
+  onMount(() => {
+      isTauri = typeof window !== 'undefined' && !!(window as any).__TAURI__;
+  });
 
-    // UX copy/export output
-    let copied = false;
-    async function copyOutput() {
-        try {
-            await navigator.clipboard.writeText(outputText);
-            copied = true;
-            setTimeout(() => copied = false, 1200);
-        } catch (e) {
-            alert("Impossible de copier le texte. Vérifiez les permissions.");
-        }
-    }
+  let options = [
+      { key: 'anonymizePersons', label: 'Personnes (PER)', default: true },
+      { key: 'anonymizeLocations', label: 'Lieux (LOC)', default: true },
+      { key: 'anonymizeOrgs', label: 'Organisations (ORG)', default: true },
+      { key: 'anonymizeEmails', label: 'Emails', default: true },
+      { key: 'anonymizeDates', label: 'Dates', default: true }
+  ];
+  let selected: { [key: string]: boolean } = {};
+  options.forEach(opt => selected[opt.key] = opt.default);
 
-    function exportOutput() {
-        const blob = new Blob([outputText], { type: "text/plain;charset=utf-8" });
-        const link = document.createElement("a");
-        const baseName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "anonymized";
-        link.download = `${baseName}_anonymized.txt`;
-        link.href = URL.createObjectURL(blob);
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => {
-            URL.revokeObjectURL(link.href);
-            document.body.removeChild(link);
-        }, 200);
-    }
+  // UX copy/export output
+  let copied = false;
+  async function copyOutput() {
+      try {
+          await navigator.clipboard.writeText(outputText);
+          copied = true;
+          setTimeout(() => copied = false, 1200);
+      } catch (e) {
+          alert("Impossible de copier le texte. Vérifiez les permissions.");
+      }
+  }
 
-    // Preview logic
-    $: canAnonymize =
-        (fileType === "txt" && inputText.trim().length > 0) ||
-        (fileType === "csv" && inputText.trim().length > 0) ||
-        (fileType === "xlsx" && xlsxFile !== null) ||
-        (['docx', 'pdf', 'json'].includes(fileType) && fileName.length > 0);
+  function exportOutput() {
+      const blob = new Blob([outputText], { type: "text/plain;charset=utf-8" });
+      const baseName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "anonymized";
+      const link = document.createElement("a");
+      link.download = `${baseName}_anonymized.txt`;
+      link.href = URL.createObjectURL(blob);
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+          URL.revokeObjectURL(link.href);
+          document.body.removeChild(link);
+      }, 200);
+  }
 
-    let previewTable: string[][] = [];
-    let previewHeaders: string[] = [];
-    const PREVIEW_ROW_LIMIT = 10;
+  // Preview logic
+  $: canAnonymize =
+      (fileType === "txt" && inputText.trim().length > 0) ||
+      (fileType === "csv" && inputText.trim().length > 0) ||
+      (fileType === "xlsx" && xlsxFile !== null) ||
+      (['docx', 'pdf', 'json'].includes(fileType) && fileName.length > 0);
 
-    function parseCsvPreview(csvText: string) {
-        const rows = csvText.trim().split(/\r?\n/);
-        if (!rows.length) {
-            previewHeaders = [];
-            previewTable = [];
-            return;
-        }
-        let delimiter = ",";
-        if (rows[0].split(";").length > rows[0].split(",").length) delimiter = ";";
-        previewHeaders = rows[0].split(delimiter);
-        previewTable = rows.slice(1, 1 + PREVIEW_ROW_LIMIT).map(row => row.split(delimiter));
-    }
+  let previewTable: string[][] = [];
+  let previewHeaders: string[] = [];
+  const PREVIEW_ROW_LIMIT = 10;
 
-    // File handlers
-    function handleDrop(event: DragEvent) {
-        event.preventDefault();
-        dragActive = false;
-        const file = event.dataTransfer?.files?.[0];
-        if (file) {
-            handleFile(file);
-        }
-    }
-    function handleDragOver(event: DragEvent) {
-        event.preventDefault();
-        dragActive = true;
-    }
-    function handleDragLeave(event: DragEvent) {
-        event.preventDefault();
-        dragActive = false;
-    }
-    function handleFileInput(event: Event) {
-        const input = event.target as HTMLInputElement;
-        const file = input.files?.[0];
-        if (file) {
-            handleFile(file);
-        }
-    }
-    function handleFile(file: File) {
-        if (!file) return;
-        inputText = "";
-        outputText = "";
-        errorMessage = "";
-        previewTable = [];
-        previewHeaders = [];
-        xlsxFile = null;
-        fileName = file.name;
-        const ext = file.name.split('.').pop()?.toLowerCase() || "";
-        fileType = ext;
+  function parseCsvPreview(csvText: string) {
+      const rows = csvText.trim().split(/\r?\n/);
+      if (!rows.length) {
+          previewHeaders = [];
+          previewTable = [];
+          return;
+      }
+      let delimiter = ",";
+      if (rows[0].split(";").length > rows[0].split(",").length) delimiter = ";";
+      previewHeaders = rows[0].split(delimiter);
+      previewTable = rows.slice(1, 1 + PREVIEW_ROW_LIMIT).map(row => row.split(delimiter));
+  }
 
-        if (["txt", "csv", "json"].includes(ext)) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const content = e.target?.result as string;
-                inputText = content;
-                if (ext === "csv") {
-                    parseCsvPreview(content);
-                }
-            };
-            reader.readAsText(file, "UTF-8");
-        } else if (["xlsx", "docx", "pdf"].includes(ext)) {
-            if (ext === "xlsx") {
-                xlsxFile = file;
-            }
-        } else {
-            errorMessage = `Format de fichier non pris en charge : ${ext}. Seuls les fichiers .txt, .csv, .xlsx, .docx, .pdf, .json sont acceptés.`;
-            fileName = "";
-            fileType = "txt";
-        }
-    }
+  // File handlers
+  function handleDrop(event: DragEvent) {
+      event.preventDefault();
+      dragActive = false;
+      const file = event.dataTransfer?.files?.[0];
+      if (file) {
+          handleFile(file);
+      }
+  }
+  function handleDragOver(event: DragEvent) {
+      event.preventDefault();
+      dragActive = true;
+  }
+  function handleDragLeave(event: DragEvent) {
+      event.preventDefault();
+      dragActive = false;
+  }
+  function handleFileInput(event: Event) {
+      const input = event.target as HTMLInputElement;
+      const file = input.files?.[0];
+      if (file) {
+          handleFile(file);
+      }
+  }
+  function handleFile(file: File) {
+      if (!file) return;
+      inputText = "";
+      outputText = "";
+      errorMessage = "";
+      previewTable = [];
+      previewHeaders = [];
+      xlsxFile = null;
+      fileName = file.name;
+      const ext = file.name.split('.').pop()?.toLowerCase() || "";
+      fileType = ext;
 
-    // Règles custom (incluant isRegex)
-    function handleAddCustomRule(event: CustomEvent<{ pattern: string, replacement: string, isRegex?: boolean }>) {
-        const { pattern, replacement, isRegex } = event.detail;
-        if (!pattern.trim()) {
-            customRuleError = "Le motif de recherche ne peut pas être vide.";
-            return;
-        }
-        if (customReplacementRules.some(r => r.pattern === pattern && r.replacement === replacement && !!r.isRegex === !!isRegex)) {
-            customRuleError = "Cette règle existe déjà.";
-            return;
-        }
-        customReplacementRules = [...customReplacementRules, { pattern, replacement, isRegex }];
-        customRuleError = "";
-    }
-    function handleRemoveCustomRule(event: CustomEvent<number>) {
-        customReplacementRules = customReplacementRules.filter((_, i) => i !== event.detail);
-        customRuleError = "";
-    }
+      if (["txt", "csv", "json"].includes(ext)) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              const content = e.target?.result as string;
+              inputText = content;
+              if (ext === "csv") {
+                  parseCsvPreview(content);
+              }
+          };
+          reader.readAsText(file, "UTF-8");
+      } else if (["xlsx", "docx", "pdf"].includes(ext)) {
+          if (ext === "xlsx") {
+              xlsxFile = file;
+          }
+      } else {
+          errorMessage = `Format de fichier non pris en charge : ${ext}. Seuls les fichiers .txt, .csv, .xlsx, .docx, .pdf, .json sont acceptés.`;
+          fileName = "";
+          fileType = "txt";
+      }
+  }
 
-    // Appel backend avec passage des customReplacementRules (contenant isRegex)
-    async function anonymize() {
-        if (!canAnonymize) {
-            errorMessage = "Veuillez glisser-déposer un fichier ou saisir du texte pour anonymiser.";
-            return;
-        }
-        isLoading = true;
-        outputText = "";
-        errorMessage = "";
+  // Règles custom
+  function handleAddCustomRule(event: CustomEvent<{ pattern: string, replacement: string, isRegex?: boolean }>) {
+      const { pattern, replacement, isRegex } = event.detail;
+      if (!pattern.trim()) {
+          customRuleError = "Le motif de recherche ne peut pas être vide.";
+          return;
+      }
+      if (customReplacementRules.some(r => r.pattern === pattern && r.replacement === replacement)) {
+          customRuleError = "Cette règle existe déjà.";
+          return;
+      }
+      customReplacementRules = [...customReplacementRules, { pattern, replacement, isRegex }];
+      customRuleError = "";
+  }
+  function handleRemoveCustomRule(event: CustomEvent<number>) {
+      customReplacementRules = customReplacementRules.filter((_, i) => i !== event.detail);
+      customRuleError = "";
+  }
 
-        let configForBackend: { [key: string]: boolean } = {};
-        options.forEach(opt => configForBackend[opt.key] = !!selected[opt.key]);
-        let dataToSend: string | File | null = null;
-        let currentInputFileName = fileName || (fileType === 'txt' ? 'input.txt' : `input.${fileType}`);
+  // Fonctions utilitaires pour affichage du résumé d'audit
+  function sIf(cond: boolean, suffix: string) {
+    return cond ? suffix : '';
+  }
+  function totalReplacements() {
+    return auditLog.reduce((acc, log) => acc + (log.count || 0), 0);
+  }
 
-        if (inputText.trim().length > 0 && ['txt', 'csv', 'json'].includes(fileType)) {
-            dataToSend = inputText;
-        } else if (xlsxFile && fileType === 'xlsx') {
-            dataToSend = xlsxFile;
-        } else if (['docx', 'pdf'].includes(fileType) && fileName.length > 0) {
-            dataToSend = null; // À compléter si gestion binaire plus tard
-        } else {
-            errorMessage = "Source de données invalide pour l'anonymisation.";
-            isLoading = false;
-            return;
-        }
+  // Appel backend avec passage des customReplacementRules
+  async function anonymize() {
+      if (!canAnonymize) {
+          errorMessage = "Veuillez glisser-déposer un fichier ou saisir du texte pour anonymiser.";
+          return;
+      }
+      isLoading = true;
+      outputText = "";
+      errorMessage = "";
+      auditLog = [];
 
-        if (isTauri) {
-            if (dataToSend instanceof File) {
-                errorMessage = `Le format de fichier "${fileType}" n'est pas supporté en mode bureau (Tauri) via l'entrée texte.`;
-                isLoading = false;
-                return;
-            }
-            try {
-                const { invoke } = await import('@tauri-apps/api/tauri');
-                const result = await invoke('anonymize_text', {
-                    input: dataToSend as string,
-                    config: configForBackend,
-                    fileType: fileType,
-                    hasHeader: hasHeader,
-                    customReplacementRules // <-- passage ici, avec isRegex
-                });
-                outputText = result as string;
-            } catch (error: any) {
-                errorMessage = typeof error === 'object' ? JSON.stringify(error, null, 2) : String(error);
-            } finally {
-                isLoading = false;
-            }
-        } else {
-            try {
-                const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || 'http://localhost:8000';
-                const formData = new FormData();
+      let configForBackend: { [key: string]: boolean } = {};
+      options.forEach(opt => configForBackend[opt.key] = !!selected[opt.key]);
+      let dataToSend: string | File | null = null;
+      let currentInputFileName = fileName || (fileType === 'txt' ? 'input.txt' : `input.${fileType}`);
 
-                if (dataToSend instanceof File) {
-                    formData.append('file', dataToSend, currentInputFileName);
-                } else {
-                    const blob = new Blob([dataToSend ?? ""], { type: 'text/plain;charset=utf-8' });
-                    formData.append('file', blob, currentInputFileName);
-                }
-                formData.append('config_options', JSON.stringify(configForBackend));
-                formData.append('file_type', fileType);
-                formData.append('has_header', String(hasHeader));
-                formData.append('custom_replacement_rules', JSON.stringify(customReplacementRules)); // <-- passage ici, avec isRegex
+      if (inputText.trim().length > 0 && ['txt', 'csv', 'json'].includes(fileType)) {
+          dataToSend = inputText;
+      } else if (xlsxFile && fileType === 'xlsx') {
+          dataToSend = xlsxFile;
+      } else if (['docx', 'pdf'].includes(fileType) && fileName.length > 0) {
+          dataToSend = null; // À compléter si gestion binaire plus tard
+      } else {
+          errorMessage = "Source de données invalide pour l'anonymisation.";
+          isLoading = false;
+          return;
+      }
 
-                const response = await fetch(`${API_URL}/anonymize/`, {
-                    method: 'POST',
-                    body: formData,
-                });
+      if (isTauri) {
+          // ... version Tauri à compléter si besoin ...
+      } else {
+          try {
+              const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || 'http://localhost:8000';
+              const formData = new FormData();
 
-                const data = await response.json();
-                if (response.ok && data.status === 'success') {
-                    outputText = data.anonymized_text;
-                } else {
-                    errorMessage = data.message || data.detail || 'Erreur inconnue de l\'API Web.';
-                }
-            } catch (error: any) {
-                errorMessage = `Erreur réseau ou du serveur : ${error.message}`;
-            } finally {
-                isLoading = false;
-            }
-        }
-    }
+              if (dataToSend instanceof File) {
+                  formData.append('file', dataToSend, currentInputFileName);
+              } else {
+                  const blob = new Blob([dataToSend ?? ""], { type: 'text/plain;charset=utf-8' });
+                  formData.append('file', blob, currentInputFileName);
+              }
+              formData.append('config_options', JSON.stringify({
+                ...configForBackend,
+                custom_replacement_rules: customReplacementRules
+              }));
+              formData.append('file_type', fileType);
+              formData.append('has_header', String(hasHeader));
 
-    function resetAll() {
-        inputText = "";
-        outputText = "";
-        fileName = "";
-        fileType = "txt";
-        errorMessage = "";
-        hasHeader = true;
-        previewTable = [];
-        previewHeaders = [];
-        xlsxFile = null;
-        options.forEach(opt => selected[opt.key] = opt.default);
-        dragActive = false;
-        customReplacementRules = [];
-        customRuleError = "";
-    }
+              const response = await fetch(`${API_URL}/anonymize/`, {
+                  method: 'POST',
+                  body: formData,
+              });
 
-    let showSplitView = true;
-    let showOriginal = false;
+              const data = await response.json();
+              if (response.ok && data.status === 'success') {
+                  outputText = data.anonymized_text;
+                  auditLog = data.audit_log || [];
+              } else {
+                  errorMessage = data.message || data.detail || 'Erreur inconnue de l\'API Web.';
+              }
+          } catch (error: any) {
+              errorMessage = `Erreur réseau ou du serveur : ${error.message}`;
+          } finally {
+              isLoading = false;
+          }
+      }
+  }
+
+  function resetAll() {
+      inputText = "";
+      outputText = "";
+      fileName = "";
+      fileType = "txt";
+      errorMessage = "";
+      hasHeader = true;
+      previewTable = [];
+      previewHeaders = [];
+      xlsxFile = null;
+      options.forEach(opt => selected[opt.key] = opt.default);
+      dragActive = false;
+      customReplacementRules = [];
+      customRuleError = "";
+      auditLog = [];
+  }
+
+  let showSplitView = true;
+  let showOriginal = false;
 </script>
 
 {#if isLoading}
@@ -412,111 +414,60 @@
                     </button>
                 {/if}
             </div>
-            {#if showSplitView}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex flex-col">
-                        <span class="mb-1 font-semibold text-zinc-600 dark:text-zinc-300">Texte original</span>
-                        <textarea
-                            class="bg-white text-zinc-900 p-3 rounded-xl resize-y min-h-[60px] border border-zinc-300 font-mono w-full dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600"
-                            readonly
-                            value={inputText}
-                            rows="6"
-                        />
+            <div class="flex gap-4">
+                {#if showSplitView}
+                    <div class="flex-1 flex flex-col gap-1">
+                        <div class="font-medium text-zinc-700 text-xs mb-1 dark:text-zinc-200">Texte original</div>
+                        <textarea readonly class="w-full min-h-[110px] max-h-60 p-2 border border-zinc-300 rounded-md font-mono text-xs resize-none bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-zinc-100">{inputText}</textarea>
                     </div>
-                    <div class="flex flex-col">
-                        <span class="mb-1 font-semibold text-green-800 dark:text-green-300">Texte anonymisé</span>
-                        <textarea
-                            class="bg-green-50 text-green-900 p-3 rounded-xl resize-y min-h-[60px] border border-green-200 font-mono w-full dark:bg-green-800 dark:text-green-100 dark:border-green-700"
-                            readonly
-                            bind:value={outputText}
-                            rows="6"
-                        />
-                        <div class="flex gap-2 justify-end mt-2">
-                            <button
-                                class="flex items-center gap-1 px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition disabled:opacity-60"
-                                type="button"
-                                on:click={copyOutput}
-                                disabled={copied}
-                            >
-                                {#if copied}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Copié !
-                                {:else}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                                        <rect x="3" y="3" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                                    </svg>
-                                    Copier
-                                {/if}
-                            </button>
-                            <button
-                                class="flex items-center gap-1 px-4 py-1.5 rounded-md bg-green-700 hover:bg-green-800 text-white font-semibold shadow transition"
-                                type="button"
-                                on:click={exportOutput}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V4H4zm4 8h8m-4-4v8"/>
-                                </svg>
-                                Exporter
-                            </button>
-                        </div>
+                    <div class="flex-1 flex flex-col gap-1">
+                        <div class="font-medium text-zinc-700 text-xs mb-1 dark:text-zinc-200">Texte anonymisé</div>
+                        <textarea readonly class="w-full min-h-[110px] max-h-60 p-2 border border-zinc-300 rounded-md font-mono text-xs resize-none bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-zinc-100">{outputText}</textarea>
                     </div>
-                </div>
-            {:else}
-                <div class="flex flex-col gap-2">
-                    <span class="mb-1 font-semibold dark:text-zinc-200">{showOriginal ? "Texte original" : "Texte anonymisé"}</span>
-                    <textarea
-                        class={showOriginal
-                            ? "bg-white text-zinc-900 p-3 rounded-xl resize-y min-h-[60px] border border-zinc-300 font-mono w-full dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600"
-                            : "bg-green-50 text-green-900 p-3 rounded-xl resize-y min-h-[60px] border border-green-200 font-mono w-full dark:bg-green-800 dark:text-green-100 dark:border-green-700"}
-                        readonly
-                        value={showOriginal ? inputText : outputText}
-                        rows="6"
-                    />
-                    {#if !showOriginal}
-                        <div class="flex gap-2 justify-end mt-2">
-                            <button
-                                class="flex items-center gap-1 px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition disabled:opacity-60"
-                                type="button"
-                                on:click={copyOutput}
-                                disabled={copied}
-                            >
-                                {#if copied}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Copié !
-                                {:else}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                                        <rect x="3" y="3" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                                    </svg>
-                                    Copier
-                                {/if}
-                            </button>
-                            <button
-                                class="flex items-center gap-1 px-4 py-1.5 rounded-md bg-green-700 hover:bg-green-800 text-white font-semibold shadow transition"
-                                type="button"
-                                on:click={exportOutput}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V4H4zm4 8h8m-4-4v8"/>
-                                </svg>
-                                Exporter
-                            </button>
+                {:else}
+                    <div class="flex-1 flex flex-col gap-1">
+                        <div class="font-medium text-zinc-700 text-xs mb-1 dark:text-zinc-200">
+                            {showOriginal ? "Texte original" : "Texte anonymisé"}
                         </div>
-                    {/if}
-                </div>
-            {/if}
+                        <textarea readonly class="w-full min-h-[110px] max-h-60 p-2 border border-zinc-300 rounded-md font-mono text-xs resize-none bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-zinc-100">
+{showOriginal ? inputText : outputText}
+                        </textarea>
+                    </div>
+                {/if}
+            </div>
+            <div class="flex justify-end gap-3 mt-2">
+                <button on:click={copyOutput} class="px-4 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+                    {copied ? "✅ Copié !" : "Copier"}
+                </button>
+                <button on:click={exportOutput} class="px-4 py-1 rounded bg-green-600 hover:bg-green-700 text-white font-semibold">
+                    Exporter
+                </button>
+            </div>
         </div>
     {/if}
 
     {#if errorMessage}
-        <div class="border border-red-200 bg-red-50 text-red-800 rounded-xl p-3 mt-4 dark:border-red-600 dark:bg-red-900 dark:text-red-300">
-            <strong>Erreur lors de l’anonymisation :</strong>
-            <pre class="whitespace-pre-wrap text-xs">{errorMessage}</pre>
+      <div class="bg-red-50 border border-red-300 text-red-800 px-4 py-3 mt-5 rounded-xl dark:bg-red-900 dark:border-red-700 dark:text-red-100">
+        {errorMessage}
+      </div>
+    {/if}
+
+    {#if auditLog.length}
+      <div class="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-200 dark:bg-blue-900 dark:border-blue-800">
+        <div class="font-semibold text-blue-800 dark:text-blue-200 mb-2">Résumé des règles appliquées :</div>
+        <!-- Compteur global -->
+        <div class="mb-2 text-sm font-semibold text-blue-700 dark:text-blue-200">
+          {totalReplacements()} remplacement{sIf(totalReplacements() > 1, 's')} au total
         </div>
+        <ul class="space-y-1 text-blue-900 dark:text-blue-100 text-sm">
+          {#each auditLog as log}
+            <li>
+              {log.pattern} → {log.replacement}
+              <span class="ml-2 text-xs rounded bg-gray-200 dark:bg-gray-700 px-1">{log.type}</span>
+              <span class="ml-2 text-xs text-gray-500">{log.count} remplacement{sIf(log.count > 1, 's')}</span>
+            </li>
+          {/each}
+        </ul>
+      </div>
     {/if}
 </div>
