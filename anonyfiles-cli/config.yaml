@@ -11,11 +11,9 @@ replacements:
   ORG:
     type: redact
     options:
-      text: "[ENTREPRISE]"
+      text: "[ENTREPRISE_ANONYME]"
   DATE:
     type: redact
     options:
-      text: "[REDACTED_DATE]"
+      text: "[DATE_ANONYME]"
 
-exclude_entities:
-  - [Date, PER]

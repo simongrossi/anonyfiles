@@ -130,7 +130,8 @@ async fn anonymize_text(
         if let Some(file_type) = &file_type {
             if file_type == "csv" || file_type == "xlsx" {
                 if let Some(has_header) = has_header {
-                    command_args.push("--has-header".into());
+                    // LIGNE CORRIGÉE : Utilisation de --has-header-opt pour le script Python
+                    command_args.push("--has-header-opt".into());
                     command_args.push(if has_header { "true".into() } else { "false".into() });
                 }
             }
