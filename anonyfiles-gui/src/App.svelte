@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TextAnonymizer from './lib/TextAnonymizer.svelte';
+  import DataAnonymizer from './lib/DataAnonymizer.svelte';
   // Composant à créer pour la config visuelle, même si vide au début :
   import ConfigurationView from './lib/ConfigurationView.svelte';
 
@@ -25,7 +25,7 @@
   </nav>
   <main class="flex-1 overflow-y-auto p-8">
     {#if tab === 'anonymizer'}
-      <TextAnonymizer />
+      <DataAnonymizer />
     {:else if tab === 'config'}
       <ConfigurationView />
     {/if}

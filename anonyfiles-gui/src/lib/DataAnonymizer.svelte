@@ -1,4 +1,6 @@
 <script lang="ts">
+  import CsvPreview from './CsvPreview.svelte';
+  import XlsxPreview from './XlsxPreview.svelte';
   import { invoke } from '@tauri-apps/api/tauri';
 
   let inputText = "";
@@ -9,6 +11,7 @@
   let fileName = "";
   let hasHeader = true;
   let dragActive = false;
+  let xlsxFile: File | null = null;
 
   let options = [
     { key: 'anonymizePersons', label: 'Personnes (PER)', default: true },
@@ -48,7 +51,23 @@
   $: canAnonymize =
     (fileType === "txt" && inputText.trim()) ||
     (fileType === "csv" && inputText.trim()) ||
-    (fileType === "xlsx" && inputText.trim());
+    (fileType === "xlsx" && xlsxFile);
+
+  // Aperçu CSV
+  let previewTable: string[][] = [];
+  let previewHeaders: string[] = [];
+  const PREVIEW_ROW_LIMIT = 10;
+
+  function parseCsvPreview(csvText: string) {
+    const rows = csvText.trim().split(/\r?\n/);
+    if (!rows.length) return;
+
+    let delimiter = ",";
+    if (rows[0].split(";").length > rows[0].split(",").length) delimiter = ";";
+
+    previewHeaders = rows[0].split(delimiter);
+    previewTable = rows.slice(1, 1 + PREVIEW_ROW_LIMIT).map(row => row.split(delimiter));
+  }
 
   function handleDrop(event) {
     event.preventDefault();
@@ -85,10 +104,19 @@
       const reader = new FileReader();
       reader.onload = (e) => {
         inputText = e.target.result as string;
+        xlsxFile = null;
+        if (ext === "csv") parseCsvPreview(inputText);
+        else {
+          previewTable = [];
+          previewHeaders = [];
+        }
       };
       reader.readAsText(file, "UTF-8");
     } else if (ext === "xlsx") {
       inputText = "";
+      previewTable = [];
+      previewHeaders = [];
+      xlsxFile = file;
     }
     errorMessage = "";
     outputText = "";
@@ -126,6 +154,9 @@
     fileType = "txt";
     errorMessage = "";
     hasHeader = true;
+    previewTable = [];
+    previewHeaders = [];
+    xlsxFile = null;
     options.forEach(opt => selected[opt.key] = opt.default);
   }
 
@@ -152,6 +183,7 @@
   </div>
 {/if}
 
+<!-- Drag & Drop + Choix de fichier -->
 <div
   class="w-full mb-6 border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-zinc-100 hover:bg-zinc-200"
   class:bg-blue-50={dragActive}
@@ -168,12 +200,22 @@
   />
   <label for="fileInput" class="cursor-pointer flex flex-col items-center gap-2">
     <span class="text-base font-medium text-zinc-700">Déposez un fichier ou cliquez pour parcourir</span>
-    <span class="text-sm text-zinc-500">Formats supportés : .txt, .csv, .xlsx</span>
+    <span class="text-sm text-zinc-500">Formats supportés : .txt, .csv, .xlsx</span>
     {#if fileName}
       <span class="text-blue-800 font-semibold mt-2">{fileName}</span>
     {/if}
   </label>
 </div>
+
+<!-- Aperçu CSV -->
+{#if fileType === "csv" && previewTable.length}
+  <CsvPreview headers={previewHeaders} rows={previewTable} hasHeader={hasHeader} />
+{/if}
+
+<!-- Aperçu XLSX -->
+{#if fileType === "xlsx" && xlsxFile}
+  <XlsxPreview file={xlsxFile} hasHeader={hasHeader} />
+{/if}
 
 <div class="mb-4">
   <label for="inputText" class="font-semibold text-base text-zinc-700">Texte à anonymiser :</label>

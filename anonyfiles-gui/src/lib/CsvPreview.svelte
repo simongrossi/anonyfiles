@@ -1,37 +1,41 @@
 <script lang="ts">
-  import Papa from "papaparse";
-  export let fileContent: string = "";
+  export let headers: string[] = [];
+  export let rows: string[][] = [];
   export let hasHeader: boolean = true;
-
-  let rows: string[][] = [];
-
-  $: if (fileContent) {
-    const result = Papa.parse(fileContent.trim(), { delimiter: ",", skipEmptyLines: true });
-    rows = (result.data as string[][]).slice(0, 10);
-  }
 </script>
 
-{#if rows.length > 0}
-  <div class="overflow-x-auto my-2">
-    <table class="min-w-full text-xs border border-blue-800 rounded-lg shadow">
+<div class="overflow-x-auto mb-4">
+  <table class="min-w-full text-sm border border-zinc-300 bg-white rounded-xl">
+    {#if hasHeader}
+      <thead>
+        <tr>
+          {#each headers as col}
+            <th class="px-2 py-1 border-b border-zinc-200 bg-blue-50 text-blue-700 font-bold">{col}</th>
+          {/each}
+        </tr>
+      </thead>
       <tbody>
-        {#each rows as row, i}
-          <tr class={
-              hasHeader && i === 0
-              ? "font-bold bg-blue-900 text-blue-200"
-              : (i % 2 === 0 ? "bg-zinc-900 text-zinc-200" : "bg-zinc-800 text-zinc-200")
-            }>
+        {#each rows as row}
+          <tr>
             {#each row as cell}
-              <td class="border border-blue-900 px-2 py-1">{cell}</td>
+              <td class="px-2 py-1 border-b border-zinc-100 text-zinc-700">{cell}</td>
             {/each}
           </tr>
         {/each}
       </tbody>
-    </table>
-    {#if rows.length === 10}
-      <div class="text-xs text-blue-400 mt-1">Aperçu limité à 10 lignes…</div>
+    {:else}
+      <tbody>
+        {#each [headers, ...rows] as row}
+          <tr>
+            {#each row as cell}
+              <td class="px-2 py-1 border-b border-zinc-100 text-zinc-700">{cell}</td>
+            {/each}
+          </tr>
+        {/each}
+      </tbody>
     {/if}
+  </table>
+  <div class="text-xs text-zinc-500 mt-1">
+    (Aperçu des {hasHeader ? rows.length : rows.length + 1} premières lignes)
   </div>
-{:else}
-  <div class="text-blue-400">Aucun contenu CSV à prévisualiser.</div>
-{/if}
+</div>

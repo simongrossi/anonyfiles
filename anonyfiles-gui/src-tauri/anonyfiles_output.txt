@@ -1,0 +1,6 @@
+NOM004 habite à VILLE003 depuis 2018.
+Son email professionnel est jean.dupont@acme-corp.com et il travaille chez ACME CorporationACME Corporation.
+Il est né le 12/04/1980 à VILLE002.
+Le 25 décembre 2022, il a voyagé à VILLE001 avec son collègue NOM005.
+[REDACTED] personnel : pierre.martin@gmail.com
+Le siège social d’ACME est situé 45 rue de la
