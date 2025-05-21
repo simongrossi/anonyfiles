@@ -63,6 +63,13 @@ cd anonyfiles
 
 ➡️ Voir [`anonyfiles-gui/README.md`](anonyfiles-gui/README.md)
 
+- Interface graphique moderne (Svelte + Rust via Tauri)
+- Drag & drop, sélection intuitive des entités à anonymiser
+- Mode sombre, responsive, traitement local sécurisé
+- Copie et prévisualisation des résultats
+
+![Aperçu de l'interface graphique](https://i.imgur.com/OEq7Q9W.jpeg)
+
 ### Lancement de l’API
 
 ➡️ Voir [`anonyfiles_api/README.md`](anonyfiles_api/README.md)
