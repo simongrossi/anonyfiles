@@ -6,39 +6,36 @@
 
 ## 🚀 Fonctionnalités principales
 
-* **Multi-format :** `.txt`, `.csv`, `.docx`, `.xlsx`, `.pdf`, `.json`
-* **Détection d’entités avancée** (spaCy) : Personnes (`PER`), Lieux (`LOC`), Organisations (`ORG`), Dates, Emails, Téléphones, IBAN, Adresses, etc.
-* **Stratégies de remplacement configurables** : données factices (Faker), codes séquentiels, `[REDACTED]`, placeholders, etc.
-* **Configuration YAML** : personnalisation fine (entités à anonymiser ou à ignorer, formats de remplacement, exclusions par pattern...)
-* **Export CSV du mapping d’anonymisation** : permet la désanonymisation/audit
-* **Log CSV des entités détectées** : suivi, validation, stats
-* **Exclusion sélective d’entités** via `--exclude-entities`
-* **Désanonymisation complète** via le mapping CSV généré
-* **Support du traitement batch de plusieurs fichiers** (par dossier)
-* **Performance optimisée** pour les gros volumes (lazy loading, memory-safe)
-* **Logs détaillés/debug** activables
+* **Multi-format :** `.txt`, `.csv`, `.docx`, `.xlsx`, `.pdf`, `.json` (avec gestion améliorée des fichiers vides).
+* **Détection d’entités avancée** (spaCy) : Personnes (`PER`), Lieux (`LOC`), Organisations (`ORG`), Dates, Emails, Téléphones, IBAN, Adresses, etc.
+* **Configuration YAML des stratégies spaCy** : personnalisation fine des stratégies de remplacement (Faker, codes, etc.) pour les entités *détectées par spaCy*, et exclusions par pattern.
+* **Règles de remplacement personnalisées via CLI (pour .TXT initialement) :** Définissez vos propres patterns (texte ou regex simple) et leurs remplacements directs, appliqués *avant* la détection spaCy.
+* **Export CSV du mapping d’anonymisation** : permet la désanonymisation/audit des entités traitées par spaCy.
+* **Log CSV des entités détectées** (par spaCy) : suivi, validation, stats.
+* **Exclusion sélective d’entités spaCy** via `--exclude-entities`.
+* **Désanonymisation complète** via le mapping CSV généré.
+* **Support du traitement batch de plusieurs fichiers** (par dossier).
+* **Performance optimisée** pour les gros volumes (lazy loading, memory-safe).
+* **Logs détaillés/debug** activables.
 
 ---
 
 ## 🛠️ Prérequis & Installation
 
 * Python 3.8 ou supérieur
-* Cloner le dépôt :
-
-  ```sh
-  git clone https://github.com/simongrossi/anonyfiles.git
-  cd anonyfiles/anonyfiles-cli
-  ```
-* Installer les dépendances Python :
-
-  ```sh
-  pip install -r requirements.txt
-  ```
-* (Optionnel) Installer [spaCy FR](https://spacy.io/models/fr) :
-
-  ```sh
-  python -m spacy download fr_core_news_md
-  ```
+* Cloner le dépôt :
+    ```sh
+    git clone [https://github.com/simongrossi/anonyfiles.git](https://github.com/simongrossi/anonyfiles.git)
+    cd anonyfiles/anonyfiles-cli
+    ```
+* Installer les dépendances Python :
+    ```sh
+    pip install -r requirements.txt
+    ```
+* (Optionnel) Installer [spaCy FR](https://spacy.io/models/fr) :
+    ```sh
+    python -m spacy download fr_core_news_md
+    ```
 
 ---
 
@@ -49,6 +46,7 @@
 ```sh
 python main.py anonymize chemin/vers/fichier.txt \
   --config chemin/vers/config.yaml \
+  --custom-replacements-json '[{"pattern": "Mon Texte Secret", "replacement": "[REMPLACÉ]"}]' \
   -o chemin/vers/fichier_anonymise.txt \
   --log-entities chemin/vers/log_entities.csv \
   --mapping-output chemin/vers/mapping.csv \
@@ -56,13 +54,13 @@ python main.py anonymize chemin/vers/fichier.txt \
 ```
 
 * **Paramètres principaux** :
-
   * `chemin/vers/fichier.txt` : fichier à anonymiser
   * `--config` : chemin du fichier de configuration YAML
+  * `--custom-replacements-json` : (Optionnel) Chaîne JSON de règles de remplacement personnalisées (ex: `'[{"pattern": "texte_a_cacher", "replacement": "[CACHE]"}]'`). **Initialement pour les fichiers .txt.**
   * `-o` ou `--output` : fichier de sortie anonymisé
-  * `--log-entities` : CSV listant toutes les entités détectées
-  * `--mapping-output` : CSV pour la désanonymisation
-  * `--exclude-entities` : entités à NE PAS anonymiser (par label)
+  * `--log-entities` : CSV listant les entités spaCy détectées
+  * `--mapping-output` : CSV pour la désanonymisation des entités spaCy
+  * `--exclude-entities` : entités spaCy à NE PAS anonymiser (par label)
 
 > Seuls le fichier d’entrée et la config YAML sont obligatoires. Utilisez `--exclude-entities` pour cibler précisément ce que vous souhaitez anonymiser.
 
@@ -82,7 +80,11 @@ python main.py deanonymize chemin/vers/fichier_anonymise.txt \
 
 ---
 
-## 🧩 Exemple de configuration YAML
+### 🧩 Exemple de configuration YAML (pour les entités spaCy)
+
+Le fichier de configuration YAML (`--config`) vous permet de définir comment les entités *automatiquement détectées par spaCy* (Personnes, Lieux, Organisations, etc.) doivent être anonymisées. Vous pouvez y spécifier des stratégies de remplacement (données factices, codes, caviardage) et des options pour chaque type d'entité.
+
+**Note :** Pour des remplacements directs de chaînes de caractères ou de patterns spécifiques *avant* l'intervention de spaCy (actuellement pour les fichiers `.txt`), utilisez l'option en ligne de commande `--custom-replacements-json` (voir section "Utilisation rapide").
 
 ```yaml
 entities:
@@ -125,6 +127,25 @@ Plus d’exemples dans le dossier [`examples/`](./examples/).
 | IBAN          | IBAN    | FR76...                                   | fake, code, redact |
 | Adresse       | ADDRESS | 12 rue X, 75000 Y                         | fake, code, redact |
 | ...           | ...     | ...                                       | ...                |
+
+
+---
+
+
+### ✨ Utilisation des Règles de Remplacement Personnalisées (pour .TXT)
+
+Vous pouvez fournir vos propres règles de recherche/remplacement qui seront appliquées *avant* l'analyse spaCy. Ceci est utile pour masquer des termes spécifiques métier, des codes internes, ou pour forcer un certain remplacement avant que spaCy n'intervienne.
+
+Les règles sont passées via l'option `--custom-replacements-json` avec une chaîne au format JSON. Chaque règle est un objet avec une clé `"pattern"` (le texte ou l'expression régulière simple à rechercher, insensible à la casse) et une clé `"replacement"` (le texte de remplacement).
+
+**Exemple :**
+Pour remplacer "CodeAlpha" par "[PROJET_X]" et "Réunion Marketing" par "[ÉVÉNEMENT_INTERNE]" :
+
+```sh
+python main.py anonymize mon_fichier.txt \
+  --config ma_config.yaml \
+  --custom-replacements-json '[{"pattern": "CodeAlpha", "replacement": "[PROJET_X]"}, {"pattern": "Réunion Marketing", "replacement": "[ÉVÉNEMENT_INTERNE]"}]'
+
 
 ---
 
