@@ -39,3 +39,5 @@ anonyfiles-gui/package-lock.json
 anonyfiles-gui/src-tauri/Cargo.lock
 anonyfiles-gui/package-lock.json
 anonyfiles-gui/src-tauri/Cargo.lock
+anonyfiles-gui/src-tauri/Cargo.lock
+anonyfiles-gui/package-lock.json
