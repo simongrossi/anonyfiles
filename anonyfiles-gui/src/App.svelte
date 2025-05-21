@@ -1,11 +1,12 @@
 <script lang="ts">
   import DataAnonymizer from './lib/DataAnonymizer.svelte';
+  import DeAnonymizer from './lib/DeAnonymizer.svelte';
   import ConfigurationView from './lib/ConfigurationView.svelte';
 
   let tab = 'anonymizer';
-
   const tabs = [
     { key: 'anonymizer', icon: '🕵️', label: 'Anonymisation' },
+    { key: 'deanonymizer', icon: '🔓', label: 'Désanonymisation' },
     { key: 'config', icon: '⚙️', label: 'Configuration' }
   ];
 </script>
@@ -27,6 +28,8 @@
   <main class="flex-1 overflow-y-auto p-8">
     {#if tab === 'anonymizer'}
       <DataAnonymizer />
+    {:else if tab === 'deanonymizer'}
+      <DeAnonymizer />
     {:else if tab === 'config'}
       <ConfigurationView />
     {/if}

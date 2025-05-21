@@ -6,14 +6,17 @@ import shutil
 import os
 import json
 
-# Patch sys.path pour garantir les imports CLI/Python hors package
-import sys
-cli_path = Path(__file__).parent.parent / "anonyfiles-cli"
-if str(cli_path) not in sys.path:
-    sys.path.insert(0, str(cli_path))
-
-from anonymizer.anonyfiles_core import AnonyfilesEngine
-from main import load_config
+# Importation du moteur d'anonymisation et de désanonymisation
+try:
+    from anonyfiles.anonyfiles_cli.anonymizer.anonyfiles_core import AnonyfilesEngine
+    from anonyfiles.anonyfiles_cli.main import load_config
+    from anonyfiles.anonyfiles_cli.deanonymize import Deanonymizer
+except ImportError:
+    import sys
+    sys.path.append(str(Path(__file__).parent.parent / "anonyfiles-cli"))
+    from anonymizer.anonyfiles_core import AnonyfilesEngine
+    from main import load_config
+    from deanonymize import Deanonymizer
 
 app = FastAPI()
 
@@ -41,7 +44,6 @@ async def anonymize_file(
 ):
     try:
         TEMP_FILES_DIR.mkdir(parents=True, exist_ok=True)
-
         input_path = TEMP_FILES_DIR / file.filename
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -68,14 +70,14 @@ async def anonymize_file(
         mapping_output_path = TEMP_FILES_DIR / f"mapping_{file.filename}.csv"
 
         # Passage des custom rules
-        custom_replacement_rules = None
+        custom_rules = None
         if "custom_replacement_rules" in frontend_config_options:
-            custom_replacement_rules = frontend_config_options["custom_replacement_rules"]
+            custom_rules = frontend_config_options["custom_replacement_rules"]
 
         engine = AnonyfilesEngine(
             config=base_config,
             exclude_entities_cli=exclude_entities,
-            custom_replacement_rules=custom_replacement_rules
+            custom_replacement_rules=custom_rules
         )
 
         result = engine.anonymize(
@@ -85,7 +87,7 @@ async def anonymize_file(
             dry_run=False,
             log_entities_path=log_entities_path,
             mapping_output_path=mapping_output_path,
-            # Autres options si besoin, sinon custom rules déjà dans l'engine
+            custom_rules=custom_rules,
         )
 
         if result.get("status") == "success":
@@ -106,3 +108,39 @@ async def anonymize_file(
     finally:
         if TEMP_FILES_DIR.exists():
             shutil.rmtree(TEMP_FILES_DIR, ignore_errors=True)
+
+@app.post("/deanonymize/")
+async def deanonymize_file(
+    file: UploadFile = File(...),
+    mapping: UploadFile = File(...),
+    permissive: Optional[bool] = Form(False)
+):
+    try:
+        TEMP_FILES_DIR.mkdir(parents=True, exist_ok=True)
+        input_path = TEMP_FILES_DIR / file.filename
+        mapping_path = TEMP_FILES_DIR / mapping.filename
+        with open(input_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        with open(mapping_path, "wb") as f:
+            shutil.copyfileobj(mapping.file, f)
+
+        deanonymizer = Deanonymizer(str(mapping_path), strict=not permissive)
+        with open(input_path, encoding="utf-8") as f:
+            content = f.read()
+        deanonymized, report = deanonymizer.deanonymize_text(content)
+        return {
+            "status": "success",
+            "deanonymized_text": deanonymized,
+            "report": report,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur de désanonymisation : {e}")
+    finally:
+        try:
+            if input_path.exists():
+                input_path.unlink()
+            if mapping_path.exists():
+                mapping_path.unlink()
+            # TEMP_FILES_DIR.rmdir() # Optionnel : ne pas supprimer tout le dossier pour éviter la suppression concurrente
+        except Exception:
+            pass

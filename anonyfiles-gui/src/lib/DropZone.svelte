@@ -31,7 +31,7 @@
 
 <button
   type="button"
-  class="border-2 border-dashed rounded-xl border-zinc-500 transition-all bg-zinc-950 text-zinc-100 text-center px-4 py-6 mb-5 cursor-pointer select-none relative
+  class="border-2 border-dashed rounded-xl border-zinc-300 transition-all bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 text-center px-4 py-6 mb-5 cursor-pointer select-none relative
          hover:border-blue-400 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
   on:dragover|preventDefault
   on:drop={handleDrop}
