@@ -10,8 +10,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^1.6.0",
-    "svelte": "4.2.19",
-    "xlsx": "^0.18.5"
+    "svelte": "4.2.19"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.0.3",

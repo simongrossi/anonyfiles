@@ -6,17 +6,17 @@ from pathlib import Path
 import shutil
 import os
 import json
-import yaml  # Pour gérer la configuration YAML
 
-# Importations de votre logique d'anonymisation existante
-try:
-    from anonyfiles.anonyfiles_cli.anonymizer.anonyfiles_core import AnonyfilesEngine
-    from anonyfiles.anonyfiles_cli.main import load_config
-except ImportError:
-    import sys
-    sys.path.append(str(Path(__file__).parent.parent / "anonyfiles-cli"))
-    from anonymizer.anonyfiles_core import AnonyfilesEngine
-    from main import load_config
+import sys
+from pathlib import Path
+
+# ➜ Ajoute anonyfiles-cli au path Python
+CLI_PATH = Path(__file__).parent.parent / "anonyfiles-cli"
+if str(CLI_PATH) not in sys.path:
+    sys.path.insert(0, str(CLI_PATH))
+
+from anonymizer.anonyfiles_core import AnonyfilesEngine
+from main import load_config
 
 app = FastAPI()
 
@@ -43,7 +43,8 @@ async def anonymize_file(
     file: UploadFile = File(...),
     config_options: str = Form(...),
     file_type: Optional[str] = Form(None),
-    has_header: Optional[str] = Form(None)
+    has_header: Optional[str] = Form(None),
+    custom_replacement_rules: Optional[str] = Form(None)  # <--- supporte custom rules envoyées
 ):
     try:
         TEMP_FILES_DIR.mkdir(parents=True, exist_ok=True)
@@ -95,13 +96,31 @@ async def anonymize_file(
         mapping_output_path = TEMP_FILES_DIR / f"mapping_{file.filename}.csv"
 
         # --------- Correction critique ici ---------
-        # S'assurer que base_config est bien un dict (et pas une list)
         if not isinstance(base_config, dict):
             raise ValueError(f"Config loaded is not a dict: {type(base_config)} {base_config}")
         # -------------------------------------------
 
-        # Initialiser l'engine d'anonymisation
-        engine = AnonyfilesEngine(config=base_config, exclude_entities_cli=exclude_entities)
+        # Traiter les règles custom si fournies
+        custom_rules = []
+        if custom_replacement_rules:
+            try:
+                custom_rules = json.loads(custom_replacement_rules)
+                print("customReplacementRules reçues :", custom_rules)
+            except Exception as e:
+                print("Erreur de parsing customReplacementRules:", e)
+                custom_rules = []
+
+        # Initialiser l'engine d'anonymisation avec custom rules
+        engine = AnonyfilesEngine(
+            config=base_config,
+            exclude_entities_cli=exclude_entities,
+            custom_replacement_rules=custom_rules
+        )
+
+        # Gestion paramètre CSV header
+        processor_kwargs = {}
+        if file_type == "csv":
+            processor_kwargs["has_header"] = has_header if has_header is not None else True
 
         result = engine.anonymize(
             input_path=input_path,
@@ -109,7 +128,8 @@ async def anonymize_file(
             entities=None,
             dry_run=False,
             log_entities_path=log_entities_path,
-            mapping_output_path=mapping_output_path
+            mapping_output_path=mapping_output_path,
+            **processor_kwargs
         )
 
         if result.get("status") == "success":

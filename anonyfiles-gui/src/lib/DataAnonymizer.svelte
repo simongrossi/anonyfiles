@@ -1,17 +1,22 @@
 <script lang="ts">
     import CsvPreview from './CsvPreview.svelte';
     import XlsxPreview from './XlsxPreview.svelte';
+    import CustomRulesManager from './CustomRulesManager.svelte';
     import { onMount } from 'svelte';
 
     let inputText = "";
     let outputText = "";
     let isLoading = false;
     let errorMessage = "";
-    let fileType = "txt"; // 'txt', 'csv', 'xlsx', 'docx', 'pdf', 'json'
+    let fileType = "txt";
     let fileName = "";
     let hasHeader = true;
     let dragActive = false;
     let xlsxFile: File | null = null;
+
+    // Custom rules state (note le champ isRegex)
+    let customReplacementRules: { pattern: string, replacement: string, isRegex?: boolean }[] = [];
+    let customRuleError = "";
 
     // Détection mode bureau (Tauri) ou web
     let isTauri = false;
@@ -29,6 +34,7 @@
     let selected: { [key: string]: boolean } = {};
     options.forEach(opt => selected[opt.key] = opt.default);
 
+    // UX copy/export output
     let copied = false;
     async function copyOutput() {
         try {
@@ -54,6 +60,7 @@
         }, 200);
     }
 
+    // Preview logic
     $: canAnonymize =
         (fileType === "txt" && inputText.trim().length > 0) ||
         (fileType === "csv" && inputText.trim().length > 0) ||
@@ -77,6 +84,7 @@
         previewTable = rows.slice(1, 1 + PREVIEW_ROW_LIMIT).map(row => row.split(delimiter));
     }
 
+    // File handlers
     function handleDrop(event: DragEvent) {
         event.preventDefault();
         dragActive = false;
@@ -133,7 +141,26 @@
         }
     }
 
-    // La logique d’appel backend universelle (web ou bureau)
+    // Règles custom (incluant isRegex)
+    function handleAddCustomRule(event: CustomEvent<{ pattern: string, replacement: string, isRegex?: boolean }>) {
+        const { pattern, replacement, isRegex } = event.detail;
+        if (!pattern.trim()) {
+            customRuleError = "Le motif de recherche ne peut pas être vide.";
+            return;
+        }
+        if (customReplacementRules.some(r => r.pattern === pattern && r.replacement === replacement && !!r.isRegex === !!isRegex)) {
+            customRuleError = "Cette règle existe déjà.";
+            return;
+        }
+        customReplacementRules = [...customReplacementRules, { pattern, replacement, isRegex }];
+        customRuleError = "";
+    }
+    function handleRemoveCustomRule(event: CustomEvent<number>) {
+        customReplacementRules = customReplacementRules.filter((_, i) => i !== event.detail);
+        customRuleError = "";
+    }
+
+    // Appel backend avec passage des customReplacementRules (contenant isRegex)
     async function anonymize() {
         if (!canAnonymize) {
             errorMessage = "Veuillez glisser-déposer un fichier ou saisir du texte pour anonymiser.";
@@ -153,7 +180,7 @@
         } else if (xlsxFile && fileType === 'xlsx') {
             dataToSend = xlsxFile;
         } else if (['docx', 'pdf'].includes(fileType) && fileName.length > 0) {
-            dataToSend = null; // À compléter si tu veux la gestion avancée de fichiers binaires
+            dataToSend = null; // À compléter si gestion binaire plus tard
         } else {
             errorMessage = "Source de données invalide pour l'anonymisation.";
             isLoading = false;
@@ -162,7 +189,7 @@
 
         if (isTauri) {
             if (dataToSend instanceof File) {
-                errorMessage = `Le format de fichier "${fileType}" n'est pas directement supporté en mode bureau (Tauri) via l'entrée texte. Veuillez utiliser le mode web ou un format texte (.txt, .csv, .json).`;
+                errorMessage = `Le format de fichier "${fileType}" n'est pas supporté en mode bureau (Tauri) via l'entrée texte.`;
                 isLoading = false;
                 return;
             }
@@ -172,7 +199,8 @@
                     input: dataToSend as string,
                     config: configForBackend,
                     fileType: fileType,
-                    hasHeader: hasHeader
+                    hasHeader: hasHeader,
+                    customReplacementRules // <-- passage ici, avec isRegex
                 });
                 outputText = result as string;
             } catch (error: any) {
@@ -194,6 +222,7 @@
                 formData.append('config_options', JSON.stringify(configForBackend));
                 formData.append('file_type', fileType);
                 formData.append('has_header', String(hasHeader));
+                formData.append('custom_replacement_rules', JSON.stringify(customReplacementRules)); // <-- passage ici, avec isRegex
 
                 const response = await fetch(`${API_URL}/anonymize/`, {
                     method: 'POST',
@@ -226,6 +255,8 @@
         xlsxFile = null;
         options.forEach(opt => selected[opt.key] = opt.default);
         dragActive = false;
+        customReplacementRules = [];
+        customRuleError = "";
     }
 
     let showSplitView = true;
@@ -322,6 +353,14 @@
             </div>
         {/each}
     </div>
+
+    <h3 class="mt-4 mb-2 font-bold text-primary">Règles de remplacement personnalisées</h3>
+    <CustomRulesManager
+        currentRules={customReplacementRules}
+        error={customRuleError}
+        on:addrule={handleAddCustomRule}
+        on:removerule={handleRemoveCustomRule}
+    />
 
     <div class="flex gap-4 mt-2 mb-2">
         <button
@@ -481,7 +520,3 @@
         </div>
     {/if}
 </div>
-
-<style>
-    /* Toutes les classes sont en Tailwind, dark mode géré par classes. */
-</style>
