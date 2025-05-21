@@ -9,6 +9,7 @@ API FastAPI pour le projet [anonyfiles](https://github.com/simongrossi/anonyfile
 - API REST pour anonymiser et désanonymiser des fichiers textes, tableurs ou documents Office
 - Basée sur [FastAPI](https://fastapi.tiangolo.com/)
 - Utilise le moteur d’anonymisation situé dans le dossier `anonymizer/`
+- Traitement asynchrone avec suivi par `job_id`
 
 ---
 
@@ -56,13 +57,67 @@ uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
 
 ## 🔗 Endpoints principaux
 
-| Méthode | Endpoint       | Description                             |
-|---------|----------------|-----------------------------------------|
-| POST    | `/anonymize`   | Anonymise un texte ou un fichier        |
-| POST    | `/deanonymize` | Désanonymise un texte via un mapping    |
-| GET     | `/health`      | Vérifie le bon fonctionnement du serveur |
+| Méthode | Endpoint                  | Description                                |
+|---------|---------------------------|--------------------------------------------|
+| POST    | `/anonymize`              | Anonymise un texte ou un fichier (async)   |
+| GET     | `/anonymize_status/{id}`  | Vérifie le statut d’un job d’anonymisation |
+| POST    | `/deanonymize`            | Désanonymise un texte via un mapping       |
+| GET     | `/health`                 | Vérifie le bon fonctionnement du serveur   |
 
 ➡️ Voir la documentation interactive : http://localhost:8000/docs
+
+---
+
+## 🔄 API Anonyfiles - Asynchrone
+
+Cette API permet d’anonymiser des fichiers via un traitement asynchrone.
+
+### POST `/anonymize/`
+
+- Lance un job d’anonymisation en arrière-plan.
+- Paramètres :
+  - `file`: fichier à anonymiser (upload multipart/form-data)
+  - `config_options`: JSON string des options d’anonymisation (ex: entités à exclure, règles personnalisées)
+  - `file_type` *(optionnel)*
+  - `has_header` *(optionnel)*
+
+- Exemple de réponse :
+
+```json
+{
+  "job_id": "uuid-unique-du-job",
+  "status": "pending"
+}
+```
+
+### GET `/anonymize_status/{job_id}`
+
+- Permet de vérifier le statut du job.
+- Retourne :
+  - `pending` : en cours
+  - `finished` : terminé
+  - `error` : erreur lors du traitement
+
+#### Exemple de réponse (job terminé) :
+
+```json
+{
+  "status": "finished",
+  "anonymized_text": "...texte anonymisé...",
+  "audit_log": [
+    {
+      "pattern": "Jean Dupont",
+      "replacement": "NOM001",
+      "type": "spacy",
+      "count": 1
+    }
+  ]
+}
+```
+
+🧹 Les fichiers temporaires sont nettoyés automatiquement.  
+🌐 CORS activé pour permettre les appels depuis le frontend.  
+🔐 Utilise un UUID unique par job pour isoler les traitements.
 
 ---
 
