@@ -1,27 +1,28 @@
 <script lang="ts">
   import DataAnonymizer from './lib/DataAnonymizer.svelte';
-  // Composant à créer pour la config visuelle, même si vide au début :
   import ConfigurationView from './lib/ConfigurationView.svelte';
 
-  let tab = 'anonymizer'; // "anonymizer" ou "config"
+  let tab = 'anonymizer';
+
+  const tabs = [
+    { key: 'anonymizer', icon: '🕵️', label: 'Anonymisation' },
+    { key: 'config', icon: '⚙️', label: 'Configuration' }
+  ];
 </script>
 
-<div class="flex h-screen bg-gray-50">
-  <nav class="w-56 bg-gray-800 text-white flex flex-col py-6 shadow-lg">
-    <button
-      class="px-6 py-3 text-lg font-semibold text-left hover:bg-gray-700 transition"
-      on:click={() => tab = 'anonymizer'}
-      class:font-bold={tab === 'anonymizer'}
-    >
-      🕵️ Anonymisation
-    </button>
-    <button
-      class="px-6 py-3 text-lg font-semibold text-left hover:bg-gray-700 transition"
-      on:click={() => tab = 'config'}
-      class:font-bold={tab === 'config'}
-    >
-      ⚙️ Configuration
-    </button>
+<div class="flex h-screen">
+  <nav class="w-56 bg-gray-800 text-white flex flex-col py-6 shadow-lg gap-2">
+    {#each tabs as t}
+      <button
+        class="flex items-center gap-2 px-6 py-3 text-lg font-semibold text-left hover:bg-gray-700 transition rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+        class:font-bold={tab === t.key}
+        class:bg-gray-700={tab === t.key}
+        on:click={() => tab = t.key}
+        aria-current={tab === t.key ? "page" : undefined}
+      >
+        <span>{t.icon}</span> {t.label}
+      </button>
+    {/each}
   </nav>
   <main class="flex-1 overflow-y-auto p-8">
     {#if tab === 'anonymizer'}
@@ -31,10 +32,3 @@
     {/if}
   </main>
 </div>
-
-<style>
-  :global(body) {
-    margin: 0;
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  }
-</style>

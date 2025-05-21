@@ -1,3 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Montserrat:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---------- Styles globaux ---------- */
+body {
+  @apply bg-gray-50 text-gray-900 font-sans min-h-screen antialiased;
+}
+
+.dark body {
+  @apply bg-gray-900 text-gray-100;
+}
+
+/* ---------- Scrollbar personnalisée ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  background: #f3f4f6;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* ---------- Focus visible ---------- */
+:focus-visible {
+  outline: 2px solid #1c7ed6;
+  outline-offset: 2px;
+}
+
+/* ---------- Classes utilitaires ou overrides spécifiques ---------- */
+/* Ajoute ici tes utilitaires personnalisés si besoin */
+
+/* Exemple : 
+   Pour forcer les cards/panels à avoir un bon contraste :
+   (à utiliser dans tes composants .svelte pour les panels/cards)
+   bg-white dark:bg-gray-800
+*/
