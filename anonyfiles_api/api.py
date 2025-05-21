@@ -16,7 +16,7 @@ except ImportError:
     sys.path.append(str(Path(__file__).parent.parent / "anonyfiles-cli"))
     from anonymizer.anonyfiles_core import AnonyfilesEngine
     from main import load_config
-    from deanonymize import Deanonymizer
+    from anonymizer.deanonymize import Deanonymizer
 
 app = FastAPI()
 

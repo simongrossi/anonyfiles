@@ -1,29 +1,23 @@
-/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{html,js,svelte,ts}",
+    "./src/**/*.{html,js,svelte,ts}", // NE PAS OUBLIER le .svelte !
   ],
-  darkMode: "class", // Active le dark mode via la classe "dark" sur <body>
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
         sans: ['Inter', 'Montserrat', 'ui-sans-serif', 'system-ui'],
-        inter: ['Inter', 'ui-sans-serif', 'system-ui'],
-        montserrat: ['Montserrat', 'ui-sans-serif', 'system-ui'],
       },
       colors: {
-        primary: "#1c7ed6", // Bleu principal
-        accent: "#74c0fc",  // Bleu clair accent
-        // Ajoute d'autres couleurs si besoin
+        primary: "#1c7ed6",
+        accent: "#74c0fc",
       },
-      borderRadius: {
-        xl: "1rem",
-        '2xl': "1.5rem",
-      },
-      boxShadow: {
-        xl: "0 8px 32px 0 rgba(60, 60, 110, 0.12)",
-      },
+      // Ajoute ici tes customs
     },
   },
-  plugins: [],
-};
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
+    // tu peux enlever si tu ne veux pas ces plugins
+  ],
+}
