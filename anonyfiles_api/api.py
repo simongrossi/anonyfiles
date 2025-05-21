@@ -6,14 +6,14 @@ import shutil
 import os
 import json
 
-try:
-    from anonyfiles.anonyfiles_cli.anonymizer.anonyfiles_core import AnonyfilesEngine
-    from anonyfiles.anonyfiles_cli.main import load_config
-except ImportError:
-    import sys
-    sys.path.append(str(Path(__file__).parent.parent / "anonyfiles-cli"))
-    from anonymizer.anonyfiles_core import AnonyfilesEngine
-    from main import load_config
+# Patch sys.path pour garantir les imports CLI/Python hors package
+import sys
+cli_path = Path(__file__).parent.parent / "anonyfiles-cli"
+if str(cli_path) not in sys.path:
+    sys.path.insert(0, str(cli_path))
+
+from anonymizer.anonyfiles_core import AnonyfilesEngine
+from main import load_config
 
 app = FastAPI()
 
@@ -68,14 +68,14 @@ async def anonymize_file(
         mapping_output_path = TEMP_FILES_DIR / f"mapping_{file.filename}.csv"
 
         # Passage des custom rules
-        custom_rules = None
+        custom_replacement_rules = None
         if "custom_replacement_rules" in frontend_config_options:
-            custom_rules = frontend_config_options["custom_replacement_rules"]
+            custom_replacement_rules = frontend_config_options["custom_replacement_rules"]
 
         engine = AnonyfilesEngine(
             config=base_config,
             exclude_entities_cli=exclude_entities,
-            custom_replacement_rules=custom_rules
+            custom_replacement_rules=custom_replacement_rules
         )
 
         result = engine.anonymize(
@@ -85,7 +85,7 @@ async def anonymize_file(
             dry_run=False,
             log_entities_path=log_entities_path,
             mapping_output_path=mapping_output_path,
-            custom_rules=custom_rules,  # <<< Ce nom doit être le même dans ta méthode
+            # Autres options si besoin, sinon custom rules déjà dans l'engine
         )
 
         if result.get("status") == "success":

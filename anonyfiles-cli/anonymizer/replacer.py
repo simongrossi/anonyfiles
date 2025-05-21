@@ -1,80 +1,72 @@
-from faker import Faker
-from typing import List, Tuple, Dict, Any, Optional
+# anonyfiles-cli/anonymizer/replacer.py
+
+import random
+import string
 
 class ReplacementSession:
-    def __init__(self, locale: str = "fr_FR"):
-        self.faker = Faker(locale)
-        self.person_code_map: Dict[str, str] = {}
-        self.person_counter: int = 0
-        self.faker_consistency_map: Dict[str, str] = {}
-        # ... Ajoute d'autres maps si tu veux la cohérence sur d'autres labels
+    """
+    Gère la génération des codes anonymes pour les entités détectées.
+    Fournit le mapping {entity_text: code} (pas de label en clé).
+    """
 
-    def generate_replacements(
-        self,
-        entities: List[Tuple[str, str]],
-        replacement_rules: Optional[Dict[str, Dict[str, Any]]] = None
-    ):
+    def __init__(self):
+        # On peut stocker ici les mappings utilisés si besoin d'un audit ou d'une désanonymisation
+        self.entity_to_code = {}
+        self.code_to_entity = {}
+
+    def _generate_code(self, label: str, index: int) -> str:
+        """Génère un code unique pour chaque type d'entité."""
+        # Pour les personnes : NOM001, NOM002
+        prefix = {
+            "PER": "NOM",
+            "LOC": "LIEU",
+            "ORG": "ORG",
+            "EMAIL": "EMAIL",
+            "DATE": "DATE",
+            "MISC": "DATA",
+        }.get(label, label)
+        return f"{prefix}{str(index+1).zfill(3)}"
+
+    def generate_replacements(self, unique_spacy_entities, replacement_rules=None):
         """
-        Génère un mapping de remplacements pour les entités fournies.
-        Chaque instance est isolée (pas de global).
+        Prend une liste de tuples (entity_text, label) et génère le mapping {entity_text: code}.
+        Retourne: (replacements_map, mapping_dict)
         """
-        replacements: Dict[str, str] = {}
+        replacements = {}
+        mapping = {}
+        entity_seen = {}
 
-        sorted_entities = sorted(entities, key=lambda item: (item[1], item[0]))
+        if not replacement_rules:
+            replacement_rules = {}
 
-        for text, label in sorted_entities:
-            clean_text = text.strip()
-            if clean_text in replacements:
-                continue
-
-            # --- Sélection de la règle
-            rule = (replacement_rules or {}).get(label, {"type": "redact"})
-
-            if rule["type"] == "codes":
-                # Remplacement PER → NOMxxx
-                if clean_text not in self.person_code_map:
-                    self.person_counter += 1
-                    prefix = rule.get("options", {}).get("prefix", "NOM")
-                    padding = rule.get("options", {}).get("padding", 3)
-                    code = f"{prefix}{str(self.person_counter).zfill(padding)}"
-                    self.person_code_map[clean_text] = code
-                replacement_text = self.person_code_map[clean_text]
-
-            elif rule["type"] == "faker":
-                if clean_text not in self.faker_consistency_map:
-                    # Tu peux ici choisir le faker en fonction du label
-                    if label == "PER":
-                        val = self.faker.name()
-                    elif label == "LOC":
-                        val = self.faker.city()
-                    elif label == "ORG":
-                        val = self.faker.company()
-                    elif label == "DATE":
-                        val = self.faker.date()
-                    elif label == "EMAIL":
-                        val = self.faker.email()
-                    else:
-                        val = "[FAKER_REDACTED]"
-                    self.faker_consistency_map[clean_text] = val
-                replacement_text = self.faker_consistency_map[clean_text]
-
-            elif rule["type"] == "redact":
-                replacement_text = rule.get("options", {}).get("text", "[REDACTED]")
-
-            elif rule["type"] == "placeholder":
-                format_string = rule.get("options", {}).get("format", "[{}_ANONYME]")
-                try:
-                    replacement_text = format_string.format(label)
-                except Exception:
-                    replacement_text = "[INVALID_PLACEHOLDER_FORMAT]"
-
+        for idx, (entity_text, label) in enumerate(unique_spacy_entities):
+            # Évite les doublons : toujours le même code pour une entité
+            if entity_text in entity_seen:
+                code = entity_seen[entity_text]
             else:
-                replacement_text = "[REDACTED]"
+                # Si règle custom pour ce label dans replacement_rules
+                rule = replacement_rules.get(label)
+                if rule:
+                    # On gère plusieurs types de remplacement
+                    if isinstance(rule, dict):
+                        # type: faker, codes, redact, etc.
+                        t = rule.get("type")
+                        if t == "redact":
+                            code = rule.get("options", {}).get("text", "[REDACTED]")
+                        elif t == "codes":
+                            code = self._generate_code(label, idx)
+                        elif t == "faker":
+                            # (à personnaliser selon ton provider, etc.)
+                            code = "[FAKE]"
+                        else:
+                            code = self._generate_code(label, idx)
+                    else:
+                        code = str(rule)
+                else:
+                    code = self._generate_code(label, idx)
+                entity_seen[entity_text] = code
 
-            replacements[clean_text] = replacement_text
+            replacements[entity_text] = code
+            mapping[entity_text] = code  # mapping CSV utilisé pour déanon
 
-        return replacements, replacements.copy()  # mapping universel pour toutes les entités
-
-# Utilisation :
-# session = ReplacementSession()
-# replacements, mapping = session.generate_replacements(entities, replacement_rules)
+        return replacements, mapping
