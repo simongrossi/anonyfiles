@@ -4,12 +4,12 @@ commands = []
 [phases.install]
 commands = [
   "python3 -m ensurepip --upgrade",
-  "python3 -m pip install --upgrade pip",
-  "python3 -m pip install -r anonyfiles_api/requirements.txt"
+  "python3 -m pip install --upgrade pip setuptools wheel",
+  "pip install -r anonyfiles_api/requirements.txt"
 ]
 
 [phases.build]
 commands = []
 
 [phases.start]
-command = "uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port $PORT"
+command = "PYTHONPATH=./anonyfiles-cli uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port $PORT"
