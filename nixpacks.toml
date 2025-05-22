@@ -5,7 +5,7 @@ commands = []
 commands = [
   "python3 -m ensurepip --upgrade",
   "python3 -m pip install --upgrade pip setuptools wheel",
-  "pip install -r anonyfiles_api/requirements.txt"
+  "pip install -r requirements-full.txt"
 ]
 
 [phases.build]
