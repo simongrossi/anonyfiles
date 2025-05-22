@@ -2,7 +2,7 @@ fastapi==0.111.0
 uvicorn[standard]==0.29.0
 python-multipart==0.0.9
 pyyaml
-spacy>=3.5.2,<4.0.0
+spacy>=3.7.0,<3.8.0
 pandas>=1.5.0
 numpy>=1.23.5
 thinc>=8.1.8,<8.3.0
@@ -13,5 +13,6 @@ PyYAML>=6.0
 pymupdf
 typer>=0.3.0,<0.8.0
 yamale
-https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.5.0/fr_core_news_sm-3.5.0.tar.gz#egg=fr_core_news_sm
-https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.5.0/fr_core_news_md-3.5.0.tar.gz#egg=fr_core_news_md
+https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0.tar.gz#egg=fr_core_news_sm
+https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.7.0/fr_core_news_md-3.7.0.tar.gz#egg=fr_core_news_md
+
