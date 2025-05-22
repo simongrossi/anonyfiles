@@ -42,3 +42,7 @@ anonyfiles-gui/src-tauri/Cargo.lock
 anonyfiles-gui/src-tauri/Cargo.lock
 anonyfiles-gui/package-lock.json
 /jobs
+/env-api
+/env-cli/bin
+/env-cli
+/env-gui
