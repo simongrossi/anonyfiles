@@ -76,6 +76,39 @@ cd anonyfiles
 
 ---
 
+## ⚙️ Setup automatique des environnements
+
+Afin d’isoler proprement les dépendances entre la CLI, l’API et la GUI, le projet utilise **trois environnements virtuels distincts** :
+
+- `env-cli` → pour `anonyfiles-cli` (spaCy, typer…)
+- `env-api` → pour `anonyfiles_api` (FastAPI, pydantic…)
+- `env-gui` → pour les éventuelles dépendances Python liées à la GUI
+
+Des scripts de configuration automatique sont disponibles à la racine du projet pour **Linux/macOS** et **Windows** :
+
+### ▶️ Linux / macOS
+
+```bash
+chmod +x setup_envs.sh
+./setup_envs.sh
+```
+
+### 🪟 Windows (PowerShell)
+
+```powershell
+.\setup_envs.ps1
+```
+
+Ces scripts effectuent les actions suivantes :
+
+1. Créent trois environnements virtuels (`env-cli`, `env-api`, `env-gui`)
+2. Installent automatiquement les dépendances listées dans :
+   - `cli/requirements.txt`
+   - `anonyfiles_api/requirements.txt`
+   - `GUI/requirements.txt` *(optionnel)*
+
+---
+
 ## 📖 Documentation détaillée
 
 * **CLI :** Voir [`anonyfiles-cli/README.md`](anonyfiles-cli/README.md)
