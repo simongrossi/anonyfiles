@@ -10,6 +10,7 @@
   let sortKey: string = 'pattern';
   let sortAsc: boolean = true;
 
+  // Calcul du log filtré et trié
   $: filteredLog = auditLog
     .filter(
       (item) =>
