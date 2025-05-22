@@ -11,7 +11,7 @@ faker>=18.0.0
 openpyxl
 PyYAML>=6.0
 pymupdf
-typer>=0.3.0,<0.8.0
+typer
 yamale
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0.tar.gz#egg=fr_core_news_sm
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.7.0/fr_core_news_md-3.7.0.tar.gz#egg=fr_core_news_md
