@@ -87,6 +87,30 @@ Afin d’isoler proprement les dépendances entre la CLI, l’API et la GUI, le 
 Des scripts de configuration automatique sont disponibles à la racine du projet pour **Linux/macOS** et **Windows** :
 
 ### ▶️ Linux / macOS
+### 🪟 Windows (PowerShell ou CMD)
+
+#### PowerShell (recommandé)
+
+```powershell
+.nonyfiles.ps1 -action setup     # Crée les environnements
+.nonyfiles.ps1 -action api       # Lance l’API FastAPI
+.nonyfiles.ps1 -action cli       # Lance le moteur CLI
+.nonyfiles.ps1 -action gui       # Lance la GUI (Tauri)
+.nonyfiles.ps1 -action clean     # Supprime les environnements
+```
+
+#### CMD (invite de commande Windows classique)
+
+```cmd
+anonyfiles.bat setup    :: Crée les environnements
+anonyfiles.bat api      :: Lance l’API
+anonyfiles.bat cli      :: Lance le moteur CLI
+anonyfiles.bat gui      :: Lance la GUI (Tauri)
+anonyfiles.bat clean    :: Supprime les environnements
+```
+
+> 📁 Les scripts `anonyfiles.ps1` et `anonyfiles.bat` sont disponibles à la racine du projet.
+
 
 ```bash
 chmod +x setup_envs.sh
