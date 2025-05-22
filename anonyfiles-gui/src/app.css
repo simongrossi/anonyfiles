@@ -1,42 +1,119 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Montserrat:wght@400;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ---------- Styles globaux ---------- */
-body {
-  @apply bg-gray-50 text-gray-900 font-sans min-h-screen antialiased;
+/* -------- THEMING / COULEURS GLOBALES -------- */
+html, body {
+  @apply min-h-screen bg-zinc-50 text-zinc-900 antialiased;
 }
-
 .dark body {
-  @apply bg-gray-900 text-gray-100;
+  @apply bg-zinc-900 text-zinc-100;
+}
+body {
+  font-family: 'Inter', 'Montserrat', 'ui-sans-serif', 'system-ui', sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
-/* ---------- Scrollbar personnalisée ---------- */
+/* -------- SCROLLBAR -------- */
 ::-webkit-scrollbar {
   width: 10px;
-  background: #f3f4f6;
+  background: #f2f2f2;
 }
 ::-webkit-scrollbar-thumb {
-  background: #e5e7eb;
+  background: #d3d3d3;
   border-radius: 8px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+body.dark ::-webkit-scrollbar {
+  background: #23272a;
+}
+body.dark ::-webkit-scrollbar-thumb {
+  background: #454b53;
 }
 
-/* ---------- Focus visible ---------- */
+/* -------- FOCUS VISIBLE -------- */
 :focus-visible {
   outline: 2px solid #1c7ed6;
   outline-offset: 2px;
 }
 
-/* ---------- Classes utilitaires ou overrides spécifiques ---------- */
-/* Ajoute ici tes utilitaires personnalisés si besoin */
+/* -------- LIENS -------- */
+a {
+  @apply text-blue-700 hover:underline;
+}
+.dark a {
+  @apply text-blue-400;
+}
 
-/* Exemple : 
-   Pour forcer les cards/panels à avoir un bon contraste :
-   (à utiliser dans tes composants .svelte pour les panels/cards)
-   bg-white dark:bg-gray-800
-*/
+/* -------- PANELS / CARTES -------- */
+.card-panel {
+  @apply border rounded-2xl p-4 bg-white dark:bg-gray-800 shadow-sm;
+}
+.card-success {
+  @apply border-green-200 bg-green-50 dark:bg-green-900 dark:border-green-800 text-green-900 dark:text-green-200;
+}
+.card-error {
+  @apply border-red-200 bg-red-50 dark:bg-red-900 dark:border-red-600 text-red-800 dark:text-red-300;
+}
+.card-info {
+  @apply border-blue-200 bg-blue-50 dark:bg-blue-900 dark:border-blue-800 text-blue-900 dark:text-blue-100;
+}
+
+/* -------- BOUTONS -------- */
+.btn-primary {
+  @apply px-6 py-2 font-semibold text-white rounded-xl bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-sm transition-all disabled:bg-zinc-400 disabled:cursor-wait;
+}
+.btn-secondary {
+  @apply px-5 py-2 rounded-lg border border-zinc-300 text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition dark:border-gray-600 dark:text-zinc-100 dark:bg-gray-700 dark:hover:bg-gray-600;
+}
+.btn-success {
+  @apply flex items-center gap-1 px-4 py-1.5 rounded-md bg-green-700 hover:bg-green-800 text-white font-semibold shadow transition;
+}
+.btn-copy {
+  @apply flex items-center gap-1 px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition disabled:opacity-60;
+}
+.btn-toggle {
+  @apply px-4 py-1 rounded-md bg-zinc-200 hover:bg-zinc-300 font-medium text-zinc-800 transition mr-2 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-zinc-100;
+}
+.btn-toggle-alt {
+  @apply px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold ml-2;
+}
+
+/* -------- ZONE DE DROP -------- */
+.dropzone {
+  @apply w-full mb-6 border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-zinc-100 hover:bg-zinc-200 dark:bg-gray-700 dark:hover:bg-gray-600;
+}
+
+/* -------- INPUTS / TEXTAREA -------- */
+.input-text {
+  @apply w-full mt-2 p-3 border border-zinc-300 rounded-xl resize-y min-h-[90px] font-mono bg-white text-zinc-900 focus:bg-white transition dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600;
+}
+
+/* -------- TABLES -------- */
+.table-base {
+  @apply min-w-full text-sm;
+}
+.table-header {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+.table-row {
+  @apply border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900;
+}
+
+/* -------- BADGES -------- */
+.badge-type-custom {
+  @apply px-2 py-1 rounded-xl text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+}
+.badge-type-spacy {
+  @apply px-2 py-1 rounded-xl text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+/* -------- ANIMATIONS -------- */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

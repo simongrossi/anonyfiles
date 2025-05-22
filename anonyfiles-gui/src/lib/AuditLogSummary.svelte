@@ -6,6 +6,8 @@
     count: number
   }> = [];
 
+  export let totalReplacements: number = 0;
+
   let filter = '';
   let sortKey: string = 'pattern';
   let sortAsc: boolean = true;
@@ -35,21 +37,21 @@
   }
 </script>
 
-<div class="p-4 bg-white dark:bg-gray-900 rounded-2xl shadow-md">
+<div class="card-panel card-info">
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
     <h2 class="text-xl font-bold mb-2 sm:mb-0">Journal d’audit</h2>
     <input
       type="text"
       placeholder="Filtrer (pattern, remplacement, type)…"
       bind:value={filter}
-      class="w-full sm:w-72 p-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+      class="input-text w-full sm:w-72 bg-gray-100 dark:bg-gray-800"
     />
   </div>
 
   <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
-    <table class="min-w-full text-sm">
+    <table class="table-base">
       <thead>
-        <tr class="bg-gray-100 dark:bg-gray-800">
+        <tr class="table-header">
           <th class="p-3 cursor-pointer" on:click={() => sortBy('pattern')}>
             Motif recherché
             {#if sortKey === 'pattern'}
@@ -83,11 +85,11 @@
           </tr>
         {:else}
           {#each filteredLog as entry (entry.pattern + entry.replacement + entry.type)}
-            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">
+            <tr class="table-row">
               <td class="p-3 font-mono">{entry.pattern}</td>
               <td class="p-3 font-mono">{entry.replacement}</td>
               <td class="p-3">
-                <span class="px-2 py-1 rounded-xl text-xs font-semibold {entry.type === 'custom' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'}">
+                <span class={entry.type === 'custom' ? 'badge-type-custom' : 'badge-type-spacy'}>
                   {entry.type}
                 </span>
               </td>
@@ -98,4 +100,9 @@
       </tbody>
     </table>
   </div>
+  {#if totalReplacements > 0}
+    <div class="mt-2 text-right text-sm text-blue-900 dark:text-blue-200 font-semibold">
+      Total anonymisations&nbsp;: <span class="font-bold">{totalReplacements}</span>
+    </div>
+  {/if}
 </div>

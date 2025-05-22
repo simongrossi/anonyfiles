@@ -4,6 +4,7 @@
     import CustomRulesManager from './CustomRulesManager.svelte';
     import FileDropZone from './FileDropZone.svelte';
     import ResultView from './ResultView.svelte';
+    import AnonymizationOptions from './AnonymizationOptions.svelte';
     import { onMount, createEventDispatcher } from 'svelte';
 
     const dispatch = createEventDispatcher();
@@ -281,129 +282,95 @@
     </div>
 {/if}
 
-<FileDropZone
-  {fileName}
-  {dragActive}
-  on:file={event => handleFile(event.detail.file)}
-  on:dragover={handleDragOver}
-  on:dragleave={handleDragLeave}
-/>
+<!-- AUCUNE largeur forcée sur ce <div> principal ! -->
+<div>
+  <FileDropZone
+    {fileName}
+    {dragActive}
+    on:file={event => handleFile(event.detail.file)}
+    on:dragover={handleDragOver}
+    on:dragleave={handleDragLeave}
+  />
 
-{#if fileType === "csv" && previewTable.length}
-    <CsvPreview headers={previewHeaders} rows={previewTable} hasHeader={hasHeader} />
-{/if}
+  {#if fileType === "csv" && previewTable.length}
+      <CsvPreview headers={previewHeaders} rows={previewTable} hasHeader={hasHeader} />
+  {/if}
 
-{#if fileType === "xlsx" && xlsxFile}
-    <XlsxPreview file={xlsxFile} hasHeader={hasHeader} />
-{/if}
+  {#if fileType === "xlsx" && xlsxFile}
+      <XlsxPreview file={xlsxFile} hasHeader={hasHeader} />
+  {/if}
 
-<div class="mb-4">
-    <label for="inputText" class="font-semibold text-base text-zinc-700 dark:text-zinc-200">Texte à anonymiser :</label>
-    <textarea
-        id="inputText"
-        class="w-full mt-2 p-3 border border-zinc-300 rounded-xl resize-y min-h-[90px] font-mono bg-white text-zinc-900 focus:bg-white transition dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600"
-        placeholder="Collez ou saisissez votre texte ici..."
-        bind:value={localInput}
-        rows="4"
-    ></textarea>
+  <div class="mb-4">
+      <label for="inputText" class="font-semibold text-base text-zinc-700 dark:text-zinc-200">Texte à anonymiser :</label>
+      <textarea
+          id="inputText"
+          class="input-text"
+          placeholder="Collez ou saisissez votre texte ici..."
+          bind:value={localInput}
+          rows="4"
+      ></textarea>
+  </div>
+
+  {#if fileType === "csv" || fileType === "xlsx"}
+      <div class="mb-4 flex items-center gap-2">
+          <input type="checkbox" id="hasHeader" bind:checked={hasHeader} class="accent-blue-600 dark:accent-blue-400" />
+          <label for="hasHeader" class="select-none text-zinc-700 dark:text-zinc-200">Le fichier contient une ligne d’en-tête</label>
+      </div>
+  {/if}
+
+  <AnonymizationOptions {options} bind:selected {isLoading} />
+
+  <h3 class="mt-4 mb-2 font-bold text-primary">Règles de remplacement personnalisées</h3>
+  <CustomRulesManager
+      currentRules={customReplacementRules}
+      error={customRuleError}
+      on:addrule={handleAddCustomRule}
+      on:removerule={handleRemoveCustomRule}
+  />
+
+  <div class="flex gap-4 mt-2 mb-2">
+      <button
+          class="btn-primary mr-2"
+          on:click={anonymize}
+          disabled={isLoading || !canAnonymize}
+          aria-busy={isLoading}
+      >
+          {#if isLoading}
+              <svg class="animate-spin h-5 w-5 mr-1 inline-block align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              Traitement en cours…
+          {:else}
+              Anonymiser
+          {/if}
+      </button>
+      <button
+          class="btn-secondary"
+          type="button"
+          on:click={resetAll}
+          disabled={isLoading}
+      >
+          Réinitialiser
+      </button>
+  </div>
+
+  <ResultView
+      inputText={localInput}
+      outputText={localOutput}
+      showSplitView={showSplitView}
+      showOriginal={showOriginal}
+      copied={copied}
+      onToggleSplitView={() => showSplitView = !showSplitView}
+      onToggleShowOriginal={() => showOriginal = !showOriginal}
+      onCopyOutput={copyOutput}
+      onExportOutput={exportOutput}
+  />
+
+  {#if errorMessage}
+      <div class="card-panel card-error mt-4">
+          <strong>Erreur lors de l’anonymisation :</strong>
+          <pre class="whitespace-pre-wrap text-xs">{errorMessage}</pre>
+      </div>
+  {/if}
 </div>
-
-{#if fileType === "csv" || fileType === "xlsx"}
-    <div class="mb-4 flex items-center gap-2">
-        <input type="checkbox" id="hasHeader" bind:checked={hasHeader} class="accent-blue-600 dark:accent-blue-400" />
-        <label for="hasHeader" class="select-none text-zinc-700 dark:text-zinc-200">Le fichier contient une ligne d’en-tête</label>
-    </div>
-{/if}
-
-<div class="flex flex-wrap gap-5 mb-3 mt-1">
-    {#each options as opt}
-        <div class="flex items-center gap-2">
-            <input
-                type="checkbox"
-                id={opt.key}
-                bind:checked={selected[opt.key]}
-                class="w-5 h-5 accent-blue-600 border-zinc-400 focus:ring-blue-400 bg-zinc-200 rounded dark:accent-blue-400 dark:bg-gray-700 dark:border-gray-500"
-                disabled={isLoading}
-            />
-            <label for={opt.key} class="select-none text-zinc-800 text-base font-medium dark:text-zinc-100">
-                {opt.label}
-            </label>
-        </div>
-    {/each}
-</div>
-
-<h3 class="mt-4 mb-2 font-bold text-primary">Règles de remplacement personnalisées</h3>
-<CustomRulesManager
-    currentRules={customReplacementRules}
-    error={customRuleError}
-    on:addrule={handleAddCustomRule}
-    on:removerule={handleRemoveCustomRule}
-/>
-
-<div class="flex gap-4 mt-2 mb-2">
-    <button
-        class="px-6 py-2 font-semibold text-white rounded-xl bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-sm transition-all disabled:bg-zinc-400 disabled:cursor-wait mr-2"
-        on:click={anonymize}
-        disabled={isLoading || !canAnonymize}
-        aria-busy={isLoading}
-    >
-        {#if isLoading}
-            <svg class="animate-spin h-5 w-5 mr-1 inline-block align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-            </svg>
-            Traitement en cours…
-        {:else}
-            Anonymiser
-        {/if}
-    </button>
-    <button
-        class="px-5 py-2 rounded-lg border border-zinc-300 text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition dark:border-gray-600 dark:text-zinc-100 dark:bg-gray-700 dark:hover:bg-gray-600"
-        type="button"
-        on:click={resetAll}
-        disabled={isLoading}
-    >
-        Réinitialiser
-    </button>
-</div>
-
-<!-- BLOC RÉSULTAT (extrait) -->
-<ResultView
-    inputText={localInput}
-    outputText={localOutput}
-    showSplitView={showSplitView}
-    showOriginal={showOriginal}
-    copied={copied}
-    onToggleSplitView={() => showSplitView = !showSplitView}
-    onToggleShowOriginal={() => showOriginal = !showOriginal}
-    onCopyOutput={copyOutput}
-    onExportOutput={exportOutput}
-/>
-
-{#if errorMessage}
-    <div class="border border-red-200 bg-red-50 text-red-800 rounded-xl p-3 mt-4 dark:border-red-600 dark:bg-red-900 dark:text-red-300">
-        <strong>Erreur lors de l’anonymisation :</strong>
-        <pre class="whitespace-pre-wrap text-xs">{errorMessage}</pre>
-    </div>
-{/if}
-
-{#if localAuditLog.length}
-    <div class="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-200 dark:bg-blue-900 dark:border-blue-800">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-            <div class="font-semibold text-blue-800 dark:text-blue-200">Résumé des règles appliquées :</div>
-            <div class="text-xs font-semibold text-blue-900 dark:text-blue-100 mt-1 sm:mt-0">
-                Total anonymisations&nbsp;
-                <span class="font-bold">{totalReplacements}</span>
-            </div>
-        </div>
-        <ul class="space-y-1 text-blue-900 dark:text-blue-100 text-sm">
-            {#each localAuditLog as log}
-                <li>
-                    {log.pattern} → {log.replacement}
-                    <span class="ml-2 text-xs rounded bg-gray-200 dark:bg-gray-700 px-1">{log.type}</span>
-                    <span class="ml-2 text-xs text-gray-500">{log.count} remplacement{log.count > 1 ? 's' : ''}</span>
-                </li>
-            {/each}
-        </ul>
-    </div>
-{/if}

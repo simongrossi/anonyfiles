@@ -2,7 +2,7 @@
   import DataAnonymizer from './lib/DataAnonymizer.svelte';
   import DeAnonymizer from './lib/DeAnonymizer.svelte';
   import ConfigurationView from './lib/ConfigurationView.svelte';
-  import AuditLogTable from './lib/AuditLogTable.svelte';
+  import AuditLogSummary from './lib/AuditLogSummary.svelte';
 
   let tab = 'anonymizer';
   const tabs = [
@@ -12,17 +12,15 @@
     { key: 'config', icon: '⚙️', label: 'Configuration' }
   ];
 
-  // Etat global pour l'anonymisation
   let lastInput = "";
   let lastOutput = "";
   let lastAuditLog = [];
 
   function handleAnonymizationComplete(event) {
-    // On conserve l'état même si on change d'onglet
     lastInput = event.detail.inputText;
     lastOutput = event.detail.outputText;
     lastAuditLog = event.detail.auditLog;
-    // tab = 'log'; // Décommente pour basculer auto sur log
+    // tab = 'log';
   }
 
   function handleReset() {
@@ -32,17 +30,23 @@
   }
 </script>
 
-<div class="flex h-screen">
-  <nav class="w-56 bg-gray-800 text-white flex flex-col py-6 shadow-lg gap-2">
-    {#each tabs as t}
-      <button
-        class="flex items-center gap-2 px-6 py-3 text-lg font-semibold text-left hover:bg-gray-700 transition rounded-xl focus:outline-none {tab === t.key ? 'bg-gray-700' : ''}"
-        on:click={() => tab = t.key}
-      >
-        <span>{t.icon}</span>
-        {t.label}
-      </button>
-    {/each}
+<div class="flex h-screen bg-zinc-50 dark:bg-zinc-900">
+  <!-- Sidebar -->
+  <nav class="w-64 min-w-max bg-gray-800 text-white flex flex-col py-6 shadow-lg gap-2 min-h-screen">
+    <div class="flex flex-col gap-2 px-6">
+      {#each tabs as t}
+        <button
+          class="flex items-center gap-2 px-4 py-3 text-lg font-semibold text-left rounded-xl transition
+                 hover:bg-gray-700 focus:bg-gray-700 focus:outline-none
+                 {tab === t.key ? 'bg-blue-600 text-white shadow' : ''}"
+          on:click={() => tab = t.key}
+          type="button"
+        >
+          <span class="text-2xl">{t.icon}</span>
+          <span>{t.label}</span>
+        </button>
+      {/each}
+    </div>
     <div class="flex-grow"></div>
     <a
       href="https://github.com/simongrossi/anonyfiles"
@@ -56,8 +60,10 @@
       </svg>
     </a>
   </nav>
-  <main class="flex-1 bg-gray-50 dark:bg-gray-900 transition-colors overflow-y-auto">
-    <div class="mx-auto max-w-4xl px-4 py-8">
+
+  <!-- Contenu principal centré et élargi -->
+  <main class="main-container overflow-y-auto flex-1">
+    <div class="mx-auto max-w-5xl w-full px-4 py-8">
       {#if tab === 'anonymizer'}
         <DataAnonymizer
           inputText={lastInput}
@@ -69,7 +75,7 @@
       {:else if tab === 'deanonymizer'}
         <DeAnonymizer />
       {:else if tab === 'log'}
-        <AuditLogTable auditLog={lastAuditLog} />
+        <AuditLogSummary auditLog={lastAuditLog} totalReplacements={lastAuditLog.reduce((s, l) => s + (l.count || 0), 0)} />
       {:else if tab === 'config'}
         <ConfigurationView />
       {/if}
