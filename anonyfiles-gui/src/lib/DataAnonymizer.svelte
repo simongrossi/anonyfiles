@@ -174,6 +174,10 @@
         let configForBackend: { [key: string]: any } = {};
         options.forEach(opt => configForBackend[opt.key] = !!selected[opt.key]);
         configForBackend["custom_replacement_rules"] = customReplacementRules;
+
+        // Ajoute ce log pour la vérification étape 1
+        console.log("CONFIG ENVOYÉE AU BACKEND :", JSON.stringify(configForBackend, null, 2));
+
         let dataToSend: string | File | null = null;
         let currentInputFileName = fileName || (fileType === 'txt' ? 'input.txt' : `input.${fileType}`);
 
@@ -282,7 +286,6 @@
     </div>
 {/if}
 
-<!-- AUCUNE largeur forcée sur ce <div> principal ! -->
 <div>
   <FileDropZone
     {fileName}

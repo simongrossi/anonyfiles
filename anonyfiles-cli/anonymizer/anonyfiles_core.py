@@ -48,7 +48,11 @@ class AnonyfilesEngine:
             typer.echo(f"DEBUG (Engine): Initialisé avec {len(self.custom_rules)} règle(s) personnalisée(s).")
 
     def _apply_custom_rules_to_block(self, text_block: str) -> str:
-        """Applique les règles de remplacement personnalisées à un bloc de texte et loggue les remplacements."""
+        """
+        Applique les règles de remplacement personnalisées à un bloc de texte et loggue les remplacements.
+        Prend en charge les règles en regex et les remplacements de mots entiers, insensible à la casse.
+        Ajoute des logs de debug.
+        """
         if not self.custom_rules:
             return text_block
 
@@ -62,8 +66,10 @@ class AnonyfilesEngine:
                     if is_regex:
                         new_text, n_repl = re.subn(pattern, replacement, modified_text, flags=re.IGNORECASE)
                     else:
-                        new_text, n_repl = re.subn(re.escape(pattern), replacement, modified_text, flags=re.IGNORECASE)
+                        pattern_escaped = r"\b" + re.escape(pattern) + r"\b"
+                        new_text, n_repl = re.subn(pattern_escaped, replacement, modified_text, flags=re.IGNORECASE)
                     if n_repl > 0:
+                        typer.echo(f"[CUSTOM_RULE] Pattern '{pattern}' trouvé et remplacé {n_repl} fois dans bloc : {repr(modified_text)}")
                         self.audit_logger.log(pattern, replacement, "custom", n_repl)
                     modified_text = new_text
                 except re.error as e:
@@ -94,7 +100,10 @@ class AnonyfilesEngine:
         if isinstance(processor, TxtProcessor) and self.custom_rules:
             typer.echo(f"DEBUG (Engine): Application des règles personnalisées sur {len(original_blocks)} bloc(s) TXT.")
             for block in original_blocks:
-                blocks_after_custom_rules.append(self._apply_custom_rules_to_block(block))
+                typer.echo(f"[DEBUG] Bloc avant custom : {repr(block)}")
+                mod_block = self._apply_custom_rules_to_block(block)
+                typer.echo(f"[DEBUG] Bloc après custom : {repr(mod_block)}")
+                blocks_after_custom_rules.append(mod_block)
         else:
             if self.custom_rules and not isinstance(processor, TxtProcessor):
                 typer.echo(f"AVERTISSEMENT (Engine): Règles personnalisées non appliquées pour le type {ext} dans cette version.", err=True)
@@ -178,7 +187,7 @@ class AnonyfilesEngine:
         session = ReplacementSession()
         replacements_map_spacy, mapping_dict_spacy = session.generate_replacements(unique_spacy_entities, replacement_rules=replacement_rules_spacy)
 
-        # Audit des remplacements spaCy (par entité) - CORRECTIF ICI
+        # Audit des remplacements spaCy (par entité)
         for original, code in mapping_dict_spacy.items():
             label = next((lbl for txt, lbl in unique_spacy_entities if txt == original), "UNKNOWN")
             n_repl = sum(

@@ -38,6 +38,8 @@ def run_anonymization_job(
     custom_rules: Optional[list]
 ):
     try:
+        print("\n=== [JOB] RÈGLES CUSTOM PASSÉES AU MOTEUR ===")
+        print(json.dumps(custom_rules, indent=2, ensure_ascii=False))
         base_config = load_config(CONFIG_TEMPLATE_PATH)
         exclude_entities = []
         if not config_options.get("anonymizePersons", True):
@@ -100,6 +102,11 @@ async def anonymize_file(
 
     config_opts = json.loads(config_options)
     custom_rules = config_opts.get("custom_replacement_rules")
+    
+    # LOG AJOUTÉ : ce que reçoit la route
+    print("\n=== [ROUTE] RÈGLES CUSTOM REÇUES ===")
+    print(json.dumps(custom_rules, indent=2, ensure_ascii=False))
+    
     has_header_bool = None
     if has_header is not None:
         has_header_bool = has_header.lower() in ("1", "true", "yes", "on")
