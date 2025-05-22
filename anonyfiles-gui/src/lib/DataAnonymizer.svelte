@@ -2,24 +2,21 @@
     import CsvPreview from './CsvPreview.svelte';
     import XlsxPreview from './XlsxPreview.svelte';
     import CustomRulesManager from './CustomRulesManager.svelte';
-    import { onMount } from 'svelte';
-    import { createEventDispatcher } from 'svelte';
+    import FileDropZone from './FileDropZone.svelte';
+    import ResultView from './ResultView.svelte';
+    import { onMount, createEventDispatcher } from 'svelte';
+
     const dispatch = createEventDispatcher();
 
-    // Props reçues du parent pour initialisation
     export let inputText: string = "";
     export let outputText: string = "";
     export let auditLog: any[] = [];
 
-    // State local pour l’édition active
     let localInput = "";
     let localOutput = "";
     let localAuditLog = [];
-
-    // Calcul du total de remplacements (compteur)
     $: totalReplacements = localAuditLog.reduce((sum, log) => sum + (log.count || 0), 0);
 
-    // Initialisation uniquement au montage
     onMount(() => {
         localInput = inputText || "";
         localOutput = outputText || "";
@@ -34,7 +31,6 @@
     let dragActive = false;
     let xlsxFile: File | null = null;
 
-    // Custom rules state
     let customReplacementRules: { pattern: string, replacement: string, isRegex?: boolean }[] = [];
     let customRuleError = "";
 
@@ -78,7 +74,6 @@
         }, 200);
     }
 
-    // Calcul du bouton Anonymiser
     $: canAnonymize =
         (fileType === "txt" && localInput.trim().length > 0) ||
         (fileType === "csv" && localInput.trim().length > 0) ||
@@ -102,15 +97,7 @@
         previewTable = rows.slice(1, 1 + PREVIEW_ROW_LIMIT).map(row => row.split(delimiter));
     }
 
-    // File handlers
-    function handleDrop(event: DragEvent) {
-        event.preventDefault();
-        dragActive = false;
-        const file = event.dataTransfer?.files?.[0];
-        if (file) {
-            handleFile(file);
-        }
-    }
+    // --- DRAG & DROP ET FICHIER ---
     function handleDragOver(event: DragEvent) {
         event.preventDefault();
         dragActive = true;
@@ -118,13 +105,6 @@
     function handleDragLeave(event: DragEvent) {
         event.preventDefault();
         dragActive = false;
-    }
-    function handleFileInput(event: Event) {
-        const input = event.target as HTMLInputElement;
-        const file = input.files?.[0];
-        if (file) {
-            handleFile(file);
-        }
     }
     function handleFile(file: File) {
         if (!file) return;
@@ -159,7 +139,6 @@
         }
     }
 
-    // Règles custom
     function handleAddCustomRule(event: CustomEvent<{ pattern: string, replacement: string, isRegex?: boolean }>) {
         const { pattern, replacement, isRegex } = event.detail;
         if (!pattern.trim()) {
@@ -178,10 +157,8 @@
         customRuleError = "";
     }
 
-    // Polling
     let pollingInterval: any = null;
 
-    // Appel backend (web, asynchrone)
     async function anonymize() {
         if (!canAnonymize) {
             errorMessage = "Veuillez glisser-déposer un fichier ou saisir du texte pour anonymiser.";
@@ -224,9 +201,7 @@
             formData.append('config_options', JSON.stringify(configForBackend));
             formData.append('file_type', fileType);
             formData.append('has_header', String(hasHeader));
-            // customReplacementRules inclus dans configForBackend
 
-            // 1. Création du job
             const response = await fetch(`${API_URL}/anonymize/`, {
                 method: 'POST',
                 body: formData,
@@ -238,7 +213,6 @@
             const jobId = data.job_id;
             if (!jobId) throw new Error("job_id absent de la réponse API");
 
-            // 2. Polling
             pollingInterval = setInterval(async () => {
                 const statusResp = await fetch(`${API_URL}/anonymize_status/${jobId}`);
                 const statusData = await statusResp.json();
@@ -247,7 +221,6 @@
                     localOutput = statusData.anonymized_text;
                     localAuditLog = statusData.audit_log || [];
                     isLoading = false;
-                    // On prévient le parent qu’il faut stocker le résultat
                     dispatch('anonymizationComplete', {
                         inputText: localInput,
                         outputText: localOutput,
@@ -258,7 +231,6 @@
                     errorMessage = statusData.error || 'Erreur inconnue pendant l’anonymisation.';
                     isLoading = false;
                 }
-                // pending : ne rien faire
             }, 1200);
 
         } catch (error: any) {
@@ -284,7 +256,7 @@
         customReplacementRules = [];
         customRuleError = "";
         if (pollingInterval) clearInterval(pollingInterval);
-        dispatch('resetRequested'); // Préviens le parent qu'il faut reset l’état global
+        dispatch('resetRequested');
     }
 
     let showSplitView = true;
@@ -309,30 +281,13 @@
     </div>
 {/if}
 
-<div
-    role="region"
-    class="w-full mb-6 border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-zinc-100 hover:bg-zinc-200 dark:bg-gray-700 dark:hover:bg-gray-600"
-    class:bg-blue-50={dragActive}
-    class:border-blue-500={dragActive}
-    on:drop={handleDrop}
-    on:dragover={handleDragOver}
-    on:dragleave={handleDragLeave}
->
-    <input
-        type="file"
-        id="fileInput"
-        accept=".txt,.csv,.xlsx,.docx,.pdf,.json"
-        class="hidden"
-        on:change={handleFileInput}
-    />
-    <label for="fileInput" class="cursor-pointer flex flex-col items-center gap-2">
-        <span class="text-base font-medium text-zinc-700 dark:text-zinc-200">Déposez un fichier ou cliquez pour parcourir</span>
-        <span class="text-sm text-zinc-500 dark:text-zinc-400">Formats supportés : .txt, .csv, .xlsx, .docx, .pdf, .json</span>
-        {#if fileName}
-            <span class="text-blue-800 font-semibold mt-2 dark:text-blue-400">{fileName}</span>
-        {/if}
-    </label>
-</div>
+<FileDropZone
+  {fileName}
+  {dragActive}
+  on:file={event => handleFile(event.detail.file)}
+  on:dragover={handleDragOver}
+  on:dragleave={handleDragLeave}
+/>
 
 {#if fileType === "csv" && previewTable.length}
     <CsvPreview headers={previewHeaders} rows={previewTable} hasHeader={hasHeader} />
@@ -412,129 +367,18 @@
     </button>
 </div>
 
-{#if localOutput}
-    <div class="border border-green-200 bg-green-50 text-green-900 rounded-2xl p-4 flex flex-col gap-2 mt-4 shadow-sm dark:border-green-800 dark:bg-green-900 dark:text-green-200">
-        <div class="flex items-center gap-4 mb-2">
-            <span class="font-bold text-lg flex-1">
-                Aperçu {showSplitView ? "Avant / Après" : (showOriginal ? "Original" : "Anonymisé")}
-            </span>
-            <button
-                class="px-4 py-1 rounded-md bg-zinc-200 hover:bg-zinc-300 font-medium text-zinc-800 transition mr-2 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-zinc-100"
-                on:click={() => showSplitView = !showSplitView}
-                type="button"
-            >
-                {showSplitView ? "Vue unique" : "Vue Avant/Après"}
-            </button>
-            {#if !showSplitView}
-                <button
-                    class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold ml-2"
-                    on:click={() => showOriginal = !showOriginal}
-                    type="button"
-                >
-                    {showOriginal ? "Voir anonymisé" : "Voir original"}
-                </button>
-            {/if}
-        </div>
-        {#if showSplitView}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex flex-col">
-                    <span class="mb-1 font-semibold text-zinc-600 dark:text-zinc-300">Texte original</span>
-                    <textarea
-                        class="bg-white text-zinc-900 p-3 rounded-xl resize-y min-h-[60px] border border-zinc-300 font-mono w-full dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600"
-                        readonly
-                        value={localInput}
-                        rows="6"
-                    />
-                </div>
-                <div class="flex flex-col">
-                    <span class="mb-1 font-semibold text-green-800 dark:text-green-300">Texte anonymisé</span>
-                    <textarea
-                        class="bg-green-50 text-green-900 p-3 rounded-xl resize-y min-h-[60px] border border-green-200 font-mono w-full dark:bg-green-800 dark:text-green-100 dark:border-green-700"
-                        readonly
-                        bind:value={localOutput}
-                        rows="6"
-                    />
-                    <div class="flex gap-2 justify-end mt-2">
-                        <button
-                            class="flex items-center gap-1 px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition disabled:opacity-60"
-                            type="button"
-                            on:click={copyOutput}
-                            disabled={copied}
-                        >
-                            {#if copied}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Copié !
-                            {:else}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                                    <rect x="3" y="3" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                                Copier
-                            {/if}
-                        </button>
-                        <button
-                            class="flex items-center gap-1 px-4 py-1.5 rounded-md bg-green-700 hover:bg-green-800 text-white font-semibold shadow transition"
-                            type="button"
-                            on:click={exportOutput}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V4H4zm4 8h8m-4-4v8"/>
-                            </svg>
-                            Exporter
-                        </button>
-                    </div>
-                </div>
-            </div>
-        {:else}
-            <div class="flex flex-col gap-2">
-                <span class="mb-1 font-semibold dark:text-zinc-200">{showOriginal ? "Texte original" : "Texte anonymisé"}</span>
-                <textarea
-                    class={showOriginal
-                        ? "bg-white text-zinc-900 p-3 rounded-xl resize-y min-h-[60px] border border-zinc-300 font-mono w-full dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600"
-                        : "bg-green-50 text-green-900 p-3 rounded-xl resize-y min-h-[60px] border border-green-200 font-mono w-full dark:bg-green-800 dark:text-green-100 dark:border-green-700"}
-                    readonly
-                    value={showOriginal ? localInput : localOutput}
-                    rows="6"
-                />
-                {#if !showOriginal}
-                    <div class="flex gap-2 justify-end mt-2">
-                        <button
-                            class="flex items-center gap-1 px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition disabled:opacity-60"
-                            type="button"
-                            on:click={copyOutput}
-                            disabled={copied}
-                        >
-                            {#if copied}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Copié !
-                            {:else}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                                    <rect x="3" y="3" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                                Copier
-                            {/if}
-                        </button>
-                        <button
-                            class="flex items-center gap-1 px-4 py-1.5 rounded-md bg-green-700 hover:bg-green-800 text-white font-semibold shadow transition"
-                            type="button"
-                            on:click={exportOutput}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V4H4zm4 8h8m-4-4v8"/>
-                            </svg>
-                            Exporter
-                        </button>
-                    </div>
-                {/if}
-            </div>
-        {/if}
-    </div>
-{/if}
+<!-- BLOC RÉSULTAT (extrait) -->
+<ResultView
+    inputText={localInput}
+    outputText={localOutput}
+    showSplitView={showSplitView}
+    showOriginal={showOriginal}
+    copied={copied}
+    onToggleSplitView={() => showSplitView = !showSplitView}
+    onToggleShowOriginal={() => showOriginal = !showOriginal}
+    onCopyOutput={copyOutput}
+    onExportOutput={exportOutput}
+/>
 
 {#if errorMessage}
     <div class="border border-red-200 bg-red-50 text-red-800 rounded-xl p-3 mt-4 dark:border-red-600 dark:bg-red-900 dark:text-red-300">
@@ -548,7 +392,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
             <div class="font-semibold text-blue-800 dark:text-blue-200">Résumé des règles appliquées :</div>
             <div class="text-xs font-semibold text-blue-900 dark:text-blue-100 mt-1 sm:mt-0">
-                Total anonymisations&nbsp;: 
+                Total anonymisations&nbsp;
                 <span class="font-bold">{totalReplacements}</span>
             </div>
         </div>
