@@ -83,7 +83,7 @@ def run_anonymization_job(
         with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
             json.dump(status, f)
 
-@app.post("/anonymize/")
+@app.post("/api/anonymize/")
 async def anonymize_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -122,7 +122,7 @@ async def anonymize_file(
 
     return {"job_id": job_id, "status": "pending"}
 
-@app.get("/anonymize_status/{job_id}")
+@app.get("/api/anonymize_status/{job_id}")
 async def anonymize_status(job_id: str):
     job_dir = JOBS_DIR / job_id
     status_file = job_dir / "status.json"
