@@ -38,7 +38,7 @@ def run_deanonymization_job(
         with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
             json.dump({"status": "error", "error": str(e)}, f)
 
-@router.post("/deanonymize/")
+@router.post("/api/deanonymize/")
 async def deanonymize_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
