@@ -36,6 +36,8 @@
     on:dragleave={onDragLeave}
     on:drop={onDrop}
     tabindex="0"
+    role="button"
+    aria-label="Déposer ou sélectionner un fichier"
 >
     <input
         type="file"
