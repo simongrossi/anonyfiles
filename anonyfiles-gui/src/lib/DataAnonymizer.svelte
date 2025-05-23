@@ -193,8 +193,16 @@
             return;
         }
 
+        // *** MODIF ICI ***
+        const API_URL = import.meta.env.VITE_ANONYFILES_API_URL;
+        if (!API_URL) {
+            errorMessage = "La variable d'environnement VITE_ANONYFILES_API_URL doit être définie !";
+            isLoading = false;
+            return;
+        }
+        // *** FIN MODIF ***
+
         try {
-            const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || 'http://localhost:8000';
             const formData = new FormData();
 
             if (dataToSend instanceof File) {
