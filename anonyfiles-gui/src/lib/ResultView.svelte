@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { copyTextToClipboard } from './clipboard'; // <-- utilitaire
   export let inputText = "";
   export let outputText = "";
   export let showSplitView = true;
@@ -7,8 +8,24 @@
 
   export let onToggleSplitView = () => {};
   export let onToggleShowOriginal = () => {};
-  export let onCopyOutput = () => {};
+  // export let onCopyOutput = () => {}; // On ne s'en sert plus directement
   export let onExportOutput = () => {};
+
+  // On gère l'état "copié" localement ici (optionnel : tu peux lever un event au parent si besoin)
+  let localCopied = false;
+  let copyTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  async function handleCopyOutput() {
+    const ok = await copyTextToClipboard(outputText);
+    if (ok) {
+      localCopied = true;
+      // Reset après 1,5s
+      if (copyTimeout) clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => { localCopied = false; }, 1500);
+    } else {
+      alert("Impossible de copier le texte. Vérifiez les permissions.");
+    }
+  }
 </script>
 
 {#if outputText}
@@ -46,8 +63,8 @@
                     rows="6"
                 />
                 <div class="flex gap-2 justify-end mt-2">
-                    <button class="btn-copy" type="button" on:click={onCopyOutput} disabled={copied}>
-                        {#if copied}
+                    <button class="btn-copy" type="button" on:click={handleCopyOutput} disabled={localCopied}>
+                        {#if localCopied}
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
@@ -82,8 +99,8 @@
             />
             {#if !showOriginal}
                 <div class="flex gap-2 justify-end mt-2">
-                    <button class="btn-copy" type="button" on:click={onCopyOutput} disabled={copied}>
-                        {#if copied}
+                    <button class="btn-copy" type="button" on:click={handleCopyOutput} disabled={localCopied}>
+                        {#if localCopied}
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
