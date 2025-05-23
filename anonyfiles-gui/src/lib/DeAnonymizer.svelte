@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Dropzone from './Dropzone.svelte';
+  import FileDropZone from './FileDropZone.svelte';
   import { onMount } from 'svelte';
 
   let inputFile: File | null = null;
@@ -23,16 +23,14 @@
     if (pollingInterval) clearInterval(pollingInterval);
   }
 
-  function handleInputDrop(files: FileList) {
-    if (files.length) {
-      inputFile = files[0];
-    }
+  function handleInputDrop(event) {
+    const file = event.detail.file;
+    if (file) inputFile = file;
   }
 
-  function handleMappingDrop(files: FileList) {
-    if (files.length) {
-      mappingFile = files[0];
-    }
+  function handleMappingDrop(event) {
+    const file = event.detail.file;
+    if (file) mappingFile = file;
   }
 
   async function deanonymize() {
@@ -95,20 +93,20 @@
 
   <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
-      <Dropzone
-        label="Déposez ici le fichier anonymisé (.txt, .csv, ...)"
-        accept=".txt,.csv,.json"
-        onDrop={handleInputDrop}
+      <FileDropZone
+        fileName={inputFile ? inputFile.name : ""}
+        dragActive={false}
+        on:file={handleInputDrop}
       />
       {#if inputFile}
         <span class="text-blue-800 dark:text-blue-400">{inputFile.name}</span>
       {/if}
     </div>
     <div>
-      <Dropzone
-        label="Déposez ici le mapping de désanonymisation (mapping.csv)"
-        accept=".csv"
-        onDrop={handleMappingDrop}
+      <FileDropZone
+        fileName={mappingFile ? mappingFile.name : ""}
+        dragActive={false}
+        on:file={handleMappingDrop}
       />
       {#if mappingFile}
         <span class="text-blue-800 dark:text-blue-400">{mappingFile.name}</span>

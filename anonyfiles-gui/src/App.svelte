@@ -20,7 +20,6 @@
     lastInput = event.detail.inputText;
     lastOutput = event.detail.outputText;
     lastAuditLog = event.detail.auditLog;
-    // tab = 'log';
   }
 
   function handleReset() {
@@ -61,7 +60,7 @@
     </a>
   </nav>
 
-  <!-- Contenu principal centré et élargi -->
+  <!-- Contenu principal -->
   <main class="main-container overflow-y-auto flex-1">
     <div class="mx-auto max-w-5xl w-full px-4 py-8">
       {#if tab === 'anonymizer'}
@@ -71,6 +70,7 @@
           auditLog={lastAuditLog}
           on:anonymizationComplete={handleAnonymizationComplete}
           on:resetRequested={handleReset}
+          on:showLog={() => tab = 'log'}
         />
       {:else if tab === 'deanonymizer'}
         <DeAnonymizer />

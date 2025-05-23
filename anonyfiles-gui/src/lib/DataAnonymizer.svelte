@@ -233,6 +233,9 @@
                     clearInterval(pollingInterval);
                     localOutput = statusData.anonymized_text;
                     localAuditLog = statusData.audit_log || [];
+                    // --- ICI FORCAGE DE LA VUE ANONYMISÉE ---
+                    showSplitView = false;
+                    showOriginal = false;
                     isLoading = false;
                     dispatch('anonymizationComplete', {
                         inputText: localInput,
@@ -272,7 +275,7 @@
         dispatch('resetRequested');
     }
 
-    let showSplitView = true;
+    let showSplitView = false;
     let showOriginal = false;
 </script>
 
@@ -369,6 +372,7 @@
   <ResultView
       inputText={localInput}
       outputText={localOutput}
+      auditLog={localAuditLog}
       showSplitView={showSplitView}
       showOriginal={showOriginal}
       copied={copied}
@@ -376,6 +380,8 @@
       onToggleShowOriginal={() => showOriginal = !showOriginal}
       onCopyOutput={copyOutput}
       onExportOutput={exportOutput}
+      isLoading={isLoading}
+      on:showLog={() => dispatch('showLog')}
   />
 
   {#if errorMessage}
