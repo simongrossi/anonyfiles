@@ -55,7 +55,7 @@
       formData.append('permissive', String(permissive));
 
       // Création du job
-      const response = await fetch(`${API_URL}/deanonymize/`, {
+      const response = await fetch(`${API_URL}/api/deanonymize/`, {
         method: 'POST',
         body: formData,
       });
@@ -68,7 +68,7 @@
 
       // Polling du statut
       pollingInterval = setInterval(async () => {
-        const statusResp = await fetch(`${API_URL}/deanonymize_status/${jobId}`);
+        const statusResp = await fetch(`${API_URL}/api/deanonymize_status/${jobId}`);
         const statusData = await statusResp.json();
         if (statusData.status === "finished") {
           clearInterval(pollingInterval);
