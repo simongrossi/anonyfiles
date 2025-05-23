@@ -1,7 +1,6 @@
 <script lang="ts">
   import SwitchTheme from './SwitchTheme.svelte';
 
-  // Lit la préférence depuis localStorage
   function getThemeMode(): 'auto' | 'light' | 'dark' {
     const val = localStorage.getItem('theme');
     if (val === 'light' || val === 'dark' || val === 'auto') return val;
@@ -10,14 +9,12 @@
 
   let themeMode: 'auto' | 'light' | 'dark' = getThemeMode();
 
-  // Applique le thème à l'interface
   function applyTheme(mode: 'auto' | 'light' | 'dark') {
     if (mode === 'dark') {
       document.body.classList.add('dark');
     } else if (mode === 'light') {
       document.body.classList.remove('dark');
     } else if (mode === 'auto') {
-      // Suivre la préférence système
       if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
         document.body.classList.add('dark');
       } else {
@@ -26,19 +23,15 @@
     }
   }
 
-  // Applique dès le chargement
   applyTheme(themeMode);
 
-  // Gère le changement du mode thème
   function handleThemeChange(mode: 'auto' | 'light' | 'dark') {
     themeMode = mode;
     localStorage.setItem('theme', mode);
     applyTheme(mode);
   }
 
-  // Écoute le changement de préférence système si "auto"
   let mq: MediaQueryList | null = null;
-
   function listenToSystemTheme() {
     if (mq) mq.removeEventListener('change', onSystemThemeChange);
     if (themeMode === 'auto') {
@@ -46,16 +39,12 @@
       mq.addEventListener('change', onSystemThemeChange);
     }
   }
-
   function onSystemThemeChange() {
     if (themeMode === 'auto') {
       applyTheme('auto');
     }
   }
-
   listenToSystemTheme();
-
-  // Sur changement du mode via UI
   $: {
     listenToSystemTheme();
     applyTheme(themeMode);
@@ -68,8 +57,12 @@
   </h2>
 
   <div class="mb-6">
-    <label class="block mb-2 font-semibold">Thème :</label>
-    <SwitchTheme mode={themeMode} onChange={handleThemeChange} />
+    <span id="theme-label" class="block mb-2 font-semibold">Thème :</span>
+    <SwitchTheme
+      mode={themeMode}
+      onChange={handleThemeChange}
+      aria-labelledby="theme-label"
+    />
   </div>
   <!-- Ajoute ici d’autres options de configuration -->
 </div>
