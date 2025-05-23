@@ -215,7 +215,7 @@
             formData.append('file_type', fileType);
             formData.append('has_header', String(hasHeader));
 
-            const response = await fetch(`${API_URL}/anonymize/`, {
+            const response = await fetch(`${API_URL}/api/anonymize/`, {
                 method: 'POST',
                 body: formData,
             });
@@ -227,7 +227,7 @@
             if (!jobId) throw new Error("job_id absent de la réponse API");
 
             pollingInterval = setInterval(async () => {
-                const statusResp = await fetch(`${API_URL}/anonymize_status/${jobId}`);
+                const statusResp = await fetch(`${API_URL}/api/anonymize_status/${jobId}`);
                 const statusData = await statusResp.json();
                 if (statusData.status === "finished") {
                     clearInterval(pollingInterval);
