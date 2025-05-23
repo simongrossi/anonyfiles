@@ -8,7 +8,6 @@
   export let showSplitView = false;
   export let showOriginal = false;
   export let isLoading = false;
-  export let copied = false;
   export let onToggleSplitView = () => {};
   export let onToggleShowOriginal = () => {};
   export let onCopyOutput = () => {};
