@@ -8,14 +8,15 @@ import os
 import json
 import uuid
 
-try:
-    from anonyfiles.anonyfiles_cli.anonymizer.anonyfiles_core import AnonyfilesEngine
-    from anonyfiles.anonyfiles_cli.main import load_config
-except ImportError:
-    import sys
-    sys.path.append(str(Path(__file__).parent.parent / "anonyfiles-cli"))
-    from anonymizer.anonyfiles_core import AnonyfilesEngine
-    from main import load_config
+import sys
+from pathlib import Path
+
+# Ajout du dossier anonyfiles-cli au PYTHONPATH
+cli_path = Path(__file__).parent.parent / "anonyfiles-cli"
+sys.path.append(str(cli_path))
+
+from anonymizer.anonyfiles_core import AnonyfilesEngine
+from main import load_config
 
 app = FastAPI()
 
@@ -82,6 +83,12 @@ def run_anonymization_job(
         status = {"status": "error", "error": str(e)}
         with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
             json.dump(status, f)
+
+
+@app.get("/api/status")
+def status():
+    return {"status": "ok"}
+
 
 @app.post("/api/anonymize/")
 async def anonymize_file(
