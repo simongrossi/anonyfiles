@@ -1,15 +1,12 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Optional
 from pathlib import Path
 import shutil
-import os
 import json
 import uuid
-
 import sys
-from pathlib import Path
 
 # Ajout du dossier anonyfiles_cli au PYTHONPATH
 cli_path = Path(__file__).parent.parent / "anonyfiles_cli"
@@ -18,7 +15,7 @@ sys.path.append(str(cli_path))
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 from main import load_config
 
-app = FastAPI()
+app = FastAPI(root_path="/api")  # <-- root_path ajouté
 
 app.add_middleware(
     CORSMiddleware,
@@ -84,13 +81,11 @@ def run_anonymization_job(
         with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
             json.dump(status, f)
 
-
-@app.get("/api/status")
+@app.get("/status")  # prefixé automatiquement par /api
 def status():
     return {"status": "ok"}
 
-
-@app.post("/api/anonymize/")
+@app.post("/anonymize/")  # prefixé automatiquement par /api
 async def anonymize_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -110,7 +105,6 @@ async def anonymize_file(
     config_opts = json.loads(config_options)
     custom_rules = config_opts.get("custom_replacement_rules")
     
-    # LOG AJOUTÉ : ce que reçoit la route
     print("\n=== [ROUTE] RÈGLES CUSTOM REÇUES ===")
     print(json.dumps(custom_rules, indent=2, ensure_ascii=False))
     
@@ -129,7 +123,7 @@ async def anonymize_file(
 
     return {"job_id": job_id, "status": "pending"}
 
-@app.get("/api/anonymize_status/{job_id}")
+@app.get("/anonymize_status/{job_id}")  # prefixé automatiquement par /api
 async def anonymize_status(job_id: str):
     job_dir = JOBS_DIR / job_id
     status_file = job_dir / "status.json"
