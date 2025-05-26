@@ -1,6 +1,0 @@
-Bonjour, je m'appelle [[VILLE_SPACY:LOC]
-J'habite à [VILLE_SPACY:LOC] et je travaille pour l'entreprise [ORG_SPACY_001
-Ma date de naissance est 1983-12-18.
-NOM_SPACY_002 de création 2011-07-01
-
-[EMAIL_SPACY:EMAIL]
