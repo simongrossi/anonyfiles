@@ -1,4 +1,4 @@
-.PHONY: setup cli api gui clean
+.PHONY: setup cli api gui clean test-api dev
 
 setup:
 	@echo "🔧 Création des environnements virtuels..."
@@ -25,13 +25,22 @@ setup:
 	@echo "✅ Tous les environnements sont prêts."
 
 cli:
-	source env-cli/bin/activate && python anonyfiles_cli/main.py anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
+	env-cli/bin/python anonyfiles_cli/main.py anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
 
 api:
-	source env-api/bin/activate && uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload
+	env-api/bin/uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload
 
 gui:
 	cd anonyfiles_gui && npm run tauri dev
+
+test-api:
+	curl -X POST http://localhost:8000/anonymize/ \
+	-H "Content-Type: application/json" \
+	-d '{"text": "Jean Dupont habite à Paris", "anonymizePersons": true, "anonymizeLocations": true, "anonymizeOrgs": true, "anonymizeEmails": true, "anonymizeDates": true, "custom_replacement_rules": []}'
+
+dev:
+	@echo "🚀 Lancement API + GUI"
+	@echo "Ouvrir deux terminaux pour exécuter 'make api' et 'make gui' séparément, ou utiliser tmux ou un superviseur."
 
 clean:
 	rm -rf env-cli env-api env-gui
