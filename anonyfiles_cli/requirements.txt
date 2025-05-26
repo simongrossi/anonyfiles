@@ -1,6 +1,6 @@
 spacy>=3.5.2,<4.0.0
 pandas>=1.5.0
-numpy>=1.23.5
+numpy~=1.26.0  # Force l'utilisation d'une version 1.26.x (la dernière compatible avant la 2.x)
 thinc>=8.1.8,<8.3.0
 python-docx>=0.8.11
 faker>=18.0.0
