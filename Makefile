@@ -1,54 +1,37 @@
-# Makefile racine du projet Anonyfiles
+.PHONY: setup cli api gui clean
 
-.PHONY: setup cli api gui clean build-gui deploy export-env check-env
+setup:
+	@echo "🔧 Création des environnements virtuels..."
+	python3 -m venv env-cli
+	python3 -m venv env-api
+	python3 -m venv env-gui
 
-# Vérifie les versions de Python, pip et Node
-check-env:
-	@echo "🔍 Vérification des versions d'environnement"
-	@python3 --version
-	@pip --version
-	@node --version
-	@npm --version
+	@echo "📦 Installation des dépendances pour anonyfiles_cli..."
+	env-cli/bin/pip install --upgrade pip setuptools wheel
+	env-cli/bin/pip install -r anonyfiles_cli/requirements.txt
 
-# Crée tous les environnements virtuels
-setup: check-env
-	@echo "🔧 Setup complet des environnements"
-	bash setup_envs.sh
+	@echo "📦 Installation des dépendances pour anonyfiles_api..."
+	env-api/bin/pip install --upgrade pip setuptools wheel
+	env-api/bin/pip install -r anonyfiles_api/requirements.txt
 
-# Lance le moteur CLI
+	@echo "📦 Installation des dépendances pour anonyfiles_gui (si requirements.txt présent)..."
+	if [ -f anonyfiles_gui/requirements.txt ]; then \
+		env-gui/bin/pip install --upgrade pip setuptools wheel && \
+		env-gui/bin/pip install -r anonyfiles_gui/requirements.txt; \
+	else \
+		echo "✅ Aucun requirements.txt dans anonyfiles_gui"; \
+	fi
+
+	@echo "✅ Tous les environnements sont prêts."
+
 cli:
-	@echo "🚀 Lancement de la CLI"
-	cd anonyfiles_cli && source venv/bin/activate && python main.py
+	source env-cli/bin/activate && python anonyfiles_cli/main.py anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
 
-# Lance l'API FastAPI
 api:
-	@echo "🚀 Lancement de l’API FastAPI"
-	cd anonyfiles_api && source venv/bin/activate && PYTHONPATH=.. uvicorn anonyfiles_api.api:app --host 127.0.0.1 --port 8000
+	source env-api/bin/activate && uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload
 
-# Lance la GUI (Svelte + Tauri)
 gui:
-	@echo "🎨 Lancement de la GUI Tauri"
 	cd anonyfiles_gui && npm run tauri dev
 
-# Construit la GUI en mode production
-build-gui:
-	@echo "📦 Build de la GUI"
-	cd anonyfiles_gui && npm install && npm run build
-
-# Déploie les fichiers de la GUI dans /var/www/html
-deploy: build-gui
-	@echo "🚀 Déploiement de la GUI dans /var/www/html"
-	sudo rm -rf /var/www/html/*
-	cp -r anonyfiles_gui/dist/* /var/www/html/
-	@echo "🔄 Redémarrage de l'API (si systemd est en place)"
-	sudo systemctl restart anonyfiles-api || true
-
-# Supprime les environnements virtuels
 clean:
-	@echo "🧹 Suppression des environnements"
-	rm -rf anonyfiles_cli/venv anonyfiles_api/venv anonyfiles_gui/venv
-
-# Exporte les versions gelées de toutes les dépendances Python
-export-env:
-	@echo "📋 Export des dépendances dans requirements.lock.txt"
-	cd anonyfiles_api && source venv/bin/activate && pip freeze > ../../requirements.lock.txt && deactivate
+	rm -rf env-cli env-api env-gui
