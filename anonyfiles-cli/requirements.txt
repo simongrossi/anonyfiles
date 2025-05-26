@@ -12,3 +12,5 @@ PyYAML>=6.0
 pymupdf
 typer
 yamale
+docx
+

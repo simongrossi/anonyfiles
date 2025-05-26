@@ -3,22 +3,28 @@ set -e
 
 echo "➡️  Création des environnements..."
 
-python3 -m venv env-cli
-python3 -m venv env-api
-python3 -m venv env-gui
+python3 -m venv anonyfiles-cli/venv
+python3 -m venv anonyfiles_api/venv
+python3 -m venv anonyfiles-gui/venv
 
 echo "📦 Installation des dépendances..."
 
-source env-cli/bin/activate
+echo "🔧 CLI"
+source anonyfiles-cli/venv/bin/activate
+pip install --upgrade pip setuptools wheel
 pip install -r anonyfiles-cli/requirements.txt
 deactivate
 
-source env-api/bin/activate
+echo "🔧 API"
+source anonyfiles_api/venv/bin/activate
+pip install --upgrade pip setuptools wheel
 pip install -r anonyfiles_api/requirements.txt
 deactivate
 
 if [ -f anonyfiles-gui/requirements.txt ]; then
-  source env-gui/bin/activate
+  echo "🔧 GUI"
+  source anonyfiles-gui/venv/bin/activate
+  pip install --upgrade pip setuptools wheel
   pip install -r anonyfiles-gui/requirements.txt
   deactivate
 else

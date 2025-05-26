@@ -2,11 +2,11 @@ import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import path from "path";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-export default defineConfig(async () => ({
+export default defineConfig(({ command }) => ({
   root: './',
+  base: command === 'build' ? './' : '/',
   plugins: [svelte()],
   clearScreen: false,
   server: {
@@ -26,6 +26,13 @@ export default defineConfig(async () => ({
     fs: {
       strict: false
     }
+  },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    rollupOptions: {
+      input: './index.html', // 👈 obligatoire pour corriger ton bug
+    },
   },
   resolve: {
     alias: {

@@ -62,12 +62,33 @@ Veillez à ce que `anonyfiles-cli` (et Python) soit installé et accessible dans
 
 ## 🧩 Roadmap / Améliorations prévues
 
-* Support natif drag & drop des fichiers Word (.docx), Excel (.xlsx), PDF et JSON
-* Paramétrage visuel avancé (choix du type de remplacement, simulation, exclusion...)
-* Prévisualisation enrichie et gestion multi-fichiers
-* Internationalisation (fr/en)
-* Export des résultats (mapping, journal d’entités)
-* Signatures logicielles et installeur .exe/macOS/Linux
+* Support natif drag & drop des fichiers Word (.docx), Excel (.xlsx), PDF et JSON  
+* Paramétrage visuel avancé (choix du type de remplacement, simulation, exclusion...)  
+* Prévisualisation enrichie et gestion multi-fichiers  
+* Internationalisation (fr/en)  
+* Export des résultats (mapping, journal d’entités)  
+* Signatures logicielles et installeur .exe/macOS/Linux  
+* **Export intelligent selon le format d’entrée**  
+  - Nom et extension du fichier exporté adaptés (.txt, .csv, .xlsx, etc.)  
+  - Sélection du format à l’export (TXT, CSV, XLSX…)  
+* **Aperçu avant/après (“split view”)**  
+  - Comparaison directe original/anonymisé, bascule possible  
+* **Indicateur du volume traité**  
+  - Nombre de lignes, caractères, entités anonymisées  
+* **Affichage des entités anonymisées**  
+  - Tableau récapitulatif, audit trail, export du mapping  
+* **Barre de progression**  
+  - Affichage progression réelle ou spinner lors de l’anonymisation  
+* **Historique des traitements** et profils d’anonymisation sauvegardables  
+* **Éditeur YAML intégré** pour utilisateurs avancés  
+* **Notifications et raccourcis clavier** (feedback utilisateur avancé)  
+* **Personnalisation de l’interface**  
+  - Mode sombre/clair, branding/logo  
+* **Bandeau de confidentialité**  
+  - “Aucune donnée n’est transmise en ligne”, suppression auto fichiers temp  
+* **Améliorations UX diverses**  
+  - Drag & drop global (toute la fenêtre), transitions de succès, affichage du temps de traitement  
+
 
 ---
 

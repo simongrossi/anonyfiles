@@ -3,3 +3,4 @@ uvicorn[standard]==0.29.0 # ou la version que vous préférez
 python-multipart==0.0.9 # Version compatible pour UploadFile
 pyyaml # pour load_config
 spacy>=3.5.2,<4.0.0
+python-docx
