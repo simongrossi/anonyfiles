@@ -1,6 +1,18 @@
 .PHONY: setup cli api gui clean test-api dev
 
 setup:
+	@echo "🔧 Installation des dépendances système..."
+	sudo apt update
+	sudo apt install -y python3 python3-venv python3-pip curl
+
+	@if ! command -v npm >/dev/null 2>&1; then \
+		echo "🧰 Installation de Node.js + npm..."; \
+		curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
+		sudo apt install -y nodejs; \
+	else \
+		echo "✅ Node.js et npm déjà installés."; \
+	fi
+
 	@echo "🔧 Création des environnements virtuels..."
 	python3 -m venv env-cli
 	python3 -m venv env-api
@@ -22,6 +34,9 @@ setup:
 		echo "✅ Aucun requirements.txt dans anonyfiles_gui"; \
 	fi
 
+	@echo "📦 Installation des modules npm pour anonyfiles_gui..."
+	cd anonyfiles_gui && npm install
+
 	@echo "✅ Tous les environnements sont prêts."
 
 cli:
@@ -30,17 +45,18 @@ cli:
 api:
 	env-api/bin/uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload
 
+# Génère les fichiers statiques de la GUI (build web)
 gui:
-	cd anonyfiles_gui && npm run tauri dev
+	cd anonyfiles_gui && npm run build
 
 test-api:
-	curl -X POST http://localhost:8000/anonymize/ \
+	curl -X POST http://83.228.198.65:8000/anonymize/ \
 	-H "Content-Type: application/json" \
 	-d '{"text": "Jean Dupont habite à Paris", "anonymizePersons": true, "anonymizeLocations": true, "anonymizeOrgs": true, "anonymizeEmails": true, "anonymizeDates": true, "custom_replacement_rules": []}'
 
 dev:
-	@echo "🚀 Lancement API + GUI"
-	@echo "Ouvrir deux terminaux pour exécuter 'make api' et 'make gui' séparément, ou utiliser tmux ou un superviseur."
+	@echo "🚀 Lancement API + build GUI"
+	@echo "Exécute 'make api' pour lancer l’API, et 'make gui' pour générer les fichiers frontend statiques."
 
 clean:
 	rm -rf env-cli env-api env-gui
