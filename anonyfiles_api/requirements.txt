@@ -1,7 +1,10 @@
-fastapi==0.111.0 # ou la version que vous préférez
-uvicorn[standard]==0.29.0 # ou la version que vous préférez
-python-multipart==0.0.9 # Version compatible pour UploadFile
-pyyaml # pour load_config
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+pyyaml
 spacy>=3.5.2,<4.0.0
 python-docx
+pandas>=1.5.0
 numpy>=1.23.5
+thinc>=8.1.8,<8.3.0
+typer>=0.3.0,<0.8.0
