@@ -1,4 +1,4 @@
-# anonyfiles-cli/anonymizer/anonyfiles_core.py
+# anonyfiles_cli/anonymizer/anonyfiles_core.py
 
 import re
 from pathlib import Path

@@ -1,4 +1,4 @@
-# anonyfiles-cli/anonymizer/replacer.py
+# anonyfiles_cli/anonymizer/replacer.py
 
 import random
 import string

@@ -23,10 +23,10 @@ développée en Svelte, Rust et Tauri pour une expérience utilisateur moderne e
 * [Node.js](https://nodejs.org/)
 * [Rust](https://www.rust-lang.org/tools/install)
 * [Tauri CLI](https://tauri.app/v1/guides/getting-started/prerequisites/)
-* [Python 3.9+](https://www.python.org/downloads/) avec le projet [anonyfiles-cli](https://github.com/simongrossi/anonyfiles) installé et accessible dans le PATH
+* [Python 3.9+](https://www.python.org/downloads/) avec le projet [anonyfiles_cli](https://github.com/simongrossi/anonyfiles) installé et accessible dans le PATH
 
 ```sh
-cd anonyfiles-gui
+cd anonyfiles_gui
 npm install
 npm run tauri dev
 ```
@@ -55,8 +55,8 @@ npm run tauri dev
 
 ## 🤖 Intégration avec le CLI
 
-La GUI exploite le moteur Python (`anonyfiles-cli`) via une commande Rust/Tauri.
-Veillez à ce que `anonyfiles-cli` (et Python) soit installé et accessible dans votre environnement système (PATH).
+La GUI exploite le moteur Python (`anonyfiles_cli`) via une commande Rust/Tauri.
+Veillez à ce que `anonyfiles_cli` (et Python) soit installé et accessible dans votre environnement système (PATH).
 
 ---
 

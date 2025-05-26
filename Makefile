@@ -9,7 +9,7 @@ setup:
 
 # Lance le moteur CLI
 cli:
-	source env-cli/bin/activate && python anonyfiles-cli/main.py
+	source env-cli/bin/activate && python anonyfiles_cli/main.py
 
 # Lance l'API FastAPI
 api:
@@ -17,7 +17,7 @@ api:
 
 # Lance la GUI (Svelte + Tauri)
 gui:
-	cd anonyfiles-gui && npm run tauri dev
+	cd anonyfiles_gui && npm run tauri dev
 
 # Supprime les environnements virtuels
 clean:

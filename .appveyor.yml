@@ -12,20 +12,20 @@ install:
         brew install python@3.11
         ln -sfn /usr/local/bin/python3.11 /usr/local/bin/python
         python -m pip install --upgrade pip
-        python -m pip install -r anonyfiles-cli/requirements.txt
+        python -m pip install -r anonyfiles_cli/requirements.txt
         python -m spacy download fr_core_news_md
-        npm install --prefix anonyfiles-gui
-        cargo fetch --manifest-path anonyfiles-gui/src-tauri/Cargo.toml
+        npm install --prefix anonyfiles_gui
+        cargo fetch --manifest-path anonyfiles_gui/src-tauri/Cargo.toml
       fi
   - ps: |
       if ($env:APPVEYOR_OS_NAME -eq "Windows_NT") {
         choco install python --version=%PYTHON_VERSION% -y
         refreshenv
         python -m pip install --upgrade pip
-        python -m pip install -r anonyfiles-cli/requirements.txt
+        python -m pip install -r anonyfiles_cli/requirements.txt
         python -m spacy download fr_core_news_md
-        npm install --prefix anonyfiles-gui
-        cargo fetch --manifest-path anonyfiles-gui/src-tauri/Cargo.toml
+        npm install --prefix anonyfiles_gui
+        cargo fetch --manifest-path anonyfiles_gui/src-tauri/Cargo.toml
       }
 
 build: off
@@ -33,17 +33,17 @@ build: off
 build_script:
   - sh: |
       if [[ "$APPVEYOR_OS_NAME" == "macos" ]]; then
-        python -m pytest --maxfail=1 --disable-warnings anonyfiles-cli/tests || true
-        npm run build --prefix anonyfiles-gui
-        cargo build --manifest-path anonyfiles-gui/src-tauri/Cargo.toml --release
+        python -m pytest --maxfail=1 --disable-warnings anonyfiles_cli/tests || true
+        npm run build --prefix anonyfiles_gui
+        cargo build --manifest-path anonyfiles_gui/src-tauri/Cargo.toml --release
       fi
   - ps: |
       if ($env:APPVEYOR_OS_NAME -eq "Windows_NT") {
-        python -m pytest --maxfail=1 --disable-warnings anonyfiles-cli/tests
-        npm run build --prefix anonyfiles-gui
-        cargo build --manifest-path anonyfiles-gui/src-tauri/Cargo.toml --release
+        python -m pytest --maxfail=1 --disable-warnings anonyfiles_cli/tests
+        npm run build --prefix anonyfiles_gui
+        cargo build --manifest-path anonyfiles_gui/src-tauri/Cargo.toml --release
       }
 
 artifacts:
-  - path: anonyfiles-cli/dist/*.whl
-  - path: anonyfiles-gui/src-tauri/target/release/*
+  - path: anonyfiles_cli/dist/*.whl
+  - path: anonyfiles_gui/src-tauri/target/release/*

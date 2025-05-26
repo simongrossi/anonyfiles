@@ -6,13 +6,13 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "anonyfiles-gui",
+    "productName": "anonyfiles_gui",
     "version": "0.1.0"
   },
   "tauri": {
     "windows": [
       {
-        "title": "anonyfiles-gui",
+        "title": "anonyfiles_gui",
         "width": 900,
         "height": 1000,
         "resizable": true,

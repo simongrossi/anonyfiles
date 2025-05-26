@@ -1,4 +1,4 @@
-# anonyfiles-cli/main.py
+# anonyfiles_cli/main.py
 import typer
 from pathlib import Path
 from datetime import datetime

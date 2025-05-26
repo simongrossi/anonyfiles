@@ -7,7 +7,7 @@ python -m venv env-gui
 Write-Host "📦 Installation des dépendances..."
 
 .\env-cli\Scripts\Activate.ps1
-pip install -r anonyfiles-cli\requirements.txt
+pip install -r anonyfiles_cli\requirements.txt
 deactivate
 
 .\env-api\Scripts\Activate.ps1

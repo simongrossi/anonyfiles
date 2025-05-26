@@ -1,4 +1,4 @@
-# anonyfiles-cli/anonymizer/audit.py
+# anonyfiles_cli/anonymizer/audit.py
 
 class AuditLogger:
     def __init__(self):

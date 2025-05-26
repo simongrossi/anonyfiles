@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-ENV PYTHONPATH=/app/anonyfiles-cli
+ENV PYTHONPATH=/app/anonyfiles_cli
 
 WORKDIR /app
 

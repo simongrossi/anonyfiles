@@ -8,9 +8,9 @@ Jean Dupont est né à Paris et travaille chez ACME Corp. Son email est jean.dup
 EOF
 
 echo "🚀 Lancement de l’anonymisation..."
-python anonyfiles-cli/main.py anonymize tests/sample.txt \
+python anonyfiles_cli/main.py anonymize tests/sample.txt \
   --output tests/result.txt \
-  --config anonyfiles-cli/config.yaml
+  --config anonyfiles_cli/config.yaml
 
 echo ""
 echo "📄 Résultat anonymisé :"

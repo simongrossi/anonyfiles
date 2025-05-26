@@ -2,8 +2,8 @@
 
 **Anonyfiles** est une solution open source complète pour l’anonymisation automatisée de documents texte, tableurs et bureautiques, basée sur le NLP (spaCy) et des stratégies avancées de remplacement (Faker, codes, placeholders, etc.).
 
-* **CLI (`anonyfiles-cli`)** : traitement en ligne de commande, configurable, robuste et multi-format.
-* **GUI (`anonyfiles-gui`)** : interface graphique moderne (Tauri + Svelte + Rust) pour une anonymisation intuitive, rapide et multiplateforme.
+* **CLI (`anonyfiles_cli`)** : traitement en ligne de commande, configurable, robuste et multi-format.
+* **GUI (`anonyfiles_gui`)** : interface graphique moderne (Tauri + Svelte + Rust) pour une anonymisation intuitive, rapide et multiplateforme.
 * **API (`anonyfiles_api`)** : API REST FastAPI pour intégration dans des workflows ou systèmes tiers.
 
 ---
@@ -28,9 +28,9 @@
 anonyfiles/
 │
 ├── README.md                  # Présent fichier
-├── anonyfiles-cli/            # Outil CLI (Python)
+├── anonyfiles_cli/            # Outil CLI (Python)
 │   └── README.md              # Documentation CLI détaillée
-├── anonyfiles-gui/            # Interface graphique (Tauri / Svelte)
+├── anonyfiles_gui/            # Interface graphique (Tauri / Svelte)
 │   └── README.md              # Documentation GUI détaillée
 ├── anonyfiles_api/            # API FastAPI pour appel distant
 │   └── README.md              # Documentation API détaillée
@@ -57,11 +57,11 @@ cd anonyfiles
 
 ### Installation CLI
 
-➡️ Voir [`anonyfiles-cli/README.md`](anonyfiles-cli/README.md)
+➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
 
 ### Installation GUI
 
-➡️ Voir [`anonyfiles-gui/README.md`](anonyfiles-gui/README.md)
+➡️ Voir [`anonyfiles_gui/README.md`](anonyfiles_gui/README.md)
 
 - Interface graphique moderne (Svelte + Rust via Tauri)
 - Drag & drop, sélection intuitive des entités à anonymiser
@@ -80,7 +80,7 @@ cd anonyfiles
 
 Afin d’isoler proprement les dépendances entre la CLI, l’API et la GUI, le projet utilise **trois environnements virtuels distincts** :
 
-- `env-cli` → pour `anonyfiles-cli` (spaCy, typer…)
+- `env-cli` → pour `anonyfiles_cli` (spaCy, typer…)
 - `env-api` → pour `anonyfiles_api` (FastAPI, pydantic…)
 - `env-gui` → pour les éventuelles dépendances Python liées à la GUI
 
@@ -135,8 +135,8 @@ Ces scripts effectuent les actions suivantes :
 
 ## 📖 Documentation détaillée
 
-* **CLI :** Voir [`anonyfiles-cli/README.md`](anonyfiles-cli/README.md)
-* **GUI :** Voir [`anonyfiles-gui/README.md`](anonyfiles-gui/README.md)
+* **CLI :** Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
+* **GUI :** Voir [`anonyfiles_gui/README.md`](anonyfiles_gui/README.md)
 * **API :** Voir [`anonyfiles_api/README.md`](anonyfiles_api/README.md)
 
 ---

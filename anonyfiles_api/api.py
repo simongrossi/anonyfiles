@@ -11,8 +11,8 @@ import uuid
 import sys
 from pathlib import Path
 
-# Ajout du dossier anonyfiles-cli au PYTHONPATH
-cli_path = Path(__file__).parent.parent / "anonyfiles-cli"
+# Ajout du dossier anonyfiles_cli au PYTHONPATH
+cli_path = Path(__file__).parent.parent / "anonyfiles_cli"
 sys.path.append(str(cli_path))
 
 from anonymizer.anonyfiles_core import AnonyfilesEngine
@@ -29,7 +29,7 @@ app.add_middleware(
 )
 
 JOBS_DIR = Path("jobs")
-CONFIG_TEMPLATE_PATH = Path(__file__).parent.parent / "anonyfiles-cli" / "config.yaml"
+CONFIG_TEMPLATE_PATH = Path(__file__).parent.parent / "anonyfiles_cli" / "config.yaml"
 
 def run_anonymization_job(
     job_id: str,

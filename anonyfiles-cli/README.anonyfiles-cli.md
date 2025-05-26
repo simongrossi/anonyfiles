@@ -26,7 +26,7 @@
 * Cloner le dépôt :
     ```sh
     git clone [https://github.com/simongrossi/anonyfiles.git](https://github.com/simongrossi/anonyfiles.git)
-    cd anonyfiles/anonyfiles-cli
+    cd anonyfiles/anonyfiles_cli
     ```
 * Installer les dépendances Python :
     ```sh
@@ -144,7 +144,7 @@ Note : La détection native de PHONE, IBAN, ADDRESS peut nécessiter des modèle
 📂 Structure détaillée du projet
 Plaintext
 
-anonyfiles-cli/
+anonyfiles_cli/
 │
 ├── main.py                # Point d’entrée principal pour la CLI
 ├── requirements.txt       # Dépendances Python

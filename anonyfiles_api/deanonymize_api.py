@@ -8,7 +8,7 @@ try:
     from anonyfiles.anonyfiles_cli.deanonymize import Deanonymizer
 except ImportError:
     import sys
-    sys.path.append(str(Path(__file__).parent.parent / "anonyfiles-cli"))
+    sys.path.append(str(Path(__file__).parent.parent / "anonyfiles_cli"))
     from deanonymize import Deanonymizer
 
 router = APIRouter()

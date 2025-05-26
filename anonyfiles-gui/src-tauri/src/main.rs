@@ -62,8 +62,8 @@ async fn anonymize_text(
         };
 
         let cli_dir = gui_root.parent()
-            .map(|p| p.join("anonyfiles-cli"))
-            .ok_or("Impossible de déterminer le chemin du dossier anonyfiles-cli")?;
+            .map(|p| p.join("anonyfiles_cli"))
+            .ok_or("Impossible de déterminer le chemin du dossier anonyfiles_cli")?;
 
         let temp_dir = gui_root.join("anonyfiles_outputs");
         std::fs::create_dir_all(&temp_dir)
