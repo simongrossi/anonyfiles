@@ -1,0 +1,14 @@
+[Unit]
+Description=Anonyfiles API FastAPI service
+After=network.target
+
+[Service]
+User=debian
+WorkingDirectory=/home/debian/anonyfiles
+Environment="PATH=/home/debian/anonyfiles/env-api/bin"
+ExecStart=/home/debian/anonyfiles/env-api/bin/uvicorn anonyfiles_api.api:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
