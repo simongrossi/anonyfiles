@@ -1,14 +1,10 @@
-<!-- #anonyfiles/anonyfiles_gui/src/lib/components/DataAnonymizer.svelte -->
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import CsvPreview from './CsvPreview.svelte';
-  import XlsxPreview from './XlsxPreview.svelte';
-  import CustomRulesManager from './CustomRulesManager.svelte';
+  // Importez directement les composants essentiels
   import FileDropZone from './FileDropZone.svelte';
-  import ResultView from './ResultView.svelte';
+  import CustomRulesManager from './CustomRulesManager.svelte';
   import AnonymizationOptions from './AnonymizationOptions.svelte';
-  import { inputText, outputText, auditLog, mappingCSV, isLoading, errorMessage } from '../stores/anonymizationStore';
-  import { runAnonymization } from '../utils/anonymize';
+  import { inputText, outputText, auditLog, mappingCSV, isLoading, errorMessage } from '../stores/anonymizationStore'; //
+  import { runAnonymization } from '../utils/anonymize'; //
   import {
     fileType,
     fileName,
@@ -17,11 +13,12 @@
     previewTable,
     previewHeaders,
     handleFile
-  } from '../utils/useFileHandler';
+  } from '../utils/useFileHandler'; //
+  import { createEventDispatcher } from 'svelte';
 
   const dispatch = createEventDispatcher();
 
-  // Variables normales
+  // Les variables et fonctions restent les mêmes
   let customReplacementRules: { pattern: string; replacement: string; isRegex?: boolean }[] = [];
   let customRuleError = "";
 
@@ -106,17 +103,18 @@
     mappingCSV.set("");
     errorMessage.set("");
     fileName.set("");
-    fileType.set("txt");
-    hasHeader.set(true);
-    xlsxFile.set(null);
-    previewTable.set([]);
-    previewHeaders.set([]);
+    fileType.set("txt"); //
+    hasHeader.set(true); //
+    xlsxFile.set(null); //
+    previewTable.set([]); //
+    previewHeaders.set([]); //
     options.forEach((opt) => (selected[opt.key] = opt.default));
     dragActive = false;
     customReplacementRules = [];
     customRuleError = "";
     dispatch("resetRequested");
   }
+
 </script>
 
 {#if $isLoading}
@@ -149,12 +147,26 @@
     on:dragleave={handleDragLeave}
   />
 
-  {#if $fileType === "csv" && $previewTable.length}
-    <CsvPreview headers={$previewHeaders} rows={$previewTable} hasHeader={$hasHeader} />
+  {#if $fileType === "csv" && $previewTable.length > 0}
+    {#await import('./CsvPreview.svelte') then CsvPreviewModule}
+      <svelte:component this={CsvPreviewModule.default} headers={$previewHeaders} rows={$previewTable} hasHeader={$hasHeader} />
+    {/await}
   {/if}
 
   {#if $fileType === "xlsx" && $xlsxFile}
-    <XlsxPreview file={$xlsxFile} hasHeader={$hasHeader} />
+    {#await import('./XlsxPreview.svelte') then XlsxPreviewModule}
+      <svelte:component this={XlsxPreviewModule.default} file={$xlsxFile} hasHeader={$hasHeader} />
+    {/await}
+  {/if}
+
+  {#if $fileName !== ""}
+    <CustomRulesManager
+      currentRules={customReplacementRules}
+      error={customRuleError}
+      on:addrule={handleAddCustomRule}
+      on:removerule={handleRemoveCustomRule}
+      on:clearall={handleClearCustomRules}
+    />
   {/if}
 
   <div class="mb-4">
@@ -183,14 +195,6 @@
   {/if}
 
   <AnonymizationOptions {options} bind:selected isLoading={$isLoading} />
-
-  <CustomRulesManager
-    currentRules={customReplacementRules}
-    error={customRuleError}
-    on:addrule={handleAddCustomRule}
-    on:removerule={handleRemoveCustomRule}
-    on:clearall={handleClearCustomRules}
-  />
 
   <div class="flex flex-col sm:flex-row gap-2 justify-center mt-4">
     <button
@@ -226,7 +230,11 @@
     </button>
   </div>
 
-  <ResultView />
+  {#if $outputText.trim().length > 0 || $isLoading}
+    {#await import('./ResultView.svelte') then ResultViewModule}
+      <svelte:component this={ResultViewModule.default} />
+    {/await}
+  {/if}
 
   {#if $errorMessage}
     <div class="card-panel card-error mt-4">
