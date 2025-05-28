@@ -44,6 +44,7 @@
     event.preventDefault();
     dragActive = true;
   }
+
   function handleDragLeave(event: DragEvent | CustomEvent) {
     const dragEvent = (event instanceof DragEvent) ? event : (event as any).detail?.event;
     if (dragEvent && typeof dragEvent.preventDefault === 'function') {
@@ -111,8 +112,14 @@
     customReplacementRules = [...customReplacementRules, { pattern, replacement, isRegex }];
     customRuleError = "";
   }
+
   function handleRemoveCustomRule(event: CustomEvent<number>) {
     customReplacementRules = customReplacementRules.filter((_, i) => i !== event.detail);
+    customRuleError = "";
+  }
+
+  function handleClearCustomRules() {
+    customReplacementRules = [];
     customRuleError = "";
   }
 
@@ -201,15 +208,15 @@
 
   <AnonymizationOptions {options} bind:selected isLoading={$isLoading} />
 
-  <h3 class="mt-4 mb-2 font-bold text-primary">Règles de remplacement personnalisées</h3>
   <CustomRulesManager
     currentRules={customReplacementRules}
     error={customRuleError}
     on:addrule={handleAddCustomRule}
     on:removerule={handleRemoveCustomRule}
+    on:clearall={handleClearCustomRules}
   />
 
-  <div class="flex gap-4 mt-2 mb-2">
+  <div class="flex gap-4 mt-4 mb-2">
     <button class="btn-primary mr-2"
       on:click={onClickAnonymize}
       disabled={$isLoading || !canAnonymize}
