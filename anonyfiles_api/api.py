@@ -10,7 +10,9 @@ import json
 import uuid
 import os
 
-from anonyfiles_cli.run_logger import log_run_event  # <--- Import absolu
+import sys
+sys.path.append(str(Path(__file__).parent.parent / "anonyfiles_cli"))
+from run_logger import log_run_event  # <--- Import local
 from cli_logger import CLIUsageLogger
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
