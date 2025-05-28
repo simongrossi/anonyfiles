@@ -45,8 +45,12 @@
     event.preventDefault();
     dragActive = true;
   }
-  function handleDragLeave(event: DragEvent) {
-    event.preventDefault();
+  function handleDragLeave(event: DragEvent | CustomEvent) {
+    // If event is a CustomEvent, try to get the original event
+    const dragEvent = (event instanceof DragEvent) ? event : (event as any).detail?.event;
+    if (dragEvent && typeof dragEvent.preventDefault === 'function') {
+      dragEvent.preventDefault();
+    }
     dragActive = false;
   }
 
@@ -149,7 +153,7 @@
 
 <div>
   <FileDropZone
-    {fileName}
+    on:dragleave={e => handleDragLeave(e.detail?.event ?? e)}
     {dragActive}
     on:file={event => handleFile(event.detail.file)}
     on:dragover={handleDragOver}
