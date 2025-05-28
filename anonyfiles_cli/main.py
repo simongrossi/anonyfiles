@@ -1,4 +1,5 @@
 # anonyfiles_cli/main.py
+
 import typer
 from pathlib import Path
 import json
@@ -16,6 +17,52 @@ app = typer.Typer()
 def load_config(config_path: Path) -> dict:
     with open(str(config_path), encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+def assert_file_exists(path: Path, label: str):
+    if not path.is_file():
+        typer.echo(f"Erreur : Le fichier {label} '{path}' n'existe pas.", err=True)
+        raise typer.Exit(1)
+
+def parse_custom_replacements(custom_replacements_json: Optional[str]) -> list:
+    """Parse et valide la chaîne JSON des règles custom"""
+    if not custom_replacements_json:
+        return []
+    try:
+        parsed = json.loads(custom_replacements_json)
+        if isinstance(parsed, list):
+            return parsed
+        else:
+            typer.echo("--custom-replacements-json n'est pas une liste valide.", err=True)
+    except json.JSONDecodeError as e:
+        typer.echo(f"JSON invalide : {e}", err=True)
+    return []
+
+def prepare_outputs(
+    input_file: Path, 
+    output_dir: Path, 
+    append_timestamp: bool, 
+    force: bool
+) -> dict:
+    """
+    Crée le dossier de run, génère tous les chemins d'output, vérifie l'existence.
+    Renvoie un dict avec run_id, run_dir, output, mapping, log.
+    """
+    run_id = timestamp()
+    run_dir = make_run_dir(output_dir, run_id)
+    output = default_output(input_file, run_dir, append_timestamp)
+    mapping = default_mapping(input_file, run_dir)
+    log = default_log(input_file, run_dir)
+    for path in [output, mapping, log]:
+        if path.exists() and not force:
+            typer.echo(f"⚠️ Le fichier {path} existe déjà. Utilisez --force pour l’écraser.", err=True)
+            raise typer.Exit(1)
+    return {
+        "run_id": run_id,
+        "run_dir": run_dir,
+        "output": output,
+        "mapping": mapping,
+        "log": log
+    }
 
 @app.command()
 def anonymize(
@@ -38,38 +85,24 @@ def anonymize(
     """
     typer.echo(f"📂 Anonymisation du fichier : {input_file}")
 
-    if not input_file.is_file():
-        typer.echo(f"Erreur : Le fichier d'entrée '{input_file}' n'existe pas.", err=True)
-        raise typer.Exit(1)
+    assert_file_exists(input_file, "d'entrée")
+    assert_file_exists(config, "de configuration")
 
-    if not config.is_file():
-        typer.echo(f"Erreur : Le fichier de configuration '{config}' n'existe pas.", err=True)
-        raise typer.Exit(1)
+    # Factorisation avancée : préparation des outputs et du dossier run
+    outputs = prepare_outputs(
+        input_file=input_file,
+        output_dir=output_dir,
+        append_timestamp=append_timestamp,
+        force=force
+    )
 
-    run_id = timestamp()
-    run_dir = make_run_dir(output_dir, run_id)
-
-    output = output or default_output(input_file, run_dir, append_timestamp)
-    mapping_output = mapping_output or default_mapping(input_file, run_dir)
-    log_entities = log_entities or default_log(input_file, run_dir)
-
-    for path in [output, mapping_output, log_entities]:
-        if path.exists() and not force:
-            typer.echo(f"⚠️ Le fichier {path} existe déjà. Utilisez --force pour l’écraser.", err=True)
-            raise typer.Exit(1)
+    # Si l'utilisateur a fourni explicitement des chemins, ils priment sur les valeurs par défaut
+    output = output or outputs["output"]
+    mapping_output = mapping_output or outputs["mapping"]
+    log_entities = log_entities or outputs["log"]
 
     config_data = load_config(config)
-    custom_rules_list = []
-
-    if custom_replacements_json:
-        try:
-            parsed = json.loads(custom_replacements_json)
-            if isinstance(parsed, list):
-                custom_rules_list = parsed
-            else:
-                typer.echo("--custom-replacements-json n'est pas une liste valide.", err=True)
-        except json.JSONDecodeError as e:
-            typer.echo(f"JSON invalide : {e}", err=True)
+    custom_rules_list = parse_custom_replacements(custom_replacements_json)
 
     engine = AnonyfilesEngine(
         config=config_data,
@@ -93,7 +126,7 @@ def anonymize(
         )
 
         CLIUsageLogger.log_run({
-            "timestamp": run_id,
+            "timestamp": outputs["run_id"],
             "input_file": str(input_file),
             "output_file": str(output),
             "mapping_file": str(mapping_output),
@@ -133,6 +166,9 @@ def deanonymize(
     typer.echo(f"🔁 Désanonymisation du fichier : {input_file}")
 
     strict = not permissive
+
+    assert_file_exists(input_file, "d'entrée")
+    assert_file_exists(mapping_csv, "de mapping")
 
     with open(input_file, encoding="utf-8") as f:
         content = f.read()
