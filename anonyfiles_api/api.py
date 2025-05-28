@@ -8,18 +8,13 @@ from pathlib import Path
 import shutil
 import json
 import uuid
-import sys
 import os
 
-# Ajout du dossier anonyfiles_cli au PYTHONPATH
-cli_path = Path(__file__).parent.parent / "anonyfiles_cli"
-sys.path.append(str(cli_path))
-
+from anonyfiles_cli.run_logger import log_run_event  # <--- Import absolu
+from cli_logger import CLIUsageLogger
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
 from main import load_config
-from run_logger import log_run_event  # <--- NOUVEL IMPORT CENTRALISÉ
-from cli_logger import CLIUsageLogger
 
 app = FastAPI(root_path="/api")
 
