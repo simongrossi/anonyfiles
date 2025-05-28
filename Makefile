@@ -1,4 +1,4 @@
-.PHONY: setup cli api gui clean test-api dev
+.PHONY: setup spacy-models cli api gui clean test-api dev
 
 setup:
 	@echo "🔧 Installation des dépendances système..."
@@ -26,6 +26,9 @@ setup:
 	env-api/bin/pip install --upgrade pip setuptools wheel
 	env-api/bin/pip install -r anonyfiles_api/requirements.txt
 
+	@echo "📦 Téléchargement du modèle spaCy fr_core_news_md..."
+	env-api/bin/python -m spacy download fr_core_news_md
+
 	@echo "📦 Installation des dépendances pour anonyfiles_gui (si requirements.txt présent)..."
 	if [ -f anonyfiles_gui/requirements.txt ]; then \
 		env-gui/bin/pip install --upgrade pip setuptools wheel && \
@@ -39,6 +42,10 @@ setup:
 
 	@echo "✅ Tous les environnements sont prêts."
 
+spacy-models:
+	@echo "📦 Téléchargement du modèle spaCy fr_core_news_md..."
+	env-api/bin/python -m spacy download fr_core_news_md
+
 cli:
 	env-cli/bin/python anonyfiles_cli/main.py anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
 
@@ -50,9 +57,10 @@ gui:
 	cd anonyfiles_gui && npm run build
 
 test-api:
-	curl -X POST http://83.228.198.65:8000/anonymize/ \
-	-H "Content-Type: application/json" \
-	-d '{"text": "Jean Dupont habite à Paris", "anonymizePersons": true, "anonymizeLocations": true, "anonymizeOrgs": true, "anonymizeEmails": true, "anonymizeDates": true, "custom_replacement_rules": []}'
+	curl -X POST http://83.228.198.65:8000/api/anonymize/ \
+	-F "file=@tests/sample.txt;type=text/plain" \
+	-F 'config_options={"anonymizePersons":true,"anonymizeLocations":true,"anonymizeOrgs":true,"anonymizeEmails":true,"anonymizeDates":true,"custom_replacement_rules":[]}' \
+	-F "file_type=txt"
 
 dev:
 	@echo "🚀 Lancement API + build GUI"
