@@ -171,7 +171,7 @@
   </div>
 {/if}
 
-<div>
+<div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
   <FileDropZone
     on:dragleave={e => handleDragLeave(e.detail?.event ?? e)}
     {dragActive}
@@ -216,8 +216,8 @@
     on:clearall={handleClearCustomRules}
   />
 
-  <div class="flex gap-4 mt-4 mb-2">
-    <button class="btn-primary mr-2"
+  <div class="flex flex-col sm:flex-row gap-2 justify-center mt-4">
+    <button class="btn-primary"
       on:click={onClickAnonymize}
       disabled={$isLoading || !canAnonymize}
       aria-busy={$isLoading}
