@@ -1,4 +1,4 @@
-.PHONY: setup spacy-models cli api gui clean test-api dev
+.PHONY: setup spacy-models cli api gui clean test-api dev systemd-install systemd-start systemd-stop systemd-status
 
 setup:
 	@echo "🔧 Installation des dépendances système..."
@@ -68,3 +68,21 @@ dev:
 
 clean:
 	rm -rf env-cli env-api env-gui
+
+systemd-install:
+	sudo cp deploy/anonyfiles-api.service /etc/systemd/system/anonyfiles-api.service
+	sudo systemctl daemon-reload
+	@echo "Service systemd installé. Tu peux maintenant faire 'make systemd-start'"
+
+systemd-start:
+	sudo systemctl start anonyfiles-api.service
+	sudo systemctl enable anonyfiles-api.service
+	@echo "Service démarré et activé au boot."
+
+systemd-stop:
+	sudo systemctl stop anonyfiles-api.service
+	sudo systemctl disable anonyfiles-api.service
+	@echo "Service stoppé et désactivé."
+
+systemd-status:
+	sudo systemctl status anonyfiles-api.service
