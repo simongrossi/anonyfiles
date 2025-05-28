@@ -1,10 +1,12 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/ResultView.svelte -->
 <script lang="ts">
-  import { inputText, outputText, mappingCSV } from '../stores/anonymizationStore';
+  import { inputText, outputText, mappingCSV, auditLog } from '../stores/anonymizationStore';
   let viewMode: 'anonymized' | 'original' | 'split' | 'mapping' = 'anonymized';
 
-  // Variable reactive pour savoir si le texte anonymisé est non vide (après trim)
   $: hasOutput = $outputText && $outputText.trim().length > 0;
+
+  // Calcule le total des remplacements dans l’audit log
+  $: totalReplacements = $auditLog.reduce((sum, item) => sum + (item.count || 0), 0);
 
   function exportOutput() {
     const blob = new Blob([$outputText], { type: "text/plain;charset=utf-8" });
@@ -42,7 +44,10 @@
 
 {#if hasOutput}
   <div class="card shadow-lg bg-white dark:bg-zinc-950 border p-4 mt-4">
-    <h3 class="font-bold text-lg mb-2 text-primary">Résultat de l'anonymisation</h3>
+    <h3 class="font-bold text-lg mb-1 text-primary">Résultat de l'anonymisation</h3>
+    <p class="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+      Total substitutions effectuées : <strong>{totalReplacements}</strong>
+    </p>
 
     <div class="flex gap-2 mb-2">
       <button class="btn-secondary" on:click={() => viewMode = 'anonymized'} class:btn-active={viewMode === 'anonymized'}>Texte anonymisé</button>
