@@ -16,6 +16,7 @@
     let localInput = "";
     let localOutput = "";
     let localAuditLog = [];
+    let mappingCSV: string = ""; // Ajouté
     $: totalReplacements = localAuditLog.reduce((sum, log) => sum + (log.count || 0), 0);
 
     onMount(() => {
@@ -75,6 +76,21 @@
         }, 200);
     }
 
+    function exportMapping() {
+        if (!mappingCSV.trim()) return;
+        const blob = new Blob([mappingCSV], { type: "text/csv;charset=utf-8" });
+        const baseName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "anonymized";
+        const link = document.createElement("a");
+        link.download = `${baseName}_mapping.csv`;
+        link.href = URL.createObjectURL(blob);
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+            URL.revokeObjectURL(link.href);
+            document.body.removeChild(link);
+        }, 200);
+    }
+
     $: canAnonymize =
         (fileType === "txt" && localInput.trim().length > 0) ||
         (fileType === "csv" && localInput.trim().length > 0) ||
@@ -98,15 +114,16 @@
         previewTable = rows.slice(1, 1 + PREVIEW_ROW_LIMIT).map(row => row.split(delimiter));
     }
 
-    // --- DRAG & DROP ET FICHIER ---
     function handleDragOver(event: DragEvent) {
         event.preventDefault();
         dragActive = true;
     }
+
     function handleDragLeave(event: DragEvent) {
         event.preventDefault();
         dragActive = false;
     }
+
     function handleFile(file: File) {
         if (!file) return;
         localInput = "";
@@ -153,6 +170,7 @@
         customReplacementRules = [...customReplacementRules, { pattern, replacement, isRegex }];
         customRuleError = "";
     }
+
     function handleRemoveCustomRule(event: CustomEvent<number>) {
         customReplacementRules = customReplacementRules.filter((_, i) => i !== event.detail);
         customRuleError = "";
@@ -169,41 +187,36 @@
         localOutput = "";
         errorMessage = "";
         localAuditLog = [];
+        mappingCSV = "";
         if (pollingInterval) clearInterval(pollingInterval);
 
         let configForBackend: { [key: string]: any } = {};
         options.forEach(opt => configForBackend[opt.key] = !!selected[opt.key]);
         configForBackend["custom_replacement_rules"] = customReplacementRules;
 
-        // Ajoute ce log pour la vérification étape 1
-        console.log("CONFIG ENVOYÉE AU BACKEND :", JSON.stringify(configForBackend, null, 2));
-
-        let dataToSend: string | File | null = null;
-        let currentInputFileName = fileName || (fileType === 'txt' ? 'input.txt' : `input.${fileType}`);
-
-        if (localInput.trim().length > 0 && ['txt', 'csv', 'json'].includes(fileType)) {
-            dataToSend = localInput;
-        } else if (xlsxFile && fileType === 'xlsx') {
-            dataToSend = xlsxFile;
-        } else if (['docx', 'pdf'].includes(fileType) && fileName.length > 0) {
-            dataToSend = null; // À compléter plus tard
-        } else {
-            errorMessage = "Source de données invalide pour l'anonymisation.";
-            isLoading = false;
-            return;
-        }
-
-        // *** MODIF ICI ***
         const API_URL = import.meta.env.VITE_ANONYFILES_API_URL;
         if (!API_URL) {
             errorMessage = "La variable d'environnement VITE_ANONYFILES_API_URL doit être définie !";
             isLoading = false;
             return;
         }
-        // *** FIN MODIF ***
 
         try {
             const formData = new FormData();
+            let dataToSend: string | File | null = null;
+            let currentInputFileName = fileName || (fileType === 'txt' ? 'input.txt' : `input.${fileType}`);
+
+            if (localInput.trim().length > 0 && ['txt', 'csv', 'json'].includes(fileType)) {
+                dataToSend = localInput;
+            } else if (xlsxFile && fileType === 'xlsx') {
+                dataToSend = xlsxFile;
+            } else if (['docx', 'pdf'].includes(fileType) && fileName.length > 0) {
+                dataToSend = null; // à implémenter
+            } else {
+                errorMessage = "Source de données invalide pour l'anonymisation.";
+                isLoading = false;
+                return;
+            }
 
             if (dataToSend instanceof File) {
                 formData.append('file', dataToSend, currentInputFileName);
@@ -211,6 +224,7 @@
                 const blob = new Blob([dataToSend ?? ""], { type: 'text/plain;charset=utf-8' });
                 formData.append('file', blob, currentInputFileName);
             }
+
             formData.append('config_options', JSON.stringify(configForBackend));
             formData.append('file_type', fileType);
             formData.append('has_header', String(hasHeader));
@@ -220,9 +234,7 @@
                 body: formData,
             });
             const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.detail || 'Erreur lors de la création du job.');
-            }
+            if (!response.ok) throw new Error(data.detail || 'Erreur lors de la création du job.');
             const jobId = data.job_id;
             if (!jobId) throw new Error("job_id absent de la réponse API");
 
@@ -233,7 +245,7 @@
                     clearInterval(pollingInterval);
                     localOutput = statusData.anonymized_text;
                     localAuditLog = statusData.audit_log || [];
-                    // --- ICI FORCAGE DE LA VUE ANONYMISÉE ---
+                    mappingCSV = statusData.mapping_csv || "";
                     showSplitView = false;
                     showOriginal = false;
                     isLoading = false;
@@ -260,6 +272,7 @@
         localInput = "";
         localOutput = "";
         localAuditLog = [];
+        mappingCSV = "";
         fileName = "";
         fileType = "txt";
         errorMessage = "";
@@ -279,22 +292,18 @@
     let showOriginal = false;
 </script>
 
+<!-- Interface -->
 {#if isLoading}
-    <div class="fixed inset-0 z-50 bg-black bg-opacity-40 flex flex-col items-center justify-center">
-        <div class="flex flex-col items-center gap-3 p-8 bg-white rounded-2xl shadow-xl border border-zinc-200">
-            <svg class="animate-spin h-8 w-8 text-blue-700 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-            </svg>
-            <span class="font-bold text-lg text-zinc-800 text-center">
-                Anonymisation en cours…
-            </span>
-            <span class="text-zinc-500 text-sm text-center max-w-xs">
-                Pour les gros fichiers, le traitement peut prendre plusieurs secondes.<br/>
-                Merci de patienter, la fenêtre reste responsive.
-            </span>
-        </div>
+  <div class="fixed inset-0 z-50 bg-black bg-opacity-40 flex flex-col items-center justify-center">
+    <div class="flex flex-col items-center gap-3 p-8 bg-white rounded-2xl shadow-xl border border-zinc-200">
+      <svg class="animate-spin h-8 w-8 text-blue-700 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+      </svg>
+      <span class="font-bold text-lg text-zinc-800 text-center">Anonymisation en cours…</span>
+      <span class="text-zinc-500 text-sm text-center max-w-xs">Pour les gros fichiers, le traitement peut prendre plusieurs secondes.<br/>Merci de patienter, la fenêtre reste responsive.</span>
     </div>
+  </div>
 {/if}
 
 <div>
@@ -307,87 +316,78 @@
   />
 
   {#if fileType === "csv" && previewTable.length}
-      <CsvPreview headers={previewHeaders} rows={previewTable} hasHeader={hasHeader} />
+    <CsvPreview headers={previewHeaders} rows={previewTable} hasHeader={hasHeader} />
   {/if}
 
   {#if fileType === "xlsx" && xlsxFile}
-      <XlsxPreview file={xlsxFile} hasHeader={hasHeader} />
+    <XlsxPreview file={xlsxFile} hasHeader={hasHeader} />
   {/if}
 
   <div class="mb-4">
-      <label for="inputText" class="font-semibold text-base text-zinc-700 dark:text-zinc-200">Texte à anonymiser :</label>
-      <textarea
-          id="inputText"
-          class="input-text"
-          placeholder="Collez ou saisissez votre texte ici..."
-          bind:value={localInput}
-          rows="4"
-      ></textarea>
+    <label for="inputText" class="font-semibold text-base text-zinc-700 dark:text-zinc-200">Texte à anonymiser :</label>
+    <textarea
+      id="inputText"
+      class="input-text"
+      placeholder="Collez ou saisissez votre texte ici..."
+      bind:value={localInput}
+      rows="4"
+    ></textarea>
   </div>
 
   {#if fileType === "csv" || fileType === "xlsx"}
-      <div class="mb-4 flex items-center gap-2">
-          <input type="checkbox" id="hasHeader" bind:checked={hasHeader} class="accent-blue-600 dark:accent-blue-400" />
-          <label for="hasHeader" class="select-none text-zinc-700 dark:text-zinc-200">Le fichier contient une ligne d’en-tête</label>
-      </div>
+    <div class="mb-4 flex items-center gap-2">
+      <input type="checkbox" id="hasHeader" bind:checked={hasHeader} class="accent-blue-600 dark:accent-blue-400" />
+      <label for="hasHeader" class="select-none text-zinc-700 dark:text-zinc-200">Le fichier contient une ligne d’en-tête</label>
+    </div>
   {/if}
 
   <AnonymizationOptions {options} bind:selected {isLoading} />
 
   <h3 class="mt-4 mb-2 font-bold text-primary">Règles de remplacement personnalisées</h3>
   <CustomRulesManager
-      currentRules={customReplacementRules}
-      error={customRuleError}
-      on:addrule={handleAddCustomRule}
-      on:removerule={handleRemoveCustomRule}
+    currentRules={customReplacementRules}
+    error={customRuleError}
+    on:addrule={handleAddCustomRule}
+    on:removerule={handleRemoveCustomRule}
   />
 
   <div class="flex gap-4 mt-2 mb-2">
-      <button
-          class="btn-primary mr-2"
-          on:click={anonymize}
-          disabled={isLoading || !canAnonymize}
-          aria-busy={isLoading}
-      >
-          {#if isLoading}
-              <svg class="animate-spin h-5 w-5 mr-1 inline-block align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-              </svg>
-              Traitement en cours…
-          {:else}
-              Anonymiser
-          {/if}
-      </button>
-      <button
-          class="btn-secondary"
-          type="button"
-          on:click={resetAll}
-          disabled={isLoading}
-      >
-          Réinitialiser
-      </button>
+    <button class="btn-primary mr-2" on:click={anonymize} disabled={isLoading || !canAnonymize} aria-busy={isLoading}>
+      {#if isLoading}
+        <svg class="animate-spin h-5 w-5 mr-1 inline-block align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
+        Traitement en cours…
+      {:else}
+        Anonymiser
+      {/if}
+    </button>
+    <button class="btn-secondary" type="button" on:click={resetAll} disabled={isLoading}>
+      Réinitialiser
+    </button>
   </div>
 
   <ResultView
-      inputText={localInput}
-      outputText={localOutput}
-      auditLog={localAuditLog}
-      showSplitView={showSplitView}
-      showOriginal={showOriginal}
-      copied={copied}
-      onToggleSplitView={() => showSplitView = !showSplitView}
-      onToggleShowOriginal={() => showOriginal = !showOriginal}
-      onCopyOutput={copyOutput}
-      onExportOutput={exportOutput}
-      isLoading={isLoading}
-      on:showLog={() => dispatch('showLog')}
+    inputText={localInput}
+    outputText={localOutput}
+    auditLog={localAuditLog}
+    showSplitView={showSplitView}
+    showOriginal={showOriginal}
+    copied={copied}
+    onToggleSplitView={() => showSplitView = !showSplitView}
+    onToggleShowOriginal={() => showOriginal = !showOriginal}
+    onCopyOutput={copyOutput}
+    onExportOutput={exportOutput}
+    onExportMapping={exportMapping}
+    isLoading={isLoading}
+    on:showLog={() => dispatch('showLog')}
   />
 
   {#if errorMessage}
-      <div class="card-panel card-error mt-4">
-          <strong>Erreur lors de l’anonymisation :</strong>
-          <pre class="whitespace-pre-wrap text-xs">{errorMessage}</pre>
-      </div>
+    <div class="card-panel card-error mt-4">
+      <strong>Erreur lors de l’anonymisation :</strong>
+      <pre class="whitespace-pre-wrap text-xs">{errorMessage}</pre>
+    </div>
   {/if}
 </div>
