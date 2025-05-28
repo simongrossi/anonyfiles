@@ -10,13 +10,14 @@ import json
 import uuid
 import os
 
-# Les importations suivantes sont modifiées pour utiliser des chemins absolus
-# depuis la racine du projet, en supposant que 'anonyfiles_cli' est un package accessible.
-from anonyfiles_cli.anonymizer.run_logger import log_run_event
-from anonyfiles_cli.cli_logger import CLIUsageLogger
-from anonyfiles_cli.anonymizer.anonyfiles_core import AnonyfilesEngine
-from anonyfiles_cli.anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
-from anonyfiles_cli.main import load_config # Assurez-vous que load_config est bien dans anonyfiles_cli/main.py
+# Patch d'import robuste pour Windows/Uvicorn : ajoute le dossier anonyfiles_cli au sys.path AVANT tout import
+import sys
+sys.path.append(str(Path(__file__).parent.parent / "anonyfiles_cli"))
+from anonymizer.run_logger import log_run_event
+from cli_logger import CLIUsageLogger
+from anonymizer.anonyfiles_core import AnonyfilesEngine
+from anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
+from main import load_config
 
 app = FastAPI(root_path="/api")
 
@@ -29,9 +30,6 @@ app.add_middleware(
 )
 
 JOBS_DIR = Path("jobs")
-# Correction du chemin vers config.yaml pour qu'il soit relatif au fichier api.py
-# ou, mieux, un chemin absolu ou configurable si possible.
-# Pour l'instant, on garde la logique précédente, mais cela peut être un point d'attention.
 CONFIG_TEMPLATE_PATH = Path(__file__).parent.parent / "anonyfiles_cli" / "config.yaml"
 
 def run_anonymization_job(
@@ -81,7 +79,7 @@ def run_anonymization_job(
         log_run_event(
             CLIUsageLogger,
             run_id=job_id,
-            input_file=str(input_path), # S'assurer que les chemins sont des chaînes pour le log
+            input_file=str(input_path),
             output_file=str(output_path),
             mapping_file=str(mapping_output_path),
             log_entities_file=str(log_entities_path),
@@ -118,11 +116,11 @@ def run_anonymization_job(
             json.dump(status, f)
 
 @app.get("/status")
-def status_endpoint(): # Renommé pour éviter conflit de nom avec la variable status
+def status_endpoint():
     return {"status": "ok"}
 
 @app.post("/anonymize/")
-async def anonymize_file_endpoint( # Renommé pour clarté
+async def anonymize_file_endpoint(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     config_options: str = Form(...),
@@ -160,25 +158,25 @@ async def anonymize_file_endpoint( # Renommé pour clarté
     return {"job_id": job_id, "status": "pending"}
 
 @app.get("/anonymize_status/{job_id}")
-async def anonymize_status_endpoint(job_id: str): # Renommé pour clarté
+async def anonymize_status_endpoint(job_id: str):
     job_dir = JOBS_DIR / job_id
     status_file = job_dir / "status.json"
     if not status_file.exists():
         return JSONResponse(status_code=404, content={"error": "Job not found"})
 
     with open(status_file, "r", encoding="utf-8") as f:
-        current_status = json.load(f) # Renommé pour éviter conflit
+        current_status = json.load(f)
 
     if current_status["status"] == "finished":
-        output_file_glob = list(job_dir.glob("*_anonymise_*.*")) # Plus générique pour l'extension
-        output_file = next(sorted(output_file_glob, key=os.path.getmtime, reverse=True), None) if output_file_glob else None
+        # Sélectionne le fichier le plus récent
+        output_candidates = sorted(list(job_dir.glob("*_anonymise_*.*")), key=os.path.getmtime, reverse=True)
+        output_file = output_candidates[0] if output_candidates else None
 
-        mapping_file_glob = list(job_dir.glob("*_mapping_*.csv"))
-        mapping_file = next(sorted(mapping_file_glob, key=os.path.getmtime, reverse=True), None) if mapping_file_glob else None
-        
-        log_file_glob = list(job_dir.glob("*_entities_*.csv"))
-        log_file = next(sorted(log_file_glob, key=os.path.getmtime, reverse=True), None) if log_file_glob else None
+        mapping_candidates = sorted(list(job_dir.glob("*_mapping_*.csv")), key=os.path.getmtime, reverse=True)
+        mapping_file = mapping_candidates[0] if mapping_candidates else None
 
+        log_candidates = sorted(list(job_dir.glob("*_entities_*.csv")), key=os.path.getmtime, reverse=True)
+        log_file = log_candidates[0] if log_candidates else None
 
         anonymized_text = output_file.read_text(encoding="utf-8") if output_file and output_file.exists() else ""
         mapping_csv = mapping_file.read_text(encoding="utf-8") if mapping_file and mapping_file.exists() else ""
@@ -199,17 +197,17 @@ async def anonymize_status_endpoint(job_id: str): # Renommé pour clarté
         }
     elif current_status["status"] == "error":
         return current_status
-    else: # pending
+    else:
         return current_status
 
 @app.get("/files/{job_id}/{file_type}")
-async def get_file_endpoint(job_id: str, file_type: str, as_attachment: bool = False): # Renommé pour clarté
+async def get_file_endpoint(job_id: str, file_type: str, as_attachment: bool = False):
     job_dir = JOBS_DIR / job_id
     if not job_dir.exists():
         return JSONResponse(status_code=404, content={"error": "Job not found"})
 
     patterns = {
-        "output": "*_anonymise_*.*", # Plus générique pour l'extension
+        "output": "*_anonymise_*.*",
         "mapping": "*_mapping_*.csv",
         "log": "*_entities_*.csv",
         "audit": "audit_log.json"
@@ -228,7 +226,6 @@ async def get_file_endpoint(job_id: str, file_type: str, as_attachment: bool = F
         matches = sorted(list(job_dir.glob(pattern)), key=lambda p: os.path.getmtime(p) if p.exists() else 0, reverse=True)
         if matches:
             file_path = matches[0]
-
 
     if not file_path or not file_path.exists():
         return JSONResponse(status_code=404, content={"error": f"{file_type} file not found for job {job_id} with pattern {pattern}"})
