@@ -1,21 +1,23 @@
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from typing import Optional
 from pathlib import Path
 import shutil
 import json
 import uuid
 import sys
+import os
 
 # Ajout du dossier anonyfiles_cli au PYTHONPATH
 cli_path = Path(__file__).parent.parent / "anonyfiles_cli"
 sys.path.append(str(cli_path))
 
 from anonymizer.anonyfiles_core import AnonyfilesEngine
+from anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
 from main import load_config
 
-app = FastAPI(root_path="/api")  # <-- root_path ajouté
+app = FastAPI(root_path="/api")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +40,7 @@ def run_anonymization_job(
     try:
         print("\n=== [JOB] RÈGLES CUSTOM PASSÉES AU MOTEUR ===")
         print(json.dumps(custom_rules, indent=2, ensure_ascii=False))
+
         base_config = load_config(CONFIG_TEMPLATE_PATH)
         exclude_entities = []
         if not config_options.get("anonymizePersons", True):
@@ -51,9 +54,9 @@ def run_anonymization_job(
         if not config_options.get("anonymizeDates", True):
             exclude_entities.append("DATE")
 
-        output_path = input_path.parent / "result.txt"
-        log_entities_path = input_path.parent / "log.csv"
-        mapping_output_path = input_path.parent / "mapping.csv"
+        output_path = default_output(input_path, input_path.parent, append_timestamp=True)
+        log_entities_path = default_log(input_path, input_path.parent)
+        mapping_output_path = default_mapping(input_path, input_path.parent)
 
         engine = AnonyfilesEngine(
             config=base_config,
@@ -70,22 +73,22 @@ def run_anonymization_job(
             mapping_output_path=mapping_output_path,
         )
 
-        # Écrire l'état de job terminé et le résultat
         status = {"status": "finished", "error": None}
         with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
             json.dump(status, f)
         with open(input_path.parent / "audit_log.json", "w", encoding="utf-8") as f:
             json.dump(result.get("audit_log", []), f)
+
     except Exception as e:
         status = {"status": "error", "error": str(e)}
         with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
             json.dump(status, f)
 
-@app.get("/status")  # prefixé automatiquement par /api
+@app.get("/status")
 def status():
     return {"status": "ok"}
 
-@app.post("/anonymize/")  # prefixé automatiquement par /api
+@app.post("/anonymize/")
 async def anonymize_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -104,10 +107,10 @@ async def anonymize_file(
 
     config_opts = json.loads(config_options)
     custom_rules = config_opts.get("custom_replacement_rules")
-    
+
     print("\n=== [ROUTE] RÈGLES CUSTOM REÇUES ===")
     print(json.dumps(custom_rules, indent=2, ensure_ascii=False))
-    
+
     has_header_bool = None
     if has_header is not None:
         has_header_bool = has_header.lower() in ("1", "true", "yes", "on")
@@ -123,29 +126,70 @@ async def anonymize_file(
 
     return {"job_id": job_id, "status": "pending"}
 
-@app.get("/anonymize_status/{job_id}")  # prefixé automatiquement par /api
+@app.get("/anonymize_status/{job_id}")
 async def anonymize_status(job_id: str):
     job_dir = JOBS_DIR / job_id
     status_file = job_dir / "status.json"
     if not status_file.exists():
         return JSONResponse(status_code=404, content={"error": "Job not found"})
+
     with open(status_file, "r", encoding="utf-8") as f:
         status = json.load(f)
+
     if status["status"] == "finished":
-        result_file = job_dir / "result.txt"
+        output_file = next(sorted(job_dir.glob("*_anonymise_*.txt"), key=os.path.getmtime, reverse=True), None)
+        mapping_file = next(sorted(job_dir.glob("*_mapping_*.csv"), key=os.path.getmtime, reverse=True), None)
+        log_file = next(sorted(job_dir.glob("*_entities_*.csv"), key=os.path.getmtime, reverse=True), None)
+
+        anonymized_text = output_file.read_text(encoding="utf-8") if output_file else ""
+        mapping_csv = mapping_file.read_text(encoding="utf-8") if mapping_file else ""
+        log_csv = log_file.read_text(encoding="utf-8") if log_file else ""
+
         audit_log_file = job_dir / "audit_log.json"
-        anonymized_text = result_file.read_text(encoding="utf-8") if result_file.exists() else ""
+        audit_log = []
         if audit_log_file.exists():
             with open(audit_log_file, "r", encoding="utf-8") as f:
                 audit_log = json.load(f)
-        else:
-            audit_log = []
+
         return {
             "status": "finished",
             "anonymized_text": anonymized_text,
+            "mapping_csv": mapping_csv,
+            "log_csv": log_csv,
             "audit_log": audit_log,
         }
     elif status["status"] == "error":
         return status
     else:
         return status
+
+@app.get("/files/{job_id}/{file_type}")
+async def get_file(job_id: str, file_type: str, as_attachment: bool = False):
+    job_dir = JOBS_DIR / job_id
+    if not job_dir.exists():
+        return JSONResponse(status_code=404, content={"error": "Job not found"})
+
+    patterns = {
+        "output": "*_anonymise_*.txt",
+        "mapping": "*_mapping_*.csv",
+        "log": "*_entities_*.csv",
+        "audit": "audit_log.json"
+    }
+
+    if file_type not in patterns:
+        return JSONResponse(status_code=400, content={"error": "Invalid file_type"})
+
+    pattern = patterns[file_type]
+    if file_type == "audit":
+        file_path = job_dir / pattern
+    else:
+        matches = sorted(job_dir.glob(pattern), key=os.path.getmtime, reverse=True)
+        file_path = matches[0] if matches else None
+
+    if not file_path or not file_path.exists():
+        return JSONResponse(status_code=404, content={"error": f"{file_type} file not found"})
+
+    if as_attachment:
+        return FileResponse(file_path, filename=file_path.name, media_type="application/octet-stream")
+    else:
+        return JSONResponse(content={"filename": file_path.name, "content": file_path.read_text(encoding="utf-8")})
