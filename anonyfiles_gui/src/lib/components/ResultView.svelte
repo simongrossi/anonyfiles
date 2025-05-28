@@ -60,8 +60,10 @@
       <div>
         <label class="font-semibold text-zinc-700 text-base mb-1" for="anonymized-text">Texte anonymisé</label>
         <pre id="anonymized-text" class="anonymized-text">{$outputText}</pre>
-        <button class="btn-primary mr-2" on:click={copyOutput}>Copier</button>
-        <button class="btn-secondary" on:click={exportOutput}>Exporter</button>
+        <div class="buttons-container">
+          <button class="btn-primary" on:click={copyOutput}>Copier</button>
+          <button class="btn-secondary ml-2" on:click={exportOutput}>Exporter</button>
+        </div>
       </div>
     {/if}
 
@@ -95,3 +97,14 @@
     {/if}
   </div>
 {/if}
+
+<style>
+  .buttons-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+  .ml-2 {
+    margin-left: 0.5rem;
+  }
+</style>
