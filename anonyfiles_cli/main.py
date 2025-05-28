@@ -1,8 +1,6 @@
 # anonyfiles_cli/main.py
 import typer
 from pathlib import Path
-from datetime import datetime
-import os
 import json
 from typing import Optional, List
 from cli_logger import CLIUsageLogger
@@ -10,6 +8,7 @@ from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.csv_processor import CsvProcessor
 from anonymizer.txt_processor import TxtProcessor
 from anonymizer.deanonymize import Deanonymizer
+from anonymizer.file_utils import timestamp, ensure_folder, make_run_dir, default_output, default_mapping, default_log
 import yaml
 
 app = typer.Typer()
@@ -17,31 +16,6 @@ app = typer.Typer()
 def load_config(config_path: Path) -> dict:
     with open(str(config_path), encoding="utf-8") as f:
         return yaml.safe_load(f)
-
-def timestamp() -> str:
-    return datetime.now().strftime("%Y%m%d-%H%M%S")
-
-def ensure_folder(folder: Path) -> None:
-    os.makedirs(folder, exist_ok=True)
-
-def make_run_dir(base_output_dir: Path, run_id: str) -> Path:
-    run_dir = base_output_dir / "runs" / run_id
-    ensure_folder(run_dir)
-    return run_dir
-
-def default_output(input_file: Path, run_dir: Path, append_timestamp: bool) -> Path:
-    base = input_file.stem
-    ext = input_file.suffix
-    filename = f"{base}_anonymise_{timestamp()}{ext}" if append_timestamp else f"{base}_anonymise{ext}"
-    return run_dir / filename
-
-def default_mapping(input_file: Path, run_dir: Path) -> Path:
-    base = input_file.stem
-    return run_dir / f"{base}_mapping_{timestamp()}.csv"
-
-def default_log(input_file: Path, run_dir: Path) -> Path:
-    base = input_file.stem
-    return run_dir / f"{base}_entities_{timestamp()}.csv"
 
 @app.command()
 def anonymize(
