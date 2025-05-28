@@ -55,3 +55,6 @@ anonyfiles_gui/package-lock.json
 anonyfiles_gui/src-tauri/Cargo.lock
 anonyfiles_gui/package-lock.json
 anonyfiles_cli/test_outputs_exemple_txt/exemple_anonymized.txt
+/anonyfiles_cli/env-cli
+/anonyfiles_cli/logs
+/anonyfiles_cli/runs
