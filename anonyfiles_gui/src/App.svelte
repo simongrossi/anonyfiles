@@ -1,8 +1,10 @@
 <script lang="ts">
-  import DataAnonymizer from './lib/DataAnonymizer.svelte';
-  import DeAnonymizer from './lib/DeAnonymizer.svelte';
-  import ConfigurationView from './lib/ConfigurationView.svelte';
-  import AuditLogSummary from './lib/AuditLogSummary.svelte';
+  import DataAnonymizer from './lib/components/DataAnonymizer.svelte';
+  import DeAnonymizer from './lib/components/DeAnonymizer.svelte';
+  import ConfigurationView from './lib/components/ConfigurationView.svelte';
+  import AuditLogSummary from './lib/components/AuditLogSummary.svelte';
+
+  import { inputText, outputText, auditLog } from './lib/stores/anonymizationStore';
 
   let tab = 'anonymizer';
   const tabs = [
@@ -12,25 +14,18 @@
     { key: 'config', icon: '⚙️', label: 'Configuration' }
   ];
 
-  let lastInput = "";
-  let lastOutput = "";
-  let lastAuditLog = [];
-
-  function handleAnonymizationComplete(event) {
-    lastInput = event.detail.inputText;
-    lastOutput = event.detail.outputText;
-    lastAuditLog = event.detail.auditLog;
+  function handleShowLog() {
+    tab = 'log';
   }
 
   function handleReset() {
-    lastInput = "";
-    lastOutput = "";
-    lastAuditLog = [];
+    inputText.set('');
+    outputText.set('');
+    auditLog.set([]);
   }
 </script>
 
 <div class="flex h-screen bg-zinc-50 dark:bg-zinc-900">
-  <!-- Sidebar -->
   <nav class="w-64 min-w-max bg-gray-800 text-white flex flex-col py-6 shadow-lg gap-2 min-h-screen">
     <div class="flex flex-col gap-2 px-6">
       {#each tabs as t}
@@ -60,22 +55,17 @@
     </a>
   </nav>
 
-  <!-- Contenu principal -->
   <main class="main-container overflow-y-auto flex-1">
     <div class="mx-auto max-w-5xl w-full px-4 py-8">
       {#if tab === 'anonymizer'}
         <DataAnonymizer
-          inputText={lastInput}
-          outputText={lastOutput}
-          auditLog={lastAuditLog}
-          on:anonymizationComplete={handleAnonymizationComplete}
+          on:showLog={handleShowLog}
           on:resetRequested={handleReset}
-          on:showLog={() => tab = 'log'}
         />
       {:else if tab === 'deanonymizer'}
         <DeAnonymizer />
       {:else if tab === 'log'}
-        <AuditLogSummary auditLog={lastAuditLog} totalReplacements={lastAuditLog.reduce((s, l) => s + (l.count || 0), 0)} />
+        <AuditLogSummary />
       {:else if tab === 'config'}
         <ConfigurationView />
       {/if}
