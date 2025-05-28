@@ -10,6 +10,7 @@ from anonymizer.csv_processor import CsvProcessor
 from anonymizer.txt_processor import TxtProcessor
 from anonymizer.deanonymize import Deanonymizer
 from anonymizer.file_utils import timestamp, ensure_folder, make_run_dir, default_output, default_mapping, default_log
+from anonymizer.run_logger import log_run_event  # <-- Import centralisé
 import yaml
 
 app = typer.Typer()
@@ -125,18 +126,20 @@ def anonymize(
             **processor_kwargs
         )
 
-        CLIUsageLogger.log_run({
-            "timestamp": outputs["run_id"],
-            "input_file": str(input_file),
-            "output_file": str(output),
-            "mapping_file": str(mapping_output),
-            "log_entities_file": str(log_entities),
-            "entities_detected": result.get("entities_detected", []),
-            "total_replacements": result.get("total_replacements", 0),
-            "rules_applied": result.get("audit_log", []),
-            "success": result.get("status") == "success",
-            "error": result.get("error", None)
-        })
+        # LOGGING CENTRALISÉ
+        log_run_event(
+            CLIUsageLogger,
+            run_id=outputs["run_id"],
+            input_file=input_file,
+            output_file=output,
+            mapping_file=mapping_output,
+            log_entities_file=log_entities,
+            entities_detected=result.get("entities_detected", []),
+            total_replacements=result.get("total_replacements", 0),
+            audit_log=result.get("audit_log", []),
+            status=result.get("status"),
+            error=result.get("error", None)
+        )
 
         if result.get("status") == "error":
             typer.echo(f"❌ Erreur : {result.get('error')}", err=True)
