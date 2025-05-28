@@ -402,9 +402,16 @@ async def get_file_endpoint(job_id: uuid.UUID, file_type: str, as_attachment: bo
         raise HTTPException(status_code=404, detail="Job not found")
 
     patterns = {
-        "output": "*_anonymise_*.*", "mapping": "*_mapping_*.csv",
-        "log": "*_entities_*.csv", "audit": "audit_log.json"
+        # Anonymization
+        "output": "*_anonymise_*.*",
+        "mapping": "*_mapping_*.csv",
+        "log": "*_entities_*.csv",
+        # Deanonymization
+        "deanonymized": "*_deanonymise_*.txt",
+        "report": "report.json",
+        "audit": "audit_log.json"
     }
+
     if file_type not in patterns:
         logger.warning(f"Téléchargement de fichier: Type de fichier invalide '{file_type}' pour job {job_id_str}.")
         raise HTTPException(status_code=400, detail="Invalid file_type")
@@ -413,8 +420,8 @@ async def get_file_endpoint(job_id: uuid.UUID, file_type: str, as_attachment: bo
     file_path: Optional[Path] = None
 
     def find_file_sync() -> Optional[Path]:
-        if file_type == "audit":
-            p = job_dir / pattern # C'est un nom de fichier direct
+        if file_type in {"audit", "report"}:
+            p = job_dir / pattern
             return p if p.exists() else None
         else:
             matches = sorted(
@@ -429,8 +436,7 @@ async def get_file_endpoint(job_id: uuid.UUID, file_type: str, as_attachment: bo
         logger.error(f"Job {job_id_str}: Erreur lors de la recherche du fichier '{file_type}': {e_find}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error finding file '{file_type}' for job {job_id_str}")
 
-
-    if not file_path: # Implique not file_path.exists() aussi
+    if not file_path:
         error_detail = f"{file_type.capitalize()} file not found for job {job_id_str}."
         logger.warning(f"Téléchargement de fichier: {error_detail}")
         raise HTTPException(status_code=404, detail=error_detail)
@@ -442,11 +448,12 @@ async def get_file_endpoint(job_id: uuid.UUID, file_type: str, as_attachment: bo
         try:
             async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
                 content_str = await f.read()
-            
-            if file_type == "audit": # Contenu est JSON
+
+            if file_type in {"audit", "report"}:
                 file_content = json.loads(content_str)
-            else: # Contenu est texte/CSV
+            else:
                 file_content = content_str
+
             return JSONResponse(content={"filename": file_path.name, "content": file_content})
         except Exception as e_read_serve:
             logger.error(f"Job {job_id_str}: Erreur lors de la lecture du fichier '{file_path.name}' pour la réponse JSON: {e_read_serve}", exc_info=True)

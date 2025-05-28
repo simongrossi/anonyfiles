@@ -52,7 +52,6 @@
       formData.append('mapping', mappingFile, mappingFile.name);
       formData.append('permissive', String(permissive));
 
-      // Création du job
       const response = await fetch(`${API_URL}/api/deanonymize/`, {
         method: 'POST',
         body: formData,
@@ -64,7 +63,6 @@
       jobId = data.job_id;
       if (!jobId) throw new Error("job_id absent de la réponse API");
 
-      // Polling du statut
       pollingInterval = setInterval(async () => {
         const statusResp = await fetch(`${API_URL}/api/deanonymize_status/${jobId}`);
         const statusData = await statusResp.json();
@@ -78,7 +76,6 @@
           errorMessage = statusData.error || 'Erreur inconnue pendant la désanonymisation.';
           isLoading = false;
         }
-        // Sinon pending...
       }, 1200);
     } catch (e: any) {
       errorMessage = e.message || "Erreur lors de la désanonymisation.";
@@ -93,6 +90,7 @@
 
   <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
+      <div class="block text-sm font-semibold mb-1 text-zinc-700 dark:text-zinc-300">📄 Fichier anonymisé à restaurer</div>
       <FileDropZone
         fileName={inputFile ? inputFile.name : ""}
         dragActive={false}
@@ -103,6 +101,7 @@
       {/if}
     </div>
     <div>
+      <div class="block text-sm font-semibold mb-1 text-zinc-700 dark:text-zinc-300">📑 Fichier de mapping (CSV)</div>
       <FileDropZone
         fileName={mappingFile ? mappingFile.name : ""}
         dragActive={false}
