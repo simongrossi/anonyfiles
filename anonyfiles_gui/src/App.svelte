@@ -1,8 +1,9 @@
+<!-- #anonyfiles/anonyfiles_gui/src/App.svelte -->
 <script lang="ts">
   import DataAnonymizer from './lib/components/DataAnonymizer.svelte';
   import DeAnonymizer from './lib/components/DeAnonymizer.svelte';
   import ConfigurationView from './lib/components/ConfigurationView.svelte';
-  import AuditLogSummary from './lib/components/AuditLogSummary.svelte';
+  import LogView from './lib/components/LogView.svelte'; // Import du composant LogView
 
   import { inputText, outputText, auditLog } from './lib/stores/anonymizationStore';
 
@@ -65,7 +66,7 @@
       {:else if tab === 'deanonymizer'}
         <DeAnonymizer />
       {:else if tab === 'log'}
-        <AuditLogSummary />
+        <LogView />
       {:else if tab === 'config'}
         <ConfigurationView />
       {/if}
