@@ -1,6 +1,6 @@
-# anonyfiles/anonyfiles_api/api.py
+#anonyfiles/anonyfiles_api/api.py
 
-from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from typing import Optional
@@ -10,7 +10,7 @@ import json
 import uuid
 import os
 
-# Patch d'import robuste pour Windows/Uvicorn : ajoute le dossier anonyfiles_cli au sys.path AVANT tout import
+# Patch d'import robuste pour Windows/Uvicorn : ajoute le dossier anonyfiles_cli au sys.path AVANT tout import
 import sys
 sys.path.append(str(Path(__file__).parent.parent / "anonyfiles_cli"))
 from anonymizer.run_logger import log_run_event
@@ -112,8 +112,9 @@ def run_anonymization_job(
             error=str(e)
         )
         status = {"status": "error", "error": str(e)}
-        with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
-            json.dump(status, f)
+        if input_path and input_path.parent.exists():
+            with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
+                json.dump(status, f)
 
 @app.get("/status")
 def status_endpoint():
@@ -127,16 +128,29 @@ async def anonymize_file_endpoint(
     file_type: Optional[str] = Form(None),
     has_header: Optional[str] = Form(None)
 ):
-    job_id = str(uuid.uuid4())
+    job_id_obj = uuid.uuid4()  # Validation native UUID
+    job_id = str(job_id_obj)
     job_dir = JOBS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
-    input_path = job_dir / file.filename
+
+    # Sécurisation du nom de fichier : on garde l'extension seulement
+    file_extension = Path(file.filename).suffix
+    safe_filename = f"{job_id}{file_extension}"
+    input_path = job_dir / safe_filename
+
     with open(input_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     with open(job_dir / "status.json", "w", encoding="utf-8") as f:
         json.dump({"status": "pending", "error": None}, f)
 
-    config_opts = json.loads(config_options)
+    # Gestion propre d'une erreur de parsing JSON
+    try:
+        config_opts = json.loads(config_options)
+    except json.JSONDecodeError:
+        with open(job_dir / "status.json", "w", encoding="utf-8") as f:
+            json.dump({"status": "error", "error": "Invalid JSON format for config_options."}, f)
+        raise HTTPException(status_code=400, detail="Invalid JSON format for config_options.")
+
     custom_rules = config_opts.get("custom_replacement_rules")
 
     print("\n=== [ROUTE] RÈGLES CUSTOM REÇUES ===")
@@ -157,18 +171,18 @@ async def anonymize_file_endpoint(
 
     return {"job_id": job_id, "status": "pending"}
 
+# job_id: uuid.UUID pour validation automatique FastAPI
 @app.get("/anonymize_status/{job_id}")
-async def anonymize_status_endpoint(job_id: str):
-    job_dir = JOBS_DIR / job_id
+async def anonymize_status_endpoint(job_id: uuid.UUID):
+    job_dir = JOBS_DIR / str(job_id)
     status_file = job_dir / "status.json"
     if not status_file.exists():
-        return JSONResponse(status_code=404, content={"error": "Job not found"})
+        raise HTTPException(status_code=404, detail="Job not found")
 
     with open(status_file, "r", encoding="utf-8") as f:
         current_status = json.load(f)
 
     if current_status["status"] == "finished":
-        # Sélectionne le fichier le plus récent
         output_candidates = sorted(list(job_dir.glob("*_anonymise_*.*")), key=os.path.getmtime, reverse=True)
         output_file = output_candidates[0] if output_candidates else None
 
@@ -200,11 +214,12 @@ async def anonymize_status_endpoint(job_id: str):
     else:
         return current_status
 
+# job_id: uuid.UUID pour validation automatique FastAPI
 @app.get("/files/{job_id}/{file_type}")
-async def get_file_endpoint(job_id: str, file_type: str, as_attachment: bool = False):
-    job_dir = JOBS_DIR / job_id
+async def get_file_endpoint(job_id: uuid.UUID, file_type: str, as_attachment: bool = False):
+    job_dir = JOBS_DIR / str(job_id)
     if not job_dir.exists():
-        return JSONResponse(status_code=404, content={"error": "Job not found"})
+        raise HTTPException(status_code=404, detail="Job not found")
 
     patterns = {
         "output": "*_anonymise_*.*",
@@ -214,23 +229,31 @@ async def get_file_endpoint(job_id: str, file_type: str, as_attachment: bool = F
     }
 
     if file_type not in patterns:
-        return JSONResponse(status_code=400, content={"error": "Invalid file_type"})
+        raise HTTPException(status_code=400, detail="Invalid file_type")
 
     pattern = patterns[file_type]
     file_path = None
     if file_type == "audit":
         file_path_candidate = job_dir / pattern
         if file_path_candidate.exists():
-             file_path = file_path_candidate
+            file_path = file_path_candidate
     else:
         matches = sorted(list(job_dir.glob(pattern)), key=lambda p: os.path.getmtime(p) if p.exists() else 0, reverse=True)
         if matches:
             file_path = matches[0]
 
     if not file_path or not file_path.exists():
-        return JSONResponse(status_code=404, content={"error": f"{file_type} file not found for job {job_id} with pattern {pattern}"})
+        raise HTTPException(
+            status_code=404,
+            detail=f"{file_type} file not found for job {job_id} with pattern {pattern}"
+        )
 
     if as_attachment:
         return FileResponse(str(file_path), filename=file_path.name, media_type="application/octet-stream")
     else:
-        return JSONResponse(content={"filename": file_path.name, "content": file_path.read_text(encoding="utf-8")})
+        if file_type == "audit":
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = json.load(f)
+            return JSONResponse(content={"filename": file_path.name, "content": content})
+        else:
+            return JSONResponse(content={"filename": file_path.name, "content": file_path.read_text(encoding="utf-8")})
