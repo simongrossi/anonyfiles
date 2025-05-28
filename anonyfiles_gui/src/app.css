@@ -3,6 +3,15 @@
 @tailwind utilities;
 
 /* -------- THEMING / COULEURS GLOBALES -------- */
+:root {
+  --green-light: #e6f4ea;
+  --green-medium: #4caf50;
+  --green-dark: #256029;
+  --gray-light: #f9f9f9;
+  --gray-border: #ccc;
+  --gray-text: #222;
+}
+
 html, body {
   @apply min-h-screen bg-zinc-50 text-zinc-900 antialiased;
 }
@@ -116,4 +125,51 @@ a {
 }
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* -------- Styles extraits pour ResultView -------- */
+.anonymized-text {
+  background-color: var(--green-light, #e6f4ea);
+  border: 1px solid var(--green-medium, #4caf50);
+  color: var(--green-dark, #256029);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  max-height: 15rem;
+  overflow: auto;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.original-text {
+  background-color: var(--gray-light, #f9f9f9);
+  border: 1px solid var(--gray-border, #ccc);
+  color: var(--gray-text, #222);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  max-height: 15rem;
+  overflow: auto;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.split-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .split-container {
+    flex-direction: row;
+  }
+  .split-container > div {
+    flex: 1;
+  }
+}
+
+.btn-active {
+  background: #2563eb;
+  color: white;
 }
