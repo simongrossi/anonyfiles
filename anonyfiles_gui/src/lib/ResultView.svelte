@@ -12,13 +12,12 @@
   export let onToggleShowOriginal = () => {};
   export let onCopyOutput = () => {};
   export let onExportOutput = () => {};
+  export let onExportMapping = () => {}; // Ajouté
 
   const dispatch = createEventDispatcher();
 
-  // Total anonymisations
   $: totalReplacements = auditLog?.reduce?.((s, l) => s + (l.count || 0), 0) ?? 0;
 
-  // Copie locale pour feedback
   let localCopied = false;
   let copyTimeout;
   async function handleCopyOutput() {
@@ -51,6 +50,7 @@
       </button>
     {/if}
   </div>
+
   {#if showSplitView}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="flex flex-col">
@@ -73,32 +73,14 @@
         <div class="flex gap-2 justify-end mt-2">
           <button class="btn-copy" type="button" on:click={handleCopyOutput} disabled={localCopied || isLoading}>
             {#if localCopied}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Copié !
+              ✅ Copié !
             {:else}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                <rect x="3" y="3" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-              </svg>
-              Copier
+              📋 Copier
             {/if}
           </button>
-          <button class="btn-success" type="button" on:click={onExportOutput} disabled={isLoading}>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V4H4zm4 8h8m-4-4v8"/>
-            </svg>
-            Exporter
-          </button>
-          <button
-            on:click={handleShowLog}
-            class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-200 transition flex items-center gap-2"
-            disabled={isLoading}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M7 7h10v2H7zm0 4h7v2H7z"/><path fill="currentColor" d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V5h14v6h2V5a2 2 0 0 0-2-2H5zm14.5 11.5a.75.75 0 0 0-1.06 0l-4.72 4.72a.75.75 0 0 0-.22.53v2.25c0 .41.34.75.75.75h2.25a.75.75 0 0 0 .53-.22l4.72-4.72a.75.75 0 0 0 0-1.06l-2.25-2.25zm-4.03 5.09.75-.75 2.25 2.25-.75.75H16.5v-2.25z"/></svg>
-            Voir le log
-          </button>
+          <button class="btn-success" type="button" on:click={onExportOutput} disabled={isLoading}>💾 Exporter</button>
+          <button class="btn-success" type="button" on:click={onExportMapping} disabled={isLoading}>📑 Exporter Mapping</button>
+          <button on:click={handleShowLog} class="btn-secondary" disabled={isLoading}>🪵 Voir le log</button>
         </div>
       </div>
     </div>
@@ -117,33 +99,15 @@
         {#if !showOriginal}
           <button class="btn-copy" type="button" on:click={handleCopyOutput} disabled={localCopied || isLoading}>
             {#if localCopied}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Copié !
+              ✅ Copié !
             {:else}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                <rect x="3" y="3" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-              </svg>
-              Copier
+              📋 Copier
             {/if}
           </button>
         {/if}
-        <button class="btn-success" type="button" on:click={onExportOutput} disabled={isLoading}>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v16h16V4H4zm4 8h8m-4-4v8"/>
-          </svg>
-          Exporter
-        </button>
-        <button
-          on:click={handleShowLog}
-          class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-200 transition flex items-center gap-2"
-          disabled={isLoading}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M7 7h10v2H7zm0 4h7v2H7z"/><path fill="currentColor" d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V5h14v6h2V5a2 2 0 0 0-2-2H5zm14.5 11.5a.75.75 0 0 0-1.06 0l-4.72 4.72a.75.75 0 0 0-.22.53v2.25c0 .41.34.75.75.75h2.25a.75.75 0 0 0 .53-.22l4.72-4.72a.75.75 0 0 0 0-1.06l-2.25-2.25zm-4.03 5.09.75-.75 2.25 2.25-.75.75H16.5v-2.25z"/></svg>
-          Voir le log
-        </button>
+        <button class="btn-success" type="button" on:click={onExportOutput} disabled={isLoading}>💾 Exporter</button>
+        <button class="btn-success" type="button" on:click={onExportMapping} disabled={isLoading}>📑 Exporter Mapping</button>
+        <button on:click={handleShowLog} class="btn-secondary" disabled={isLoading}>🪵 Voir le log</button>
       </div>
     </div>
   {/if}
