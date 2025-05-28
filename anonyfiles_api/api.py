@@ -1,3 +1,5 @@
+# anonyfiles/anonyfiles_api/api.py
+
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
@@ -16,6 +18,8 @@ sys.path.append(str(cli_path))
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
 from main import load_config
+from run_logger import log_run_event  # <--- NOUVEL IMPORT CENTRALISÉ
+from cli_logger import CLIUsageLogger
 
 app = FastAPI(root_path="/api")
 
@@ -73,6 +77,21 @@ def run_anonymization_job(
             mapping_output_path=mapping_output_path,
         )
 
+        # Logging centralisé (SUCCESS)
+        log_run_event(
+            CLIUsageLogger,
+            run_id=job_id,
+            input_file=input_path,
+            output_file=output_path,
+            mapping_file=mapping_output_path,
+            log_entities_file=log_entities_path,
+            entities_detected=result.get("entities_detected", []),
+            total_replacements=result.get("total_replacements", 0),
+            audit_log=result.get("audit_log", []),
+            status=result.get("status") or "finished",
+            error=result.get("error", None)
+        )
+
         status = {"status": "finished", "error": None}
         with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
             json.dump(status, f)
@@ -80,6 +99,20 @@ def run_anonymization_job(
             json.dump(result.get("audit_log", []), f)
 
     except Exception as e:
+        # Logging centralisé (ERREUR)
+        log_run_event(
+            CLIUsageLogger,
+            run_id=job_id,
+            input_file=input_path,
+            output_file=output_path if 'output_path' in locals() else "",
+            mapping_file=mapping_output_path if 'mapping_output_path' in locals() else "",
+            log_entities_file=log_entities_path if 'log_entities_path' in locals() else "",
+            entities_detected=[],
+            total_replacements=0,
+            audit_log=[],
+            status="error",
+            error=str(e)
+        )
         status = {"status": "error", "error": str(e)}
         with open(input_path.parent / "status.json", "w", encoding="utf-8") as f:
             json.dump(status, f)
