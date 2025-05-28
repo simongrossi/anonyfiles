@@ -12,7 +12,6 @@
 
   const dispatch = createEventDispatcher();
 
-  // États locaux
   let fileType = "txt";
   let fileName = "";
   let hasHeader = true;
@@ -46,7 +45,6 @@
     dragActive = true;
   }
   function handleDragLeave(event: DragEvent | CustomEvent) {
-    // If event is a CustomEvent, try to get the original event
     const dragEvent = (event instanceof DragEvent) ? event : (event as any).detail?.event;
     if (dragEvent && typeof dragEvent.preventDefault === 'function') {
       dragEvent.preventDefault();
@@ -116,6 +114,21 @@
   function handleRemoveCustomRule(event: CustomEvent<number>) {
     customReplacementRules = customReplacementRules.filter((_, i) => i !== event.detail);
     customRuleError = "";
+  }
+
+  async function onClickAnonymize() {
+    try {
+      await runAnonymization({
+        fileType,
+        fileName,
+        hasHeader,
+        xlsxFile,
+        selected,
+        customReplacementRules
+      });
+    } catch (e) {
+      console.error("Erreur dans anonymisation:", e);
+    }
   }
 
   function resetAll() {
@@ -198,14 +211,7 @@
 
   <div class="flex gap-4 mt-2 mb-2">
     <button class="btn-primary mr-2"
-      on:click={() => runAnonymization({
-        fileType,
-        fileName,
-        hasHeader,
-        xlsxFile,
-        selected,
-        customReplacementRules
-      })}
+      on:click={onClickAnonymize}
       disabled={$isLoading || !canAnonymize}
       aria-busy={$isLoading}
     >
@@ -224,7 +230,6 @@
     </button>
   </div>
 
-  <!-- Onglet unique de résultat : centralisé, dynamique, piloté par ResultView -->
   <ResultView />
 
   {#if $errorMessage}

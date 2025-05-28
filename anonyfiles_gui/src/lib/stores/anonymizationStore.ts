@@ -1,9 +1,9 @@
+// #anonyfiles/anonyfiles_gui/src/lib/stores/anonymizationStore.ts
 import { writable } from 'svelte/store';
 
-export const inputFile = writable<File | null>(null);
-export const inputText = writable<string>('');
-export const outputText = writable<string>('');
-export const mappingCSV = writable<string>('');
-export const auditLog = writable<any[]>([]);
-export const isLoading = writable<boolean>(false);
-export const errorMessage = writable<string>('');
+export const inputText = writable('');
+export const outputText = writable('');
+export const auditLog = writable([]);
+export const mappingCSV = writable('');
+export const isLoading = writable(false);
+export const errorMessage = writable('');
