@@ -38,7 +38,9 @@
 </script>
 
 <div class="card shadow-lg bg-white dark:bg-zinc-950 border p-4 mt-4">
-  <h3 class="font-bold text-lg mb-2 text-primary">Résultat de l'anonymisation</h3>
+  {#if $outputText.trim().length > 0}
+    <h3 class="font-bold text-lg mb-2 text-primary">Résultat de l'anonymisation</h3>
+  {/if}
 
   <div class="flex gap-2 mb-2">
     <button class="btn-secondary" on:click={() => viewMode = 'anonymized'} class:btn-active={viewMode === 'anonymized'}>Texte anonymisé</button>
@@ -50,7 +52,7 @@
   {#if viewMode === 'anonymized'}
     <div>
       <label class="font-semibold text-zinc-700 text-base mb-1" for="anonymized-text">Texte anonymisé</label>
-      <pre id="anonymized-text" class="p-3 rounded bg-zinc-50 mb-2 whitespace-pre-wrap font-mono text-[0.97em] max-h-60 overflow-auto">{$outputText}</pre>
+      <pre id="anonymized-text" class="anonymized-text">{$outputText}</pre>
       <button class="btn-primary mr-2" on:click={copyOutput}>Copier</button>
       <button class="btn-secondary" on:click={exportOutput}>Exporter</button>
     </div>
@@ -59,20 +61,20 @@
   {#if viewMode === 'original'}
     <div>
       <label class="font-semibold text-zinc-700 text-base mb-1" for="original-text">Texte original</label>
-      <pre id="original-text" class="p-3 rounded bg-zinc-50 mb-2 whitespace-pre-wrap font-mono text-[0.97em] max-h-60 overflow-auto">{$inputText}</pre>
+      <pre id="original-text" class="original-text">{$inputText}</pre>
     </div>
   {/if}
 
   {#if viewMode === 'split'}
     <span class="font-semibold text-zinc-700 text-base mb-1">Vue comparée</span>
-    <div class="flex flex-col sm:flex-row gap-4">
-      <div class="flex-1">
-        <span class="font-semibold text-sm text-zinc-500">Original</span>
-        <pre class="p-3 rounded bg-zinc-50 mb-2 whitespace-pre-wrap font-mono text-[0.97em] max-h-60 overflow-auto">{$inputText}</pre>
+    <div class="split-container">
+      <div>
+        <span class="font-semibold text-sm text-zinc-500 mb-1 block">Original</span>
+        <pre class="original-text">{$inputText}</pre>
       </div>
-      <div class="flex-1">
-        <span class="font-semibold text-sm text-zinc-500">Anonymisé</span>
-        <pre class="p-3 rounded bg-zinc-50 mb-2 whitespace-pre-wrap font-mono text-[0.97em] max-h-60 overflow-auto">{$outputText}</pre>
+      <div>
+        <span class="font-semibold text-sm text-zinc-500 mb-1 block">Anonymisé</span>
+        <pre class="anonymized-text">{$outputText}</pre>
       </div>
     </div>
   {/if}
@@ -85,10 +87,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  .btn-active {
-    background: #2563eb;
-    color: white;
-  }
-</style>
