@@ -46,6 +46,7 @@ class AnonyfilesEngine:
         typer.echo(f"DEBUG (Engine): Entités à exclure (spaCy) : {self.entities_exclude}")
         if self.custom_rules:
             typer.echo(f"DEBUG (Engine): Initialisé avec {len(self.custom_rules)} règle(s) personnalisée(s).")
+        self.custom_replacements_count = 0  # compteur global remplacements custom
 
     def _apply_custom_rules_to_block(self, text_block: str) -> str:
         """
@@ -71,6 +72,7 @@ class AnonyfilesEngine:
                     if n_repl > 0:
                         typer.echo(f"[CUSTOM_RULE] Pattern '{pattern}' trouvé et remplacé {n_repl} fois dans bloc : {repr(modified_text)}")
                         self.audit_logger.log(pattern, replacement, "custom", n_repl)
+                        self.custom_replacements_count += n_repl
                     modified_text = new_text
                 except re.error as e:
                     typer.echo(f"AVERTISSEMENT (Moteur): Regex invalide pour la règle personnalisée '{pattern}': {e}. Règle ignorée.", err=True)
@@ -85,6 +87,10 @@ class AnonyfilesEngine:
 
         ext = input_path.suffix.lower()
         processor_class = PROCESSOR_MAP.get(ext)
+
+        typer.echo(f"DEBUG (Engine): Type de processor choisi : {processor_class.__name__ if processor_class else 'None'} pour extension {ext}")
+        typer.echo(f"DEBUG (Engine): Nombre de règles personnalisées : {len(self.custom_rules) if self.custom_rules else 0}")
+
         if not processor_class:
             return {"status": "error", "error": f"Type de fichier non supporté: {ext}"}
 
@@ -104,6 +110,7 @@ class AnonyfilesEngine:
                 mod_block = self._apply_custom_rules_to_block(block)
                 typer.echo(f"[DEBUG] Bloc après custom : {repr(mod_block)}")
                 blocks_after_custom_rules.append(mod_block)
+            typer.echo(f"DEBUG (Engine): Nombre total de remplacements personnalisés effectués : {self.custom_replacements_count}")
         else:
             if self.custom_rules and not isinstance(processor, TxtProcessor):
                 typer.echo(f"AVERTISSEMENT (Engine): Règles personnalisées non appliquées pour le type {ext} dans cette version.", err=True)
