@@ -1,4 +1,4 @@
-# anonyfiles_cli/anonymizer/anonyfiles_core.py
+#anonyfiles/anonyfiles_cli/anonymizer/anonyfiles_core.py
 
 import re
 from pathlib import Path
@@ -38,22 +38,38 @@ class AnonyfilesEngine:
         self.engine = SpaCyEngine(model=model)
         self.entities_exclude = set()
         self.entities_exclude.update(self.config.get("exclude_entities", []))
+
+        # Ajout dynamique des exclusions selon les options GUI
+        mapping_gui_keys = {
+            "anonymizePersons": "PER",
+            "anonymizeLocations": "LOC",
+            "anonymizeOrgs": "ORG",
+            "anonymizeEmails": "EMAIL",
+            "anonymizeDates": "DATE",
+            "anonymizeMisc": "MISC",
+            "anonymizePhones": "PHONE",
+            "anonymizeIbans": "IBAN",
+            "anonymizeAddresses": "ADDRESS"
+        }
+        self.enabled_labels = set()
+        for key, label in mapping_gui_keys.items():
+            if self.config.get(key, True):
+                self.enabled_labels.add(label)
+            else:
+                self.entities_exclude.add(label)
+
         if exclude_entities_cli:
             for e in exclude_entities_cli:
                 self.entities_exclude.update(e.split(","))
+
         self.custom_rules = custom_replacement_rules or []
-        self.audit_logger = AuditLogger()  # Ajout audit logger
+        self.audit_logger = AuditLogger()
         typer.echo(f"DEBUG (Engine): Entités à exclure (spaCy) : {self.entities_exclude}")
         if self.custom_rules:
             typer.echo(f"DEBUG (Engine): Initialisé avec {len(self.custom_rules)} règle(s) personnalisée(s).")
-        self.custom_replacements_count = 0  # compteur global remplacements custom
+        self.custom_replacements_count = 0
 
     def _apply_custom_rules_to_block(self, text_block: str) -> str:
-        """
-        Applique les règles de remplacement personnalisées à un bloc de texte et loggue les remplacements.
-        Prend en charge les règles en regex et les remplacements de mots entiers, insensible à la casse.
-        Ajoute des logs de debug.
-        """
         if not self.custom_rules:
             return text_block
 
@@ -67,7 +83,7 @@ class AnonyfilesEngine:
                     if is_regex:
                         new_text, n_repl = re.subn(pattern, replacement, modified_text, flags=re.IGNORECASE)
                     else:
-                        pattern_escaped = r"\b" + re.escape(pattern) + r"\b"
+                        pattern_escaped = r"\\b" + re.escape(pattern) + r"\\b"
                         new_text, n_repl = re.subn(pattern_escaped, replacement, modified_text, flags=re.IGNORECASE)
                     if n_repl > 0:
                         typer.echo(f"[CUSTOM_RULE] Pattern '{pattern}' trouvé et remplacé {n_repl} fois dans bloc : {repr(modified_text)}")
@@ -101,7 +117,6 @@ class AnonyfilesEngine:
             extract_kwargs['has_header'] = kwargs['has_header']
         original_blocks = processor.extract_blocks(input_path, **extract_kwargs)
 
-        # 1. Application des règles custom (log + modif blocs)
         blocks_after_custom_rules = []
         if isinstance(processor, TxtProcessor) and self.custom_rules:
             typer.echo(f"DEBUG (Engine): Application des règles personnalisées sur {len(original_blocks)} bloc(s) TXT.")
@@ -116,7 +131,6 @@ class AnonyfilesEngine:
                 typer.echo(f"AVERTISSEMENT (Engine): Règles personnalisées non appliquées pour le type {ext} dans cette version.", err=True)
             blocks_after_custom_rules = original_blocks
 
-        # 2. Traitement spaCy sur ces blocs
         if not any(block.strip() for block in blocks_after_custom_rules):
             if not dry_run and output_path:
                 output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -144,7 +158,7 @@ class AnonyfilesEngine:
 
         for block_text_processed in blocks_after_custom_rules:
             if block_text_processed.strip():
-                entities_in_block_spacy = self.engine.detect_entities(block_text_processed)
+                entities_in_block_spacy = self.engine.detect_entities(block_text_processed, enabled_labels=self.enabled_labels)
                 all_spacy_entities.extend(entities_in_block_spacy)
                 current_block_offsets_spacy = []
                 for entity_text, label in entities_in_block_spacy:
@@ -168,7 +182,6 @@ class AnonyfilesEngine:
         unique_spacy_entities = [e for e in unique_spacy_entities if e[1] not in self.entities_exclude]
         typer.echo(f"DEBUG - Entités uniques spaCy APRÈS filtre exclusion : {unique_spacy_entities}")
 
-        # Si aucune entité spaCy à traiter, log uniquement les règles custom
         if not unique_spacy_entities:
             if not dry_run and output_path:
                 output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -194,13 +207,9 @@ class AnonyfilesEngine:
         session = ReplacementSession()
         replacements_map_spacy, mapping_dict_spacy = session.generate_replacements(unique_spacy_entities, replacement_rules=replacement_rules_spacy)
 
-        # Audit des remplacements spaCy (par entité)
         for original, code in mapping_dict_spacy.items():
             label = next((lbl for txt, lbl in unique_spacy_entities if txt == original), "UNKNOWN")
-            n_repl = sum(
-                block.count(original)
-                for block in blocks_after_custom_rules
-            )
+            n_repl = sum(block.count(original) for block in blocks_after_custom_rules)
             self.audit_logger.log(original, code, "spacy", n_repl)
 
         final_anonymized_blocks = []

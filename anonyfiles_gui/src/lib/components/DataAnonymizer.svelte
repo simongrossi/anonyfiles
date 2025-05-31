@@ -22,13 +22,17 @@
   const dispatch = createEventDispatcher();
 
   let options = [
-    { key: "anonymizePersons", label: "Personnes (PER)", default: true },
-    { key: "anonymizeLocations", label: "Lieux (LOC)", default: true },
-    { key: "anonymizeOrgs", label: "Organisations (ORG)", default: true },
-    { key: "anonymizeEmails", label: "Emails", default: true },
-    { key: "anonymizeDates", label: "Dates", default: true },
-    { key: "anonymizeMisc", label: "MISC", default: false }
+    { key: "anonymizePersons", label: "Personnes (PER)", default: false },
+    { key: "anonymizeLocations", label: "Lieux (LOC)", default: false },
+    { key: "anonymizeOrgs", label: "Organisations (ORG)", default: false },
+    { key: "anonymizeEmails", label: "Emails", default: false },
+    { key: "anonymizeDates", label: "Dates", default: false },
+    { key: "anonymizeMisc", label: "MISC", default: false },
+    { key: "anonymizePhones", label: "Téléphones (PHONE)", default: false },
+    { key: "anonymizeIbans", label: "IBAN", default: false },
+    { key: "anonymizeAddresses", label: "Adresses (ADDRESS)", default: false }
   ];
+
   let selected: { [key: string]: boolean } = {};
   options.forEach((opt) => (selected[opt.key] = opt.default));
 

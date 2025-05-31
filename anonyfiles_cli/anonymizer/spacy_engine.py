@@ -1,3 +1,4 @@
+# anonyfiles/anonyfiles_cli/anonymizer/spacy_engine.py
 import spacy
 import re
 
@@ -10,37 +11,46 @@ DATE_REGEX = (
     r'(?:le\s+\d{1,2}(?:er)?\s+[a-zA-Zéûîôâ]+\s+\d{4})'  # le 1er janvier 2020
     r')\b'
 )
+PHONE_REGEX = r'\b(?:\+33|0)[1-9](?:[\s.-]?\d{2}){4}\b'
+IBAN_REGEX = r'\b[A-Z]{2}\d{2}[ ]?(?:\d[ ]?){12,26}\b'
 
 class SpaCyEngine:
     def __init__(self, model="fr_core_news_md"):
         self.nlp = spacy.load(model)
 
-    def detect_entities(self, text):
+    def detect_entities(self, text, enabled_labels=None):
         """
-        Détecte les entités nommées avec spaCy, ajoute les e-mails/dates trouvés par regex.
-        Retourne une liste (texte, label) SANS doublons (priorité EMAIL/DATE regex).
+        Détecte les entités spaCy et par regex, selon les labels activés.
+        Retourne une liste (texte, label) SANS doublons.
         """
+        if enabled_labels is None:
+            enabled_labels = set()
+
         doc = self.nlp(text)
-        entities = [(ent.text, ent.label_) for ent in doc.ents]
+        entities = [(ent.text, ent.label_) for ent in doc.ents if ent.label_ in enabled_labels]
 
-        # Ajout des e-mails (regex)
-        email_matches = re.findall(EMAIL_REGEX, text)
-        for email in email_matches:
-            entities.append((email, "EMAIL"))
+        regex_sources = {
+            "EMAIL": EMAIL_REGEX,
+            "DATE": DATE_REGEX,
+            "PHONE": PHONE_REGEX,
+            "IBAN": IBAN_REGEX
+        }
 
-        # Ajout des dates (regex)
-        date_matches = re.findall(DATE_REGEX, text, re.IGNORECASE)
-        for date in date_matches:
-            # La regex retourne un tuple à cause du ( ) global, donc on récupère la première capture
-            if isinstance(date, tuple):
-                date = date[0]
-            entities.append((date, "DATE"))
+        for label, pattern in regex_sources.items():
+            if label not in enabled_labels:
+                continue
+            matches = re.findall(pattern, text, re.IGNORECASE if label == "DATE" else 0)
+            for match in matches:
+                if isinstance(match, tuple):
+                    match = match[0]
+                print(f">>> {label} matched via regex:", match)
+                entities.append((match, label))
 
-        # Filtrer les doublons (priorité EMAIL/DATE)
+        # Dé-duplication avec priorité regex
         unique_entities = {}
         for entity_text, label in entities:
             if entity_text in unique_entities:
-                if label in ("EMAIL", "DATE"):
+                if label in ("EMAIL", "DATE", "PHONE", "IBAN"):
                     unique_entities[entity_text] = label
             else:
                 unique_entities[entity_text] = label
@@ -48,5 +58,5 @@ class SpaCyEngine:
         return list(unique_entities.items())
 
     def nlp_doc(self, text):
-        """Renvoie le doc spaCy (utile pour offsets etc.)."""
+        """Renvoie le doc spaCy (utile pour offsets, etc.)."""
         return self.nlp(text)
