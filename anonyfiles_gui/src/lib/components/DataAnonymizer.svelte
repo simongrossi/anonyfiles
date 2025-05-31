@@ -3,8 +3,8 @@
   import FileDropZone from './FileDropZone.svelte';
   import CustomRulesManager from './CustomRulesManager.svelte';
   import AnonymizationOptions from './AnonymizationOptions.svelte';
-  import { inputText, outputText, auditLog, mappingCSV, isLoading, errorMessage } from '../stores/anonymizationStore'; //
-  import { runAnonymization } from '../utils/anonymize'; //
+  import { inputText, outputText, auditLog, mappingCSV, isLoading, errorMessage } from '../stores/anonymizationStore';
+  import { runAnonymization } from '../utils/anonymize';
   import {
     fileType,
     fileName,
@@ -13,12 +13,12 @@
     previewTable,
     previewHeaders,
     handleFile
-  } from '../utils/useFileHandler'; //
+  } from '../utils/useFileHandler';
   import { createEventDispatcher } from 'svelte';
 
   const dispatch = createEventDispatcher();
 
-  // Les variables et fonctions restent les mêmes
+  // Variables pour les règles personnalisées
   let customReplacementRules: { pattern: string; replacement: string; isRegex?: boolean }[] = [];
   let customRuleError = "";
 
@@ -53,6 +53,7 @@
     dragActive = false;
   }
 
+  // Gestion ajout / suppression / reset règles personnalisées
   function handleAddCustomRule(event: CustomEvent<{ pattern: string; replacement: string; isRegex?: boolean }>) {
     const { pattern, replacement, isRegex } = event.detail;
     if (!pattern.trim()) {
@@ -103,18 +104,17 @@
     mappingCSV.set("");
     errorMessage.set("");
     fileName.set("");
-    fileType.set("txt"); //
-    hasHeader.set(true); //
-    xlsxFile.set(null); //
-    previewTable.set([]); //
-    previewHeaders.set([]); //
+    fileType.set("txt");
+    hasHeader.set(true);
+    xlsxFile.set(null);
+    previewTable.set([]);
+    previewHeaders.set([]);
     options.forEach((opt) => (selected[opt.key] = opt.default));
     dragActive = false;
     customReplacementRules = [];
     customRuleError = "";
     dispatch("resetRequested");
   }
-
 </script>
 
 {#if $isLoading}
