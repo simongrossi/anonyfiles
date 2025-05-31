@@ -1,38 +1,33 @@
 # anonyfiles/anonyfiles_api/api.py
 
-import fastapi # MODIFIÉ: import direct pour run_in_threadpool
+import fastapi
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
-from fastapi.concurrency import run_in_threadpool # AJOUTÉ: Pour exécuter du code synchrone dans un thread séparé
-from typing import Optional, Any # MODIFIÉ: Ajout de Any
+from fastapi.concurrency import run_in_threadpool
+from typing import Optional, Any
 from pathlib import Path
 import shutil
 import json
 import uuid
 import os
-import logging # AJOUTÉ: Module de logging
-import aiofiles # AJOUTÉ: Pour les opérations de fichiers asynchrones
-
-# Patch d'import robuste pour Windows/Uvicorn : ajoute le dossier anonyfiles_cli au sys.path AVANT tout import
+import logging
+import aiofiles
 import sys
+
 sys.path.append(str(Path(__file__).parent.parent / "anonyfiles_cli"))
-from anonymizer.run_logger import log_run_event # Supposons que cela reste synchrone pour l'instant
-from cli_logger import CLIUsageLogger # Supposons que cela reste synchrone
+from anonymizer.run_logger import log_run_event
+from cli_logger import CLIUsageLogger
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
 from main import load_config
 
-# AJOUTÉ: Configuration du logging
 logging.basicConfig(
-    level=logging.INFO, # Niveau de log par défaut
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout) # Log vers la console
-        # Vous pouvez ajouter d'autres handlers ici (ex: logging.FileHandler("api.log"))
-    ]
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
-logger = logging.getLogger(__name__) # Création d'un logger pour ce module
+logger = logging.getLogger(__name__)
 
 app = FastAPI(root_path="/api")
 
@@ -45,59 +40,45 @@ app.add_middleware(
 )
 
 JOBS_DIR = Path("jobs")
-JOBS_DIR.mkdir(exist_ok=True) # AJOUTÉ: S'assurer que JOBS_DIR est créé au démarrage
+JOBS_DIR.mkdir(exist_ok=True)
 CONFIG_TEMPLATE_PATH = Path(__file__).parent.parent / "anonyfiles_cli" / "config.yaml"
 
-# Variable globale pour la configuration chargée (pour éviter de la recharger à chaque fois)
-# Sera chargée au démarrage de l'application
 BASE_CONFIG: Optional[dict] = None
 
 @app.on_event("startup")
 async def startup_event():
-    """Charge la configuration de base au démarrage."""
     global BASE_CONFIG
     try:
         BASE_CONFIG = load_config(CONFIG_TEMPLATE_PATH)
         logger.info("Configuration de base chargée avec succès.")
     except Exception as e:
         logger.error(f"Erreur lors du chargement de la configuration de base: {e}", exc_info=True)
-        # Gérer l'erreur de chargement de config: l'application peut-elle fonctionner sans ?
-        # Peut-être lever une exception pour empêcher le démarrage si la config est critique.
-        BASE_CONFIG = {} # Ou une config par défaut minimale
+        BASE_CONFIG = {}
 
-
-def run_anonymization_job_sync( # MODIFIÉ: Renommée en _sync pour indiquer qu'elle est synchrone
+def run_anonymization_job_sync(
     job_id: str,
     input_path: Path,
     config_options: dict,
     has_header: Optional[bool],
     custom_rules: Optional[list]
 ):
-    """
-    Logique d'anonymisation synchrone.
-    Cette fonction sera exécutée dans un thread séparé par run_in_threadpool.
-    """
     global BASE_CONFIG
     if BASE_CONFIG is None:
         logger.error(f"Job {job_id}: La configuration de base n'a pas été chargée. Annulation du job.")
-        # Écrire un statut d'erreur pour le job
         status_file = JOBS_DIR / job_id / "status.json"
         try:
             with open(status_file, "w", encoding="utf-8") as f:
                 json.dump({"status": "error", "error": "Base configuration not loaded."}, f)
         except Exception as e_status:
             logger.error(f"Job {job_id}: Impossible d'écrire le statut d'erreur: {e_status}", exc_info=True)
-        return # Ne pas continuer si la config de base n'est pas là
+        return
 
     try:
         logger.info(f"Job {job_id}: Démarrage du traitement d'anonymisation.")
+        logger.info(f"Job {job_id}: Règles personnalisées reçues : {custom_rules}")  # <-- Log explicite ici
         logger.debug(f"Job {job_id}: Règles custom passées au moteur: {json.dumps(custom_rules, indent=2, ensure_ascii=False)}")
 
-        # Utilisation de BASE_CONFIG chargé au démarrage
-        # base_config = load_config(CONFIG_TEMPLATE_PATH) # Ancienne méthode
-
         exclude_entities = []
-        # ... (logique pour exclude_entities inchangée)
         if not config_options.get("anonymizePersons", True): exclude_entities.append("PER")
         if not config_options.get("anonymizeLocations", True): exclude_entities.append("LOC")
         if not config_options.get("anonymizeOrgs", True): exclude_entities.append("ORG")
@@ -109,7 +90,7 @@ def run_anonymization_job_sync( # MODIFIÉ: Renommée en _sync pour indiquer qu'
         mapping_output_path = default_mapping(input_path, input_path.parent)
 
         engine = AnonyfilesEngine(
-            config=BASE_CONFIG, # Utiliser la config globale
+            config=BASE_CONFIG,
             exclude_entities_cli=exclude_entities,
             custom_replacement_rules=custom_rules,
         )
@@ -124,8 +105,6 @@ def run_anonymization_job_sync( # MODIFIÉ: Renommée en _sync pour indiquer qu'
         )
         logger.info(f"Job {job_id}: Anonymisation terminée. Résultat: {result.get('status')}")
 
-        # Logging centralisé (SUCCESS)
-        # Supposons que log_run_event est synchrone et gère ses propres erreurs
         log_run_event(
             CLIUsageLogger, run_id=job_id, input_file=str(input_path),
             output_file=str(output_path), mapping_file=str(mapping_output_path),
@@ -145,26 +124,24 @@ def run_anonymization_job_sync( # MODIFIÉ: Renommée en _sync pour indiquer qu'
         logger.error(f"Job {job_id}: Fichier non trouvé lors de l'anonymisation - {e_fnf}", exc_info=True)
         error_message = f"File not found: {e_fnf.filename}"
         status_payload = {"status": "error", "error": error_message}
-        # Logging centralisé (ERREUR)
         log_run_event(CLIUsageLogger, run_id=job_id, input_file=str(input_path), status="error", error=error_message)
     except PermissionError as e_perm:
         logger.error(f"Job {job_id}: Erreur de permission lors de l'anonymisation - {e_perm}", exc_info=True)
         error_message = f"Permission error: {e_perm.strerror} on {e_perm.filename}"
         status_payload = {"status": "error", "error": error_message}
         log_run_event(CLIUsageLogger, run_id=job_id, input_file=str(input_path), status="error", error=error_message)
-    except Exception as e: # MODIFIÉ: Gestion d'erreurs plus spécifique
+    except Exception as e:
         logger.error(f"Job {job_id}: Erreur inattendue lors de l'anonymisation - {e}", exc_info=True)
         error_message = f"Unexpected error during anonymization: {str(e)}"
         status_payload = {"status": "error", "error": error_message}
-        # Logging centralisé (ERREUR)
         log_run_event(
             CLIUsageLogger, run_id=job_id, input_file=str(input_path),
             output_file=str(output_path if 'output_path' in locals() else ""),
             mapping_file=str(mapping_output_path if 'mapping_output_path' in locals() else ""),
             log_entities_file=str(log_entities_path if 'log_entities_path' in locals() else ""),
-            status="error", error=str(e) # Garder l'erreur originale pour log_run_event si besoin
+            status="error", error=str(e)
         )
-    finally: # MODIFIÉ: Assurer l'écriture du statut en cas d'erreur gérée
+    finally:
         if 'status_payload' in locals() and status_payload.get("status") == "error":
             if input_path and input_path.parent.exists():
                 try:
@@ -174,40 +151,31 @@ def run_anonymization_job_sync( # MODIFIÉ: Renommée en _sync pour indiquer qu'
                 except Exception as e_status_write:
                     logger.error(f"Job {job_id}: Impossible d'écrire le statut d'erreur final: {e_status_write}", exc_info=True)
 
-
-@app.get("/status")
-async def status_endpoint(): # MODIFIÉ: Peut être async maintenant
-    return {"status": "ok"}
-
 @app.post("/anonymize/")
 async def anonymize_file_endpoint(
-    background_tasks: BackgroundTasks, # BackgroundTasks n'est plus utilisé directement pour la tâche principale
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     config_options: str = Form(...),
+    custom_replacement_rules: Optional[str] = Form(None),  # <--- Ajout ici
     file_type: Optional[str] = Form(None),
     has_header: Optional[str] = Form(None)
 ):
     job_id_obj = uuid.uuid4()
     job_id = str(job_id_obj)
     job_dir = JOBS_DIR / job_id
-    
+
     logger.info(f"Requête d'anonymisation reçue pour job_id: {job_id}, fichier: {file.filename}")
 
-    # Création du répertoire de manière asynchrone si nécessaire (bien que mkdir soit rapide)
-    # Pour une vraie E/S, on utiliserait aiofiles.os.mkdir, mais Path.mkdir est synchrone.
-    # Comme c'est une opération rapide, on peut la laisser synchrone ou l'exécuter avec run_in_threadpool si elle pose problème.
     try:
         await run_in_threadpool(job_dir.mkdir, parents=True, exist_ok=True)
     except Exception as e_mkdir:
         logger.error(f"Impossible de créer le répertoire du job {job_id}: {e_mkdir}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Could not create job directory for {job_id}.")
 
-
     file_extension = Path(file.filename).suffix
     safe_filename = f"{job_id}{file_extension}"
     input_path = job_dir / safe_filename
 
-    # Écriture du fichier uploadé de manière asynchrone
     try:
         async with aiofiles.open(input_path, "wb") as buffer:
             content = await file.read()
@@ -217,9 +185,8 @@ async def anonymize_file_endpoint(
         logger.error(f"Job {job_id}: Erreur lors de l'upload du fichier '{safe_filename}': {e_upload}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Could not save uploaded file for job {job_id}.")
     finally:
-        await file.close() # Toujours fermer le fichier uploadé
+        await file.close()
 
-    # Écriture du statut initial de manière asynchrone
     initial_status = {"status": "pending", "error": None}
     try:
         async with aiofiles.open(job_dir / "status.json", "w", encoding="utf-8") as f:
@@ -227,8 +194,6 @@ async def anonymize_file_endpoint(
         logger.info(f"Job {job_id}: Statut initial 'pending' écrit.")
     except Exception as e_status_init:
         logger.error(f"Job {job_id}: Impossible d'écrire le statut initial: {e_status_init}", exc_info=True)
-        # Si on ne peut pas écrire le statut initial, le job est probablement compromis.
-        # On pourrait essayer de nettoyer le répertoire du job ici.
         raise HTTPException(status_code=500, detail=f"Could not write initial status for job {job_id}.")
 
     try:
@@ -236,32 +201,22 @@ async def anonymize_file_endpoint(
     except json.JSONDecodeError as e_json:
         error_msg = "Invalid JSON format for config_options."
         logger.warning(f"Job {job_id}: {error_msg} - {e_json}", exc_info=True)
-        async with aiofiles.open(job_dir / "status.json", "w", encoding="utf-8") as f: # Écrire le statut d'erreur
+        async with aiofiles.open(job_dir / "status.json", "w", encoding="utf-8") as f:
             await f.write(json.dumps({"status": "error", "error": error_msg}))
         raise HTTPException(status_code=400, detail=error_msg)
 
-    custom_rules = config_opts.get("custom_replacement_rules")
-    logger.debug(f"Job {job_id}: Règles custom reçues pour le moteur: {json.dumps(custom_rules, indent=2, ensure_ascii=False)}")
+    custom_rules = None
+    if custom_replacement_rules:
+        try:
+            custom_rules = json.loads(custom_replacement_rules)
+        except Exception as e:
+            logger.warning(f"Job {job_id}: Erreur parsing custom_replacement_rules : {e}")
 
     has_header_bool = None
     if has_header is not None:
         has_header_bool = has_header.lower() in ("1", "true", "yes", "on")
 
-    # MODIFIÉ: Exécuter la tâche synchrone dans un thread séparé
-    # BackgroundTasks n'est pas idéal pour les tâches longues et bloquantes CPU/IO synchrones
-    # car elles peuvent bloquer l'event loop si elles ne sont pas correctement gérées.
-    # Nous utilisons maintenant FastAPI.concurrency.run_in_threadpool implicitement via une fonction non-async
-    # appelée depuis une route async, ou explicitement.
-    # Pour les tâches en arrière-plan qui doivent être lancées et oubliées (fire-and-forget),
-    # on peut créer une tâche asyncio.
-    
-    # Si BackgroundTasks doit être utilisé, et que la fonction est synchrone:
-    # background_tasks.add_task(run_anonymization_job_sync, ...)
-    # Mais ici, on veut que le job soit traité dès que possible sans bloquer la réponse.
-    # On peut donc juste appeler run_in_threadpool et ne pas attendre la fin pour répondre.
-    # Cependant, FastAPI exécute les fonctions de tâches de fond dans un pool de threads séparé.
-    # Donc, BackgroundTasks est approprié si la fonction run_anonymization_job_sync est bien synchrone.
-    background_tasks.add_task( # On revient à BackgroundTasks car il gère le pool de threads
+    background_tasks.add_task(
         run_anonymization_job_sync,
         job_id=job_id,
         input_path=input_path,
@@ -281,7 +236,7 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
     job_dir = JOBS_DIR / job_id_str
     status_file = job_dir / "status.json"
 
-    if not await run_in_threadpool(status_file.exists): # Path.exists() est synchrone
+    if not await run_in_threadpool(status_file.exists):
         logger.warning(f"Statut du job {job_id_str}: Fichier status.json non trouvé dans {job_dir}.")
         raise HTTPException(status_code=404, detail="Job not found or status file missing.")
 
@@ -294,51 +249,42 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
         logger.error(f"Statut du job {job_id_str}: Impossible de lire ou parser status.json - {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Could not retrieve job status.")
 
-
     if current_status["status"] == "finished":
-        # Les opérations de glob et getmtime sont synchrones.
-        # Pour un grand nombre de fichiers, cela pourrait être long.
-        # Envisager aiofiles.os.listdir et aiofiles.os.stat si cela devient un goulot d'étranglement.
-        # Pour l'instant, on les exécute dans le threadpool.
-        
         def get_file_details_sync():
             output_candidates_sync = sorted(
-                [p for p in job_dir.glob("*_anonymise_*.*") if p.exists()], 
+                [p for p in job_dir.glob("*_anonymise_*.*") if p.exists()],
                 key=os.path.getmtime, reverse=True
             )
             output_file_sync = output_candidates_sync[0] if output_candidates_sync else None
 
             mapping_candidates_sync = sorted(
-                [p for p in job_dir.glob("*_mapping_*.csv") if p.exists()], 
+                [p for p in job_dir.glob("*_mapping_*.csv") if p.exists()],
                 key=os.path.getmtime, reverse=True
             )
             mapping_file_sync = mapping_candidates_sync[0] if mapping_candidates_sync else None
 
             log_candidates_sync = sorted(
-                [p for p in job_dir.glob("*_entities_*.csv") if p.exists()], 
+                [p for p in job_dir.glob("*_entities_*.csv") if p.exists()],
                 key=os.path.getmtime, reverse=True
             )
             log_file_sync = log_candidates_sync[0] if log_candidates_sync else None
-            
+
             return output_file_sync, mapping_file_sync, log_file_sync
 
         try:
             output_file, mapping_file, log_file = await run_in_threadpool(get_file_details_sync)
         except Exception as e_glob:
             logger.error(f"Job {job_id_str}: Erreur lors de la recherche des fichiers de résultats: {e_glob}", exc_info=True)
-            # Renvoyer le statut "finished" mais sans les fichiers si la recherche échoue
             return {"status": "finished", "error": "Could not retrieve result files", "anonymized_text": "", "mapping_csv": "", "log_csv": "", "audit_log": []}
 
-
         anonymized_text = ""
-        if output_file: # output_file est un Path ou None
+        if output_file:
             try:
                 async with aiofiles.open(output_file, "r", encoding="utf-8") as f:
                     anonymized_text = await f.read()
             except Exception as e:
                 logger.error(f"Job {job_id_str}: Impossible de lire le fichier de sortie {output_file.name} - {e}", exc_info=True)
                 current_status["error_output_file"] = f"Could not read output file: {output_file.name}"
-
 
         mapping_csv = ""
         if mapping_file:
@@ -358,8 +304,7 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
                 logger.error(f"Job {job_id_str}: Impossible de lire le fichier log entities {log_file.name} - {e}", exc_info=True)
                 current_status["error_log_file"] = f"Could not read log entities file: {log_file.name}"
 
-
-        audit_log: list[Any] = [] # Typage
+        audit_log: list[Any] = []
         audit_log_file = job_dir / "audit_log.json"
         if await run_in_threadpool(audit_log_file.exists):
             try:
@@ -369,7 +314,7 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
             except Exception as e:
                 logger.error(f"Job {job_id_str}: Impossible de lire ou parser audit_log.json - {e}", exc_info=True)
                 current_status["error_audit_log"] = "Could not read audit log file."
-        
+
         response_payload = {
             "status": "finished",
             "anonymized_text": anonymized_text,
@@ -377,18 +322,17 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
             "log_csv": log_csv,
             "audit_log": audit_log,
         }
-        # Ajouter les erreurs de lecture de fichiers au payload si elles existent
         if "error_output_file" in current_status: response_payload["error_output_file"] = current_status["error_output_file"]
         if "error_mapping_file" in current_status: response_payload["error_mapping_file"] = current_status["error_mapping_file"]
         if "error_log_file" in current_status: response_payload["error_log_file"] = current_status["error_log_file"]
         if "error_audit_log" in current_status: response_payload["error_audit_log"] = current_status["error_audit_log"]
-        
+
         return response_payload
 
     elif current_status["status"] == "error":
         logger.warning(f"Statut du job {job_id_str}: Erreur reportée - {current_status.get('error')}")
         return current_status
-    else: # pending
+    else:
         return current_status
 
 @app.get("/files/{job_id}/{file_type}")
@@ -402,11 +346,9 @@ async def get_file_endpoint(job_id: uuid.UUID, file_type: str, as_attachment: bo
         raise HTTPException(status_code=404, detail="Job not found")
 
     patterns = {
-        # Anonymization
         "output": "*_anonymise_*.*",
         "mapping": "*_mapping_*.csv",
         "log": "*_entities_*.csv",
-        # Deanonymization
         "deanonymized": "*_deanonymise_*.txt",
         "report": "report.json",
         "audit": "audit_log.json"
@@ -429,7 +371,7 @@ async def get_file_endpoint(job_id: uuid.UUID, file_type: str, as_attachment: bo
                 key=os.path.getmtime, reverse=True
             )
             return matches[0] if matches else None
-            
+
     try:
         file_path = await run_in_threadpool(find_file_sync)
     except Exception as e_find:
