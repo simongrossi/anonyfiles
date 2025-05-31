@@ -109,20 +109,6 @@
     on:dragleave={handleDragLeave}
   />
 
-  {#if $fileType === "csv" && $previewTable.length > 0}
-    {#await import('./CsvPreview.svelte') then CsvPreviewModule}
-      <svelte:component this={CsvPreviewModule.default} headers={$previewHeaders} rows={$previewTable} hasHeader={$hasHeader} />
-    {/await}
-  {/if}
-
-  {#if $fileType === "xlsx" && $xlsxFile}
-    {#await import('./XlsxPreview.svelte') then XlsxPreviewModule}
-      <svelte:component this={XlsxPreviewModule.default} file={$xlsxFile} hasHeader={$hasHeader} />
-    {/await}
-  {/if}
-
-  <CustomRulesManager />
-
   <div class="mb-4 flex flex-col h-[40vh] sm:h-[30vh]">
     <label for="inputText" class="font-semibold text-base text-zinc-700 dark:text-zinc-200 mb-1">Texte à anonymiser :</label>
     <textarea
@@ -146,6 +132,8 @@
   {/if}
 
   <AnonymizationOptions {options} bind:selected isLoading={$isLoading} />
+
+  <CustomRulesManager />
 
   <div class="flex flex-col sm:flex-row gap-2 justify-center mt-4">
     <button class="btn-primary" on:click={onClickAnonymize} disabled={$isLoading || !canAnonymize}>
