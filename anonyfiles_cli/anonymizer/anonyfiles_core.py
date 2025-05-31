@@ -22,7 +22,7 @@ from .audit import AuditLogger
 
 PROCESSOR_MAP = {
     ".txt": TxtProcessor,
-    # ".csv": CsvProcessor,
+    ".csv": CsvProcessor,
     # ".docx": DocxProcessor,
     # ".xlsx": ExcelProcessor,
     # ".pdf": PdfProcessor,
