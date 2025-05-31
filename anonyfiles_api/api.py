@@ -75,15 +75,24 @@ def run_anonymization_job_sync(
 
     try:
         logger.info(f"Job {job_id}: Démarrage du traitement d'anonymisation.")
-        logger.info(f"Job {job_id}: Règles personnalisées reçues : {custom_rules}")  # <-- Log explicite ici
+        logger.info(f"Job {job_id}: Règles personnalisées reçues : {custom_rules}")
         logger.debug(f"Job {job_id}: Règles custom passées au moteur: {json.dumps(custom_rules, indent=2, ensure_ascii=False)}")
 
         exclude_entities = []
-        if not config_options.get("anonymizePersons", True): exclude_entities.append("PER")
-        if not config_options.get("anonymizeLocations", True): exclude_entities.append("LOC")
-        if not config_options.get("anonymizeOrgs", True): exclude_entities.append("ORG")
-        if not config_options.get("anonymizeEmails", True): exclude_entities.append("EMAIL")
-        if not config_options.get("anonymizeDates", True): exclude_entities.append("DATE")
+        if not config_options.get("anonymizePersons", True):
+            exclude_entities.append("PER")
+        if not config_options.get("anonymizeLocations", True):
+            exclude_entities.append("LOC")
+        if not config_options.get("anonymizeOrgs", True):
+            exclude_entities.append("ORG")
+        if not config_options.get("anonymizeEmails", True):
+            exclude_entities.append("EMAIL")
+        if not config_options.get("anonymizeDates", True):
+            exclude_entities.append("DATE")
+
+        # Exclure MISC seulement si on a des règles custom ET que l'utilisateur n'a pas coché l'option anonymizeMisc
+        if custom_rules and not config_options.get("anonymizeMisc", False):
+            exclude_entities.append("MISC")
 
         output_path = default_output(input_path, input_path.parent, append_timestamp=True)
         log_entities_path = default_log(input_path, input_path.parent)
@@ -156,7 +165,7 @@ async def anonymize_file_endpoint(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     config_options: str = Form(...),
-    custom_replacement_rules: Optional[str] = Form(None),  # <--- Ajout ici
+    custom_replacement_rules: Optional[str] = Form(None),
     file_type: Optional[str] = Form(None),
     has_header: Optional[str] = Form(None)
 ):
@@ -227,7 +236,6 @@ async def anonymize_file_endpoint(
     logger.info(f"Job {job_id}: Tâche d'anonymisation ajoutée aux tâches de fond.")
 
     return {"job_id": job_id, "status": "pending"}
-
 
 @app.get("/anonymize_status/{job_id}")
 async def anonymize_status_endpoint(job_id: uuid.UUID):

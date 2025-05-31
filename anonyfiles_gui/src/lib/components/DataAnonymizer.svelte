@@ -1,9 +1,12 @@
+<!-- #anonyfiles/anonyfiles_gui/src/lib/components/DataAnonymizer.svelte -->
 <script lang="ts">
-  // Importez directement les composants essentiels
+  import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import FileDropZone from './FileDropZone.svelte';
   import CustomRulesManager from './CustomRulesManager.svelte';
   import AnonymizationOptions from './AnonymizationOptions.svelte';
   import { inputText, outputText, auditLog, mappingCSV, isLoading, errorMessage } from '../stores/anonymizationStore';
+  import { customReplacementRules } from '../stores/customRulesStore';
   import { runAnonymization } from '../utils/anonymize';
   import {
     fileType,
@@ -18,16 +21,13 @@
 
   const dispatch = createEventDispatcher();
 
-  // Variables pour les règles personnalisées
-  let customReplacementRules: { pattern: string; replacement: string; isRegex?: boolean }[] = [];
-  let customRuleError = "";
-
   let options = [
     { key: "anonymizePersons", label: "Personnes (PER)", default: true },
     { key: "anonymizeLocations", label: "Lieux (LOC)", default: true },
     { key: "anonymizeOrgs", label: "Organisations (ORG)", default: true },
     { key: "anonymizeEmails", label: "Emails", default: true },
-    { key: "anonymizeDates", label: "Dates", default: true }
+    { key: "anonymizeDates", label: "Dates", default: true },
+    { key: "anonymizeMisc", label: "MISC", default: false }
   ];
   let selected: { [key: string]: boolean } = {};
   options.forEach((opt) => (selected[opt.key] = opt.default));
@@ -53,35 +53,6 @@
     dragActive = false;
   }
 
-  // Gestion ajout / suppression / reset règles personnalisées
-  function handleAddCustomRule(event: CustomEvent<{ pattern: string; replacement: string; isRegex?: boolean }>) {
-    const { pattern, replacement, isRegex } = event.detail;
-    if (!pattern.trim()) {
-      customRuleError = "Le motif de recherche ne peut pas être vide.";
-      return;
-    }
-    if (
-      customReplacementRules.some(
-        (r) => r.pattern === pattern && r.replacement === replacement && r.isRegex === isRegex
-      )
-    ) {
-      customRuleError = "Cette règle existe déjà.";
-      return;
-    }
-    customReplacementRules = [...customReplacementRules, { pattern, replacement, isRegex }];
-    customRuleError = "";
-  }
-
-  function handleRemoveCustomRule(event: CustomEvent<number>) {
-    customReplacementRules = customReplacementRules.filter((_, i) => i !== event.detail);
-    customRuleError = "";
-  }
-
-  function handleClearCustomRules() {
-    customReplacementRules = [];
-    customRuleError = "";
-  }
-
   async function onClickAnonymize() {
     try {
       await runAnonymization({
@@ -90,7 +61,7 @@
         hasHeader: $hasHeader,
         xlsxFile: $xlsxFile,
         selected,
-        customReplacementRules
+        customReplacementRules: get(customReplacementRules)
       });
     } catch (e) {
       console.error("Erreur dans anonymisation:", e);
@@ -111,8 +82,7 @@
     previewHeaders.set([]);
     options.forEach((opt) => (selected[opt.key] = opt.default));
     dragActive = false;
-    customReplacementRules = [];
-    customRuleError = "";
+    customReplacementRules.set([]);
     dispatch("resetRequested");
   }
 </script>
@@ -120,20 +90,12 @@
 {#if $isLoading}
   <div class="fixed inset-0 z-50 bg-black bg-opacity-40 flex flex-col items-center justify-center">
     <div class="flex flex-col items-center gap-3 p-8 bg-white rounded-2xl shadow-xl border border-zinc-200">
-      <svg
-        class="animate-spin h-8 w-8 text-blue-700 mb-2"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
+      <svg class="animate-spin h-8 w-8 text-blue-700 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
       </svg>
       <span class="font-bold text-lg text-zinc-800 text-center">Anonymisation en cours…</span>
-      <span class="text-zinc-500 text-sm text-center max-w-xs"
-        >Pour les gros fichiers, le traitement peut prendre plusieurs secondes.<br />Merci de patienter, la
-        fenêtre reste responsive.</span
-      >
+      <span class="text-zinc-500 text-sm text-center max-w-xs">Merci de patienter pendant le traitement.</span>
     </div>
   </div>
 {/if}
@@ -159,24 +121,15 @@
     {/await}
   {/if}
 
-  {#if $fileName !== ""}
-    <CustomRulesManager
-      currentRules={customReplacementRules}
-      error={customRuleError}
-      on:addrule={handleAddCustomRule}
-      on:removerule={handleRemoveCustomRule}
-      on:clearall={handleClearCustomRules}
-    />
-  {/if}
+  <CustomRulesManager />
 
-  <div class="mb-4">
-    <label for="inputText" class="font-semibold text-base text-zinc-700 dark:text-zinc-200">Texte à anonymiser :</label>
+  <div class="mb-4 flex flex-col h-[40vh] sm:h-[30vh]">
+    <label for="inputText" class="font-semibold text-base text-zinc-700 dark:text-zinc-200 mb-1">Texte à anonymiser :</label>
     <textarea
       id="inputText"
-      class="input-text"
+      class="input-text flex-grow resize-none border rounded p-2 w-full overflow-y-auto"
       placeholder="Collez ou saisissez votre texte ici..."
       bind:value={$inputText}
-      rows="4"
     ></textarea>
   </div>
 
@@ -188,46 +141,25 @@
         bind:checked={$hasHeader}
         class="accent-blue-600 dark:accent-blue-400"
       />
-      <label for="hasHeader" class="select-none text-zinc-700 dark:text-zinc-200"
-        >Le fichier contient une ligne d’en-tête</label
-      >
+      <label for="hasHeader">Le fichier contient une ligne d’en-tête</label>
     </div>
   {/if}
 
   <AnonymizationOptions {options} bind:selected isLoading={$isLoading} />
 
   <div class="flex flex-col sm:flex-row gap-2 justify-center mt-4">
-    <button
-      class="btn-primary"
-      on:click={onClickAnonymize}
-      disabled={$isLoading || !canAnonymize}
-      aria-busy={$isLoading}
-    >
+    <button class="btn-primary" on:click={onClickAnonymize} disabled={$isLoading || !canAnonymize}>
       {#if $isLoading}
-        <svg
-          class="animate-spin h-5 w-5 mr-1 inline-block align-middle"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            class="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="4"
-          />
+        <svg class="animate-spin h-5 w-5 mr-1 inline-block align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
         </svg>
-        Traitement en cours…
+        Traitement…
       {:else}
         Anonymiser
       {/if}
     </button>
-    <button class="btn-secondary" type="button" on:click={resetAll} disabled={$isLoading}>
-      Réinitialiser
-    </button>
+    <button class="btn-secondary" type="button" on:click={resetAll} disabled={$isLoading}>Réinitialiser</button>
   </div>
 
   {#if $outputText.trim().length > 0 || $isLoading}
@@ -238,7 +170,7 @@
 
   {#if $errorMessage}
     <div class="card-panel card-error mt-4">
-      <strong>Erreur lors de l’anonymisation :</strong>
+      <strong>Erreur :</strong>
       <pre class="whitespace-pre-wrap text-xs">{$errorMessage}</pre>
     </div>
   {/if}

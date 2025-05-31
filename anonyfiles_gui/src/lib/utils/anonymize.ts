@@ -42,7 +42,7 @@ export async function runAnonymization({
       // Règles personnalisées, sérialisées en JSON, champ distinct
       if (customReplacementRules && customReplacementRules.length > 0) {
         console.log("runAnonymization - règles personnalisées envoyées :", customReplacementRules);
-        formData.append('custom_replacement_rules', JSON.stringify(customReplacementRules));
+        formData.append('custom_replacements_json', JSON.stringify(customReplacementRules));
       }
 
       formData.append('file_type', fileType);

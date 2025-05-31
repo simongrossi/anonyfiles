@@ -1,110 +1,125 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/CustomRulesManager.svelte -->
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { customReplacementRules } from '../stores/customRulesStore';
+  import { get } from 'svelte/store';
 
-  export let currentRules: { pattern: string, replacement: string, isRegex?: boolean }[] = [];
-  export let error: string = "";
-
-  const dispatch = createEventDispatcher();
-
-  let newPattern = "";
-  let newReplacement = "";
-  let newIsRegex = false;
+  let newPattern = '';
+  let newReplacement = '';
+  let isRegex = false;
 
   function addRule() {
     if (!newPattern.trim()) return;
-    dispatch('addrule', { pattern: newPattern, replacement: newReplacement, isRegex: newIsRegex });
-    newPattern = "";
-    newReplacement = "";
-    newIsRegex = false;
+    customReplacementRules.update(rules => [
+      ...rules,
+      {
+        pattern: newPattern.trim(),
+        replacement: newReplacement.trim(),
+        isRegex
+      }
+    ]);
+    newPattern = '';
+    newReplacement = '';
+    isRegex = false;
   }
 
-  function removeRule(idx: number) {
-    dispatch('removerule', idx);
-  }
-
-  function clearAllRules() {
-    dispatch('clearall');
+  function removeRule(index: number) {
+    customReplacementRules.update(rules =>
+      rules.filter((_, i) => i !== index)
+    );
   }
 </script>
 
-<div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-  <div class="bg-white dark:bg-zinc-800 rounded-xl p-3 shadow mt-4 space-y-4">
-    <div class="flex justify-between items-center">
-      <h3 class="font-semibold text-blue-600 dark:text-blue-300 text-sm">
-        Règles de remplacement personnalisées
-      </h3>
-      {#if currentRules.length > 0}
+<style>
+  .rule-entry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0.5rem;
+  }
+
+  .rule-entry input[type="text"] {
+    flex: 1 1 200px;
+  }
+
+  .regex-label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .rule-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    align-items: center;
+  }
+
+  .section-title {
+    font-weight: bold;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .delete-btn {
+    color: red;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+  }
+
+  .delete-btn:hover {
+    background-color: #fee2e2;
+  }
+</style>
+
+<div>
+  <div class="section-title">🔧 Règles de remplacement personnalisées</div>
+
+  <div class="rule-form">
+    <input
+      type="text"
+      class="border rounded p-1"
+      placeholder="Motif à remplacer"
+      bind:value={newPattern}
+    />
+    <input
+      type="text"
+      class="border rounded p-1"
+      placeholder="Remplacement"
+      bind:value={newReplacement}
+    />
+    <label class="regex-label">
+      <input type="checkbox" bind:checked={isRegex} />
+      Regex ?
+    </label>
+    <button class="bg-green-500 text-white px-3 py-1 rounded" on:click={addRule}>Ajouter</button>
+  </div>
+
+  {#if $customReplacementRules.length > 0}
+    {#each $customReplacementRules as rule, index}
+      <div class="rule-entry">
+        <input type="text" class="border p-1 rounded" value={rule.pattern} readonly />
+        <span>→</span>
+        <input type="text" class="border p-1 rounded" value={rule.replacement} readonly />
+        <span class="text-sm italic">{rule.isRegex ? 'Regex' : 'Texte exact'}</span>
         <button
           type="button"
-          on:click={clearAllRules}
-          class="text-xs text-gray-500 hover:text-red-600 underline underline-offset-2 transition"
-          title="Réinitialiser toutes les règles"
+          class="delete-btn"
+          on:click={() => removeRule(index)}
         >
-          🧹 Réinitialiser
+          🗑 Supprimer
         </button>
-      {/if}
-    </div>
-
-    <!-- Formulaire -->
-    <div class="flex flex-col md:flex-row gap-2 items-stretch md:items-center">
-      <input
-        type="text"
-        placeholder="Motif à remplacer"
-        bind:value={newPattern}
-        on:keydown={(e) => { if (e.key === 'Enter') addRule(); }}
-        class="w-full md:w-40 px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded font-mono"
-      />
-      <span class="hidden md:inline text-gray-400 text-lg">&rarr;</span>
-      <input
-        type="text"
-        placeholder="Remplacement"
-        bind:value={newReplacement}
-        on:keydown={(e) => { if (e.key === 'Enter') addRule(); }}
-        class="w-full md:w-40 px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded font-mono"
-      />
-      <label class="flex items-center gap-1 text-xs text-blue-700 dark:text-blue-300">
-        <input type="checkbox" bind:checked={newIsRegex} class="accent-blue-600" />
-        Regex
-      </label>
-      <button
-        type="button"
-        class="text-sm sm:text-base px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40"
-        on:click={addRule}
-        disabled={!newPattern.trim()}
-        title="Ajouter la règle"
-      >Ajouter</button>
-    </div>
-
-    {#if error}
-      <div class="text-sm text-red-600 italic">{error}</div>
-    {/if}
-
-    <!-- Liste des règles -->
-    <ul class="space-y-2">
-      {#each currentRules as rule, i}
-        <li class="flex justify-between items-center bg-gray-100 dark:bg-zinc-700 px-3 py-2 rounded">
-          <div class="text-sm break-all text-blue-900 dark:text-blue-100">
-            <code>{rule.pattern}</code>
-            {#if rule.isRegex}
-              <span class="ml-1 px-2 py-0.5 rounded text-xs bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200">regex</span>
-            {/if}
-            <span class="mx-1 text-gray-500">&rarr;</span>
-            <code class="font-mono">{rule.replacement}</code>
-          </div>
-          <button
-            class="ml-4 px-2 py-1 bg-red-100 text-red-600 text-xs rounded hover:bg-red-300 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700"
-            type="button"
-            on:click={() => removeRule(i)}
-            title="Supprimer cette règle"
-          >
-            ✕
-          </button>
-        </li>
-      {/each}
-      {#if !currentRules.length}
-        <li class="italic text-gray-400 text-xs">Aucune règle personnalisée</li>
-      {/if}
-    </ul>
-  </div>
+      </div>
+    {/each}
+  {:else}
+    <p class="text-gray-500 italic">Aucune règle définie.</p>
+  {/if}
 </div>
