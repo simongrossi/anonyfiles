@@ -43,6 +43,7 @@ export function handleFile(file: File) {
       inputText.set(content);
       if (ext === "csv") {
         parseCsvPreview(content);
+        xlsxFile.set(file); // Correction appliquée ici
       }
     };
     reader.readAsText(file, "UTF-8");
@@ -50,9 +51,13 @@ export function handleFile(file: File) {
     if (ext === "xlsx") {
       xlsxFile.set(file);
     }
+    // Note: Si vous avez besoin de traiter docx ou pdf en tant qu'objet File
+    // pour l'envoyer au backend de la même manière que xlsx,
+    // vous devrez également ajouter xlsxFile.set(file); pour ces extensions ici.
+    // Actuellement, seul xlsx définit xlsxFile dans ce bloc.
   } else {
     errorMessage.set(`Format de fichier non pris en charge : ${ext}. Seuls les fichiers .txt, .csv, .xlsx, .docx, .pdf, .json sont acceptés.`);
     fileName.set("");
-    fileType.set("txt");
+    fileType.set("txt"); // Réinitialise à un type par défaut ou gère l'erreur autrement
   }
 }
