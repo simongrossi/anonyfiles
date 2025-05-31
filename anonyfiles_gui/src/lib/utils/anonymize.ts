@@ -6,7 +6,14 @@ function isTauri() {
   return !!(window && '__TAURI_IPC__' in window);
 }
 
-export async function runAnonymization({ fileType, fileName, hasHeader, xlsxFile, selected, customReplacementRules }) {
+export async function runAnonymization({
+  fileType,
+  fileName,
+  hasHeader,
+  xlsxFile,
+  selected,
+  customReplacementRules
+}) {
   isLoading.set(true);
   errorMessage.set('');
   outputText.set('');
@@ -20,6 +27,7 @@ export async function runAnonymization({ fileType, fileName, hasHeader, xlsxFile
       const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || 'http://127.0.0.1:8000/api';
 
       let formData = new FormData();
+
       if (fileType === "txt" || !fileType) {
         formData.append('file', new Blob([get(inputText)], { type: 'text/plain' }), fileName || 'input.txt');
       } else if (fileType === "csv" || fileType === "xlsx") {
@@ -27,7 +35,16 @@ export async function runAnonymization({ fileType, fileName, hasHeader, xlsxFile
         formData.append('file', xlsxFile, fileName);
         formData.append('has_header', String(!!hasHeader));
       }
-      formData.append('config_options', JSON.stringify({ ...selected, customReplacementRules }));
+
+      // Options classiques (ex: anonymizePersons, anonymizeLocations, ...)
+      formData.append('config_options', JSON.stringify(selected));
+
+      // Règles personnalisées, sérialisées en JSON, champ distinct
+      if (customReplacementRules && customReplacementRules.length > 0) {
+        console.log("runAnonymization - règles personnalisées envoyées :", customReplacementRules);
+        formData.append('custom_replacement_rules', JSON.stringify(customReplacementRules));
+      }
+
       formData.append('file_type', fileType);
 
       const response = await fetch(`${API_URL}/anonymize/`, {
