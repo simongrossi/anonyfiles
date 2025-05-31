@@ -85,7 +85,7 @@ cd anonyfiles
 - Mode sombre, responsive, traitement local sécurisé
 - Copie et prévisualisation des résultats
 
-![Aperçu de l'interface graphique](https://i.imgur.com/OEq7Q9W.jpeg)
+![Aperçu de l'interface graphique](https://i.imgur.com/LN3ib6y.jpeg)
 
 ### Lancement de l’API
 
