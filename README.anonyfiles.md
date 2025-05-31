@@ -1,10 +1,23 @@
 # 🕵️‍♂️ Anonyfiles
 
-**Anonyfiles** est une solution open source complète pour l’anonymisation automatisée de documents texte, tableurs et bureautiques, basée sur le NLP (spaCy) et des stratégies avancées de remplacement (Faker, codes, placeholders, etc.).
+**Anonyfiles** est une solution open source complète pour l’anonymisation automatisée de documents texte, tableurs et fichiers bureautiques.  
+Elle s’appuie sur des technologies de traitement du langage naturel (spaCy) et des stratégies avancées de remplacement (Faker, codes, placeholders, etc.).
 
-* **CLI (`anonyfiles_cli`)** : traitement en ligne de commande, configurable, robuste et multi-format.
-* **GUI (`anonyfiles_gui`)** : interface graphique moderne (Tauri + Svelte + Rust) pour une anonymisation intuitive, rapide et multiplateforme.
-* **API (`anonyfiles_api`)** : API REST FastAPI pour intégration dans des workflows ou systèmes tiers.
+## 🎯 Pourquoi ce projet ?
+
+Avec la montée en puissance des intelligences artificielles, nous utilisons de plus en plus ces outils pour traiter, résumer ou enrichir du contenu texte.  
+Mais un obstacle revient souvent : **comment préserver la confidentialité des données sensibles avant de les soumettre à ces systèmes ?**
+
+**Anonyfiles est né de ce besoin** : permettre à chacun d’anonymiser simplement et efficacement des fichiers ou du texte avant usage dans une IA, tout en conservant la structure et la cohérence du document.
+
+---
+
+## 🧩 Trois modules complémentaires
+
+* **CLI (`anonyfiles_cli`)** : traitement en ligne de commande, configurable, robuste et multi-format.  
+* **GUI (`anonyfiles_gui`)** : interface graphique moderne (Tauri + Svelte + Rust) pour une anonymisation intuitive, rapide et multiplateforme.  
+* **API (`anonyfiles_api`)** : API REST (FastAPI) pour intégration dans des workflows automatisés ou systèmes tiers.
+
 
 ---
 
