@@ -5,10 +5,14 @@ Elle s’appuie sur des technologies de traitement du langage naturel (spaCy) et
 
 ## 🎯 Pourquoi ce projet ?
 
-Avec la montée en puissance des intelligences artificielles, nous utilisons de plus en plus ces outils pour traiter, résumer ou enrichir du contenu texte.  
-Mais un obstacle revient souvent : **comment préserver la confidentialité des données sensibles avant de les soumettre à ces systèmes ?**
+À force d’utiliser l’intelligence artificielle dans des cas variés, un besoin simple mais essentiel s’est imposé :  
+👉 **pouvoir anonymiser rapidement des données textuelles avant de les soumettre à un traitement externe** (IA, workflow, audit, etc.).
 
-**Anonyfiles est né de ce besoin** : permettre à chacun d’anonymiser simplement et efficacement des fichiers ou du texte avant usage dans une IA, tout en conservant la structure et la cohérence du document.
+Mais l’objectif ne s’arrêtait pas là :  
+🔁 **Pouvoir désanonymiser un fichier traité** grâce à un mapping généré pendant l’anonymisation faisait aussi partie des ambitions du projet.  
+
+Et comme je suis curieux et passionné, je me suis dit : autant en profiter pour aller plus loin  
+🧠 **en créant une solution complète, modulaire et réutilisable**, avec API, CLI et interface graphique moderne.
 
 ---
 
