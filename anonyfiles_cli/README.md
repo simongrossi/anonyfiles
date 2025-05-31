@@ -164,38 +164,6 @@ anonyfiles_cli/
 ├── mappings/                       # Dossier contenant les fichiers de correspondance anonymisation/désanonymisation (via --mapping-output)
 └── tests/                          # Dossier réservé pour les tests unitaires (à compléter)
 ```
-
-```
-anonyfiles_cli/
-├── main.py
-├── requirements.txt
-├── README.md
-├── anonymizer/
-│   ├── anonyfiles_core.py
-│   ├── spacy_engine.py
-│   ├── replacer.py
-│   ├── base_processor.py
-│   ├── txt_processor.py
-│   ├── csv_processor.py
-│   ├── docx_processor.py
-│   ├── excel_processor.py
-│   ├── pdf_processor.py
-│   ├── json_processor.py
-│   ├── utils.py
-│   ├── audit.py
-│   └── deanonymize.py
-├── config/
-│   ├── config.yaml
-│   ├── generated_config.yaml
-│   └── schema.yaml
-├── examples/
-│   └── exemple.txt
-├── output_files/
-├── log/
-├── mappings/
-└── tests/
-```
-
 ---
 
 ## 🧩 Exemple de fichier `config.yaml`
