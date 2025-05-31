@@ -9,10 +9,10 @@ from .spacy_engine import SpaCyEngine
 from .replacer import ReplacementSession
 from .txt_processor import TxtProcessor
 from .csv_processor import CsvProcessor
-# from .word_processor import DocxProcessor
-# from .excel_processor import ExcelProcessor
-# from .pdf_processor import PdfProcessor
-# from .json_processor import JsonProcessor
+from .word_processor import DocxProcessor
+from .excel_processor import ExcelProcessor
+from .pdf_processor import PdfProcessor
+from .json_processor import JsonProcessor
 
 from docx import Document
 import pandas as pd
@@ -23,10 +23,10 @@ from .audit import AuditLogger
 PROCESSOR_MAP = {
     ".txt": TxtProcessor,
     ".csv": CsvProcessor,
-    # ".docx": DocxProcessor,
-    # ".xlsx": ExcelProcessor,
-    # ".pdf": PdfProcessor,
-    # ".json": JsonProcessor,
+    ".docx": DocxProcessor,
+    ".xlsx": ExcelProcessor,
+    ".pdf": PdfProcessor,
+    ".json": JsonProcessor,
 }
 
 class AnonyfilesEngine:
