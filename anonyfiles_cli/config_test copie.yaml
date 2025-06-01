@@ -1,0 +1,14 @@
+# config_test.yaml
+replacements:
+  PER:
+    type: codes
+    options:
+      prefix: "PERSONNE" # _generate_code produira {{PERSONNE_XXX}}
+  LOC:
+    type: placeholder
+    options:
+      format: "{{LIEU_SPECIAL:{}}}"
+  ORG:
+    type: redact
+    options:
+      text: "{{ENTREPRISE_CACHE}}"  
