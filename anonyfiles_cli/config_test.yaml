@@ -1,0 +1,24 @@
+spacy_model: fr_core_news_sm
+
+replacements:
+  PER:
+    type: codes
+    options:
+      prefix: PERS_
+      padding: 3
+  LOC:
+    type: placeholder
+    options:
+      format: "[LIEU:{}]"
+  ORG:
+    type: redact
+    options:
+      text: "[ENTREPRISE_MASQUEE]"
+  EMAIL:
+    type: placeholder
+    options:
+      format: "[EMAIL_ANONYMISE]"
+  DATE:
+    type: placeholder
+    options:
+      format: "[DATE_TRAITEE]"

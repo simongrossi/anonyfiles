@@ -2,6 +2,8 @@
 
 import random
 import string
+# Importer Faker si vous prévoyez de l'utiliser réellement pour le type "faker"
+# from faker import Faker
 
 class ReplacementSession:
     """
@@ -10,22 +12,34 @@ class ReplacementSession:
     """
 
     def __init__(self):
-        # On peut stocker ici les mappings utilisés si besoin d'un audit ou d'une désanonymisation
         self.entity_to_code = {}
         self.code_to_entity = {}
+        # Si vous utilisez Faker, initialisez-le ici, potentiellement avec une locale par défaut
+        # self.faker_instance = Faker('fr_FR') # Exemple
 
-    def _generate_code(self, label: str, index: int) -> str:
-        """Génère un code unique pour chaque type d'entité."""
-        # Pour les personnes : NOM001, NOM002
-        prefix = {
+    def _generate_code(self, label: str, index: int, options: dict = None) -> str:
+        """
+        Génère un code unique pour chaque type d'entité,
+        en utilisant les options fournies si disponibles.
+        """
+        options = options or {} # S'assurer que options est un dict
+
+        default_prefixes = {
             "PER": "NOM",
             "LOC": "LIEU",
             "ORG": "ORG",
             "EMAIL": "EMAIL",
             "DATE": "DATE",
             "MISC": "DATA",
-        }.get(label, label)
-        return f"{prefix}{str(index+1).zfill(3)}"
+        }
+        
+        prefix = options.get("prefix", default_prefixes.get(label, label.upper()))
+        
+        padding = options.get("padding", 3)
+        if not isinstance(padding, int) or padding < 0:
+            padding = 3 
+
+        return f"{prefix}{str(index+1).zfill(padding)}"
 
     def generate_replacements(self, unique_spacy_entities, replacement_rules=None):
         """
@@ -34,39 +48,53 @@ class ReplacementSession:
         """
         replacements = {}
         mapping = {}
-        entity_seen = {}
+        entity_seen = {} 
+        label_counters = {} 
 
         if not replacement_rules:
             replacement_rules = {}
 
-        for idx, (entity_text, label) in enumerate(unique_spacy_entities):
-            # Évite les doublons : toujours le même code pour une entité
+        for entity_text, label in unique_spacy_entities:
             if entity_text in entity_seen:
                 code = entity_seen[entity_text]
             else:
-                # Si règle custom pour ce label dans replacement_rules
+                current_label_index = label_counters.get(label, 0)
                 rule = replacement_rules.get(label)
-                if rule:
-                    # On gère plusieurs types de remplacement
-                    if isinstance(rule, dict):
-                        # type: faker, codes, redact, etc.
-                        t = rule.get("type")
-                        if t == "redact":
-                            code = rule.get("options", {}).get("text", "[REDACTED]")
-                        elif t == "codes":
-                            code = self._generate_code(label, idx)
-                        elif t == "faker":
-                            # (à personnaliser selon ton provider, etc.)
-                            code = "[FAKE]"
+                
+                if rule and isinstance(rule, dict):
+                    rule_options = rule.get("options", {}) 
+                    rule_type = rule.get("type")
+
+                    if rule_type == "redact":
+                        code = rule_options.get("text", "[REDACTED]")
+                    elif rule_type == "placeholder": # GESTION DU PLACEHOLDER AJOUTÉE
+                        format_str = rule_options.get("format", "[{}]")
+                        try:
+                            code = format_str.format(entity_text)
+                        except Exception as e:
+                            print(f"AVERTISSEMENT (Replacer): Erreur de formatage du placeholder pour l'entité '{entity_text}' avec le format '{format_str}': {e}. Utilisation du texte original.")
+                            code = entity_text 
+                    elif rule_type == "codes": # UTILISATION DES OPTIONS POUR CODES
+                        code = self._generate_code(label, current_label_index, rule_options)
+                        label_counters[label] = current_label_index + 1 
+                    elif rule_type == "faker":
+                        locale = rule_options.get("locale") 
+                        provider = rule_options.get("provider")
+                        if provider:
+                             code = f"[FAKE_{provider.upper()}]" # Placeholder simple
                         else:
-                            code = self._generate_code(label, idx)
+                             code = f"[FAKE_{label.upper()}]"
                     else:
-                        code = str(rule)
+                        print(f"AVERTISSEMENT (Replacer): Type de règle '{rule_type}' inconnu pour label '{label}'. Utilisation de la génération de code par défaut.")
+                        code = self._generate_code(label, current_label_index) 
+                        label_counters[label] = current_label_index + 1
                 else:
-                    code = self._generate_code(label, idx)
+                    code = self._generate_code(label, current_label_index)
+                    label_counters[label] = current_label_index + 1
+                
                 entity_seen[entity_text] = code
 
             replacements[entity_text] = code
-            mapping[entity_text] = code  # mapping CSV utilisé pour déanon
+            mapping[entity_text] = code
 
         return replacements, mapping

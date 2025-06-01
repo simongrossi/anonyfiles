@@ -1,35 +1,35 @@
 # anonymizer/base_processor.py
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 
-class BaseProcessor: #
-    def extract_blocks(self, input_path: Path, **kwargs) -> List[str]: #
+class BaseProcessor:
+    def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
+        """
+        Extrait les blocs de texte bruts du fichier d'entrée.
+        Chaque chaîne de la liste représente une unité de texte à traiter
+        (ex: un paragraphe, une cellule, une page, ou le fichier entier).
+        """
         raise NotImplementedError("extract_blocks doit être implémenté par la sous-classe.")
 
-    def replace_entities( #
+    def reconstruct_and_write_anonymized_file(
         self,
-        input_path: Path, #
-        output_path: Path, #
-        replacements: Dict[str, str], #
-        entities_per_block_with_offsets: List[List[Any]], #
-        **kwargs 
-    ):
-        # Cette méthode sera appelée par l'engine pour les types de fichiers
-        # où les règles custom ne sont pas (encore) gérées directement par l'engine.
-        # Elle appliquera les remplacements spaCy.
-        raise NotImplementedError("replace_entities doit être implémenté par la sous-classe.")
+        output_path: Path,
+        final_processed_blocks: List[str], # Blocs après règles custom ET remplacements spaCy
+        original_input_path: Path, # Pour la structure du fichier original si besoin (DOCX, PDF, en-têtes CSV)
+        # **kwargs peut contenir des options spécifiques au processeur,
+        # par exemple 'has_header' pour CsvProcessor,
+        # ou 'spacy_entities_on_custom_text_per_block' pour PdfProcessor si nécessaire
+        **kwargs
+    ) -> None:
+        """
+        Reconstruit le fichier dans son format d'origine en utilisant les blocs de texte
+        finalement traités et l'écrit dans output_path.
+        """
+        raise NotImplementedError("reconstruct_and_write_anonymized_file doit être implémenté par la sous-classe.")
 
-    def write_final_blocks(self, output_path: Path, 
-                           final_anonymized_blocks: List[str], 
-                           original_document_path_for_structure: Optional[Path] = None,
-                           **kwargs):
-        # Cette méthode est spécifique à la nouvelle approche pour TxtProcessor pour l'instant.
-        # Les autres processeurs continueront d'utiliser replace_entities jusqu'à leur refactorisation.
-        if isinstance(self, TxtProcessor): #
-             # L'implémentation actuelle de TxtProcessor.write_final_blocks sera appelée.
-             pass # ou lever NotImplementedError si on veut forcer chaque processeur à l'avoir.
-        else:
-            raise NotImplementedError(
-                f"write_final_blocks n'est pas encore implémenté pour {self.__class__.__name__}. "
-                f"L'engine devrait utiliser replace_entities pour ce type."
-            )
+    # Les anciennes méthodes comme 'replace_entities' ou 'write_final_blocks' (pour TxtProcessor)
+    # peuvent être marquées comme obsolètes ou supprimées si elles ne sont plus appelées
+    # directement par l'AnonyfilesEngine dans le nouveau flux.
+    # Exemple :
+    # def replace_entities(self, *args, **kwargs):
+    #     raise DeprecationWarning(f"{self.__class__.__name__}.replace_entities est obsolète. Utiliser reconstruct_and_write_anonymized_file.")
