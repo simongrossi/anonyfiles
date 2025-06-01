@@ -58,3 +58,4 @@ anonyfiles_cli/test_outputs_exemple_txt/exemple_anonymized.txt
 /anonyfiles_cli/env-cli
 /anonyfiles_cli/logs
 /anonyfiles_cli/runs
+/anonyfiles_api/jobs
