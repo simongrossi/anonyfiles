@@ -1,0 +1,49 @@
+spacy_model: fr_core_news_md # Ou le modèle que vous utilisez
+
+replacements:
+  PER:
+    type: codes # Ou votre stratégie actuelle pour les personnes
+    options:
+      prefix: NOM_ # Exemple de préfixe
+      padding: 3   # Exemple de padding
+
+  LOC:
+    type: faker    # Exemple, ou votre stratégie actuelle pour les lieux
+    options:
+      locale: fr_FR
+      provider: address
+
+  ORG:
+    type: redact  # Exemple, ou votre stratégie actuelle pour les organisations
+    options:
+      text: "[ENTREPRISE_ANONYME]"
+
+  # --- MODIFICATION POUR LES DATES ---
+  DATE:
+    type: codes  # <--- Changez ici de 'redact' (ou autre) à 'codes'
+    options:
+      prefix: DATE_CODE_ # Un préfixe pour les codes de date
+      padding: 3          # Le nombre de zéros pour le compteur (ex: DATE_CODE_001)
+      # Vous pouvez ajouter d'autres options spécifiques à 'codes' si nécessaire
+  # --- FIN DE LA MODIFICATION POUR LES DATES ---
+
+  EMAIL:
+    type: faker # Ou votre stratégie actuelle pour les emails
+    # options: ...
+
+  # Ajoutez ici d'autres types d'entités que vous gérez (PHONE, IBAN, MISC, etc.)
+  # et assurez-vous que leur stratégie ne crée pas de collisions si la réversibilité est importante.
+  # Par exemple :
+  # PHONE:
+  #   type: codes
+  #   options:
+  #     prefix: TEL_
+  #     padding: 3
+  # IBAN:
+  #   type: codes
+  #   options:
+  #     prefix: IBAN_
+  #     padding: 4
+
+# exclude_entities: # Décommentez et listez si vous voulez exclure certaines entités de l'anonymisation
+#   - MISC
