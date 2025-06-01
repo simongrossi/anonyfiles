@@ -5,7 +5,7 @@ from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPExcept
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.concurrency import run_in_threadpool
-from typing import Optional, Any, Dict, List 
+from typing import Optional, Any, Dict, List
 from pathlib import Path
 import shutil
 import json
@@ -15,12 +15,16 @@ import logging
 import aiofiles
 import sys
 
+# Assuming deanonymize_api.py is in the same directory (anonyfiles_api)
+from . import deanonymize_api # <--- ADD THIS IMPORT
+
 sys.path.append(str(Path(__file__).parent.parent / "anonyfiles_cli"))
 from anonymizer.run_logger import log_run_event
-from cli_logger import CLIUsageLogger
+# from cli_logger import CLIUsageLogger # This was in api.py, ensure it's correct
+from anonyfiles_cli.cli_logger import CLIUsageLogger # Corrected import based on deanonymize_api.py
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
-from main import load_config
+from main import load_config # Assuming 'main' refers to anonyfiles_cli/main.py
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +34,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(root_path="/api")
+
+# Include the router from deanonymize_api.py
+app.include_router(deanonymize_api.router) # <--- ADD THIS LINE
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,7 +49,7 @@ app.add_middleware(
 JOBS_DIR = Path("jobs")
 JOBS_DIR.mkdir(exist_ok=True)
 CONFIG_TEMPLATE_PATH = Path(__file__).parent.parent / "anonyfiles_cli" / "config.yaml"
-BASE_INPUT_STEM_FOR_JOB_FILES = "input" 
+BASE_INPUT_STEM_FOR_JOB_FILES = "input"
 
 BASE_CONFIG: Optional[dict] = None
 
@@ -56,7 +63,7 @@ async def startup_event():
         logger.error(f"Erreur lors du chargement de la configuration de base: {e}", exc_info=True)
         BASE_CONFIG = {}
 
-# --- Classe Job (Mise à jour avec méthodes d'écriture de statut affinées) ---
+# --- Class Job (Mise à jour avec méthodes d'écriture de statut affinées) ---
 class Job:
     def __init__(self, job_id: str):
         self.job_id = job_id
@@ -175,23 +182,23 @@ def _execute_engine_anonymization(
 ) -> Dict[str, Any]:
     logger.info(f"Job {input_path.parent.name}: Exécution du moteur AnonyfilesEngine.")
     return engine.anonymize(
-        input_path=input_path, output_path=output_path, entities=None, 
+        input_path=input_path, output_path=output_path, entities=None,
         dry_run=False, log_entities_path=log_entities_path,
         mapping_output_path=mapping_output_path, **processor_kwargs)
 
 def _process_engine_result(
-    current_job: Job, 
+    current_job: Job,
     engine_result: Dict[str, Any],
-    input_path: Path, 
-    output_path: Path, 
-    mapping_output_path: Path, 
+    input_path: Path,
+    output_path: Path,
+    mapping_output_path: Path,
     log_entities_path: Path
 ) -> None: # Ne retourne plus de booléen, le statut est géré via Job
     """Traite le résultat du moteur, log l'événement et utilise Job pour écrire statut/audit."""
     engine_status_reported = engine_result.get("status")
     engine_error_message = engine_result.get("error")
-    
-    final_status_for_log_event: str 
+
+    final_status_for_log_event: str
     final_error_for_log_event: Optional[str] = None
 
     if engine_status_reported == "success":
@@ -205,52 +212,52 @@ def _process_engine_result(
         current_job.set_status_as_error_sync(error_msg_to_set)
         final_status_for_log_event = "error"
         final_error_for_log_event = error_msg_to_set
-    
+
     logger.info(f"Job {current_job.job_id}: Moteur terminé. Statut pour log event: {final_status_for_log_event}, Erreur pour log event: {final_error_for_log_event}")
 
     log_run_event(
-        CLIUsageLogger, run_id=current_job.job_id, input_file=str(input_path), 
+        CLIUsageLogger, run_id=current_job.job_id, input_file=str(input_path),
         output_file=str(output_path), mapping_file=str(mapping_output_path),
         log_entities_file=str(log_entities_path), entities_detected=engine_result.get("entities_detected", []),
         total_replacements=engine_result.get("total_replacements", 0), audit_log=engine_result.get("audit_log", []),
-        status=final_status_for_log_event, 
+        status=final_status_for_log_event,
         error=final_error_for_log_event
     )
 
 def _handle_job_error(
-    current_job: Job, 
-    e: Exception, 
-    error_context: str, 
-    input_path: Path, 
-    output_path: Optional[Path] = None, 
+    current_job: Job,
+    e: Exception,
+    error_context: str,
+    input_path: Path,
+    output_path: Optional[Path] = None,
     mapping_output_path: Optional[Path] = None,
     log_entities_path: Optional[Path] = None
 ) -> None:
     logger.error(f"Job {current_job.job_id}: {error_context} - {e}", exc_info=True)
-    
+
     if isinstance(e, FileNotFoundError): error_message = f"File not found: {getattr(e, 'filename', 'N/A')}"
     elif isinstance(e, PermissionError): error_message = f"Permission error: {getattr(e, 'strerror', 'N/A')} on {getattr(e, 'filename', 'N/A')}"
     else: error_message = f"Unexpected error during {error_context}: {str(e)}"
-        
+
     current_job.set_status_as_error_sync(error_message)
 
     log_run_event(
         CLIUsageLogger, run_id=current_job.job_id, input_file=str(input_path),
-        output_file=str(output_path) if output_path else "", 
+        output_file=str(output_path) if output_path else "",
         mapping_file=str(mapping_output_path) if mapping_output_path else "",
-        log_entities_file=str(log_entities_path) if log_entities_path else "", 
+        log_entities_file=str(log_entities_path) if log_entities_path else "",
         status="error", error=error_message
     )
 
 def run_anonymization_job_sync(
-    job_id: str, 
-    input_path: Path, 
+    job_id: str,
+    input_path: Path,
     config_options: dict,
-    has_header: Optional[bool], 
+    has_header: Optional[bool],
     custom_rules: Optional[list]
 ):
     global BASE_CONFIG
-    current_job = Job(job_id) 
+    current_job = Job(job_id)
     output_path: Optional[Path] = None
     mapping_output_path: Optional[Path] = None
     log_entities_path: Optional[Path] = None
@@ -266,25 +273,25 @@ def run_anonymization_job_sync(
         logger.info(f"Job {job_id}: Démarrage pour {input_path.name}. Règles custom: {custom_rules}")
         engine_opts = _prepare_engine_options(config_options, custom_rules)
         processor_kwargs = _prepare_processor_kwargs(input_path, has_header)
-        
+
         output_path = default_output(input_path, current_job.job_dir, append_timestamp=True)
         log_entities_path = default_log(input_path, current_job.job_dir)
         mapping_output_path = default_mapping(input_path, current_job.job_dir)
-        
+
         engine = AnonyfilesEngine(config=BASE_CONFIG, **engine_opts)
         engine_result = _execute_engine_anonymization(
             engine, input_path, output_path, log_entities_path, mapping_output_path, processor_kwargs)
-        
+
         _process_engine_result(
             current_job, engine_result, input_path, output_path, mapping_output_path, log_entities_path
         )
-    except FileNotFoundError as e_fnf: 
+    except FileNotFoundError as e_fnf:
         _handle_job_error(current_job, e_fnf, "File not found", input_path, output_path, mapping_output_path, log_entities_path)
-    except PermissionError as e_perm: 
+    except PermissionError as e_perm:
         _handle_job_error(current_job, e_perm, "Permission error", input_path, output_path, mapping_output_path, log_entities_path)
     except Exception as e:  # NOSONAR
         _handle_job_error(current_job, e, "Unexpected error during job execution", input_path, output_path, mapping_output_path, log_entities_path)
-    finally: 
+    finally:
         logger.info(f"Job {job_id}: Traitement de run_anonymization_job_sync terminé.")
 
 
@@ -294,8 +301,8 @@ async def anonymize_file_endpoint(
     file: UploadFile = File(...),
     config_options: str = Form(...),
     custom_replacement_rules: Optional[str] = Form(None),
-    file_type: Optional[str] = Form(None), 
-    has_header: Optional[str] = Form(None) 
+    file_type: Optional[str] = Form(None),
+    has_header: Optional[str] = Form(None)
 ):
     job_id = str(uuid.uuid4())
     current_job = Job(job_id)
@@ -310,7 +317,7 @@ async def anonymize_file_endpoint(
         raise HTTPException(status_code=500, detail=f"Could not create job directory for {job_id}.")
 
     file_extension = Path(file.filename).suffix if file.filename else ".tmp"
-    input_filename_for_job = f"{BASE_INPUT_STEM_FOR_JOB_FILES}{file_extension}" 
+    input_filename_for_job = f"{BASE_INPUT_STEM_FOR_JOB_FILES}{file_extension}"
     input_path_for_job = job_dir / input_filename_for_job
 
     try:
@@ -340,22 +347,22 @@ async def anonymize_file_endpoint(
         raise HTTPException(status_code=400, detail=error_msg)
 
     custom_rules_list = None
-    if custom_replacement_rules and custom_replacement_rules.strip(): 
+    if custom_replacement_rules and custom_replacement_rules.strip():
         try:
             custom_rules_list = json.loads(custom_replacement_rules)
-            if not isinstance(custom_rules_list, list): 
+            if not isinstance(custom_rules_list, list):
                 logger.warning(f"Job {job_id}: custom_rules n'est pas liste. Reçu: {custom_replacement_rules}. Ignoré.")
-                custom_rules_list = None 
+                custom_rules_list = None
         except json.JSONDecodeError as e_json_rules: # NOSONAR
             logger.warning(f"Job {job_id}: Erreur parsing custom_rules: {e_json_rules}. Reçu: {custom_replacement_rules}. Ignoré.", exc_info=True)
-            custom_rules_list = None 
+            custom_rules_list = None
 
-    has_header_bool: Optional[bool] = None 
+    has_header_bool: Optional[bool] = None
     if has_header is not None:
         has_header_bool = has_header.lower() in ("1", "true", "yes", "on")
 
     background_tasks.add_task(
-        run_anonymization_job_sync, job_id=job_id, input_path=input_path_for_job, 
+        run_anonymization_job_sync, job_id=job_id, input_path=input_path_for_job,
         config_options=config_opts_dict, has_header=has_header_bool, custom_rules=custom_rules_list)
     logger.info(f"Job {job_id}: Tâche de fond ajoutée pour {input_path_for_job}.")
 
@@ -368,16 +375,16 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
     current_job = Job(job_id_str)
     logger.info(f"Demande de statut pour job: {job_id_str}")
 
-    if not await current_job.check_exists_async(check_status_file=True): 
+    if not await current_job.check_exists_async(check_status_file=True):
         logger.warning(f"Statut job {job_id_str}: Fichier status.json ou répertoire job non trouvé.")
         raise HTTPException(status_code=404, detail="Job not found or status file missing.")
 
-    current_status = await current_job.get_status_async() 
-    if current_status is None: 
+    current_status = await current_job.get_status_async()
+    if current_status is None:
         # Si get_status_async retourne None, c'est qu'il y a eu un problème pour lire/parser status.json
         # La classe Job aura déjà loggué l'erreur spécifique.
         raise HTTPException(status_code=500, detail="Could not retrieve job status file or it's corrupted.")
-    
+
     logger.info(f"Statut job {job_id_str} lu depuis status.json: {current_status.get('status')}")
 
     # Si le statut est "error" dans status.json, on le retourne directement.
@@ -398,7 +405,7 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
 
         response_payload["anonymized_text"] = ""
         response_payload["mapping_csv"] = ""
-        response_payload["log_csv"] = "" 
+        response_payload["log_csv"] = ""
         response_payload["audit_log"] = [] # Audit log est maintenant lu depuis son propre fichier par get_file_path_sync
 
         error_details: Dict[str, str] = {}
@@ -411,7 +418,7 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
         except Exception as e_get_paths:  # NOSONAR
             logger.error(f"Job {job_id_str}: Erreur obtention chemins fichiers: {e_get_paths}", exc_info=True)
             # Si les chemins ne peuvent pas être résolus, c'est une erreur même si status.json dit "finished"
-            response_payload["status"] = "error" 
+            response_payload["status"] = "error"
             response_payload["error"] = "Error resolving result file paths for a 'finished' job."
             return JSONResponse(content=response_payload)
 
@@ -425,21 +432,21 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
             content = await current_job.read_file_content_async(mapping_file_path)
             if content is not None: response_payload["mapping_csv"] = content
             else: error_details["reading_mapping_file"] = f"Could not read mapping file: {mapping_file_path.name}"
-        
+
         if log_entities_file_path:
             content = await current_job.read_file_content_async(log_entities_file_path)
             if content is not None: response_payload["log_csv"] = content
             else: error_details["reading_log_file"] = f"Could not read log_entities file: {log_entities_file_path.name}"
 
-        if audit_log_file_path: 
+        if audit_log_file_path:
             content = await current_job.read_file_content_async(audit_log_file_path)
             if content is not None:
                 try: response_payload["audit_log"] = json.loads(content)
                 except json.JSONDecodeError: error_details["parsing_audit_log"] = "Could not parse audit_log.json."
             else: error_details["reading_audit_log"] = "Could not read audit_log.json."
-        elif not audit_log_file_path: 
+        elif not audit_log_file_path:
              error_details["finding_audit_log"] = "Audit log file not found."
-        
+
         if error_details:
             response_payload.setdefault("error_details", {}).update(error_details)
             # Si des erreurs critiques de lecture de fichier se produisent, le statut global pourrait être mis à jour
@@ -458,14 +465,14 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
 @app.get("/files/{job_id}/{file_key}")
 async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: bool = False):
     job_id_str = str(job_id)
-    current_job = Job(job_id_str) 
+    current_job = Job(job_id_str)
     logger.info(f"Demande fichier clé '{file_key}' pour job {job_id_str}, attachment={as_attachment}")
 
-    if not await current_job.check_exists_async(check_status_file=False): 
+    if not await current_job.check_exists_async(check_status_file=False):
         logger.warning(f"Téléchargement: Job {job_id_str} non trouvé (répertoire).")
         raise HTTPException(status_code=404, detail="Job directory not found")
 
-    valid_file_keys = {"output", "mapping", "log_entities", "audit_log"} 
+    valid_file_keys = {"output", "mapping", "log_entities", "audit_log"}
     if file_key not in valid_file_keys:
         logger.warning(f"Téléchargement: Clé fichier invalide '{file_key}' pour job {job_id_str}.")
         raise HTTPException(status_code=400, detail=f"Invalid file_key. Valid: {', '.join(valid_file_keys)}")
@@ -483,12 +490,12 @@ async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: boo
         raise HTTPException(status_code=404, detail=error_detail)
 
     logger.info(f"Job {job_id_str}: Service du fichier '{file_path_to_serve.name}' (clé: {file_key}).")
-    
-    media_type = "application/octet-stream" 
+
+    media_type = "application/octet-stream"
     file_suffix = file_path_to_serve.suffix.lower()
 
     if file_key in ["mapping", "log_entities"] and file_suffix == ".csv": media_type = "text/csv"
-    elif file_key == "output": 
+    elif file_key == "output":
         if file_suffix == ".txt": media_type = "text/plain"
         elif file_suffix == ".json": media_type = "application/json"
         elif file_suffix == ".csv": media_type = "text/csv"
@@ -496,19 +503,22 @@ async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: boo
         elif file_suffix == ".xlsx": media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         elif file_suffix == ".pdf": media_type = "application/pdf"
     elif file_key == "audit_log" and file_path_to_serve.name == "audit_log.json": media_type = "application/json" # Nom fixe
-    
+
     if as_attachment:
         return FileResponse(str(file_path_to_serve), filename=file_path_to_serve.name, media_type=media_type)
     else:
         content = await current_job.read_file_content_async(file_path_to_serve)
         if content is None:
              raise HTTPException(status_code=500, detail=f"Could not read file content for {file_path_to_serve.name}")
-        
+
         if media_type == "application/json": # Pour audit et output JSON
             try: response_content = json.loads(content)
             except json.JSONDecodeError:  # NOSONAR
                 logger.error(f"Job {job_id_str}: Erreur parsing JSON pour {file_path_to_serve.name}", exc_info=True)
                 raise HTTPException(status_code=500, detail=f"Could not parse JSON content for {file_path_to_serve.name}")
         else: response_content = content # Pour text/plain, text/csv
-            
+
         return JSONResponse(content={"filename": file_path_to_serve.name, "content": response_content, "media_type": media_type})
+
+# Make sure to adjust the import for CLIUsageLogger if it's in a different location
+# e.g., from anonyfiles_cli.cli_logger import CLIUsageLogger

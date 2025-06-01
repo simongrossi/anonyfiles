@@ -1,16 +1,16 @@
 <script lang="ts">
   import FileDropZone from './FileDropZone.svelte';
-  import { onMount } from 'svelte';
+  import { onDestroy } from 'svelte';
 
   let inputFile: File | null = null;
   let mappingFile: File | null = null;
-  let outputText = "";
-  let isLoading = false;
-  let errorMessage = "";
-  let report: any[] = [];
-  let permissive = false;
+  let outputText: string = "";
+  let isLoading: boolean = false;
+  let errorMessage: string = "";
+  let report: string[] = []; // Pour les messages/avertissements
+  let permissive: boolean = false;
   let jobId: string | null = null;
-  let pollingInterval: any = null;
+  let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
   function resetAll() {
     inputFile = null;
@@ -20,131 +20,187 @@
     report = [];
     isLoading = false;
     jobId = null;
-    if (pollingInterval) clearInterval(pollingInterval);
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
   }
 
-  function handleInputDrop(event) {
-    const file = event.detail.file;
-    if (file) inputFile = file;
-  }
+  function handleFileDropped(event: CustomEvent<{ file: File; zoneId: string }>) {
+    const file = event.detail?.file;
+    const zoneIdFromEvent = event.detail?.zoneId;
 
-  function handleMappingDrop(event) {
-    const file = event.detail.file;
-    if (file) mappingFile = file;
+    console.log(`DeAnonymizer: Fichier reçu - Zone: '${zoneIdFromEvent}', Nom:`, file?.name); // Log essentiel
+
+    if (!file) {
+      if (zoneIdFromEvent === 'input-file-zone') inputFile = null;
+      if (zoneIdFromEvent === 'mapping-file-zone') mappingFile = null;
+      return;
+    }
+    errorMessage = ""; 
+    if (zoneIdFromEvent === 'input-file-zone') {
+      inputFile = file;
+    } else if (zoneIdFromEvent === 'mapping-file-zone') {
+      if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+        mappingFile = file;
+      } else {
+        mappingFile = null; 
+        errorMessage = "Le fichier de mapping doit être un fichier .csv";
+      }
+    }
   }
 
   async function deanonymize() {
     if (!inputFile || !mappingFile) {
-      errorMessage = "Merci de déposer un fichier à désanonymiser ET un fichier de mapping.";
+      errorMessage = "Merci de sélectionner un fichier à désanonymiser ET un fichier de mapping CSV.";
+      isLoading = false;
       return;
     }
+    
     errorMessage = "";
     outputText = "";
     report = [];
     isLoading = true;
-    jobId = null;
+    jobId = null; 
     if (pollingInterval) clearInterval(pollingInterval);
 
     try {
-      const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || 'http://localhost:8000';
+      const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || 'http://localhost:8000/api';
+      
       const formData = new FormData();
       formData.append('file', inputFile, inputFile.name);
       formData.append('mapping', mappingFile, mappingFile.name);
       formData.append('permissive', String(permissive));
 
-      const response = await fetch(`${API_URL}/api/deanonymize/`, {
-        method: 'POST',
-        body: formData,
-      });
+      const deanonymizeEndpoint = `${API_URL}/api/deanonymize/`; 
+      console.log("DeAnonymizer: Appel API:", deanonymizeEndpoint); 
+
+      const response = await fetch(deanonymizeEndpoint, { method: 'POST', body: formData });
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || "Erreur lors du lancement du job.");
-      }
+
+      if (!response.ok) throw new Error(data?.detail || data?.error || `Erreur HTTP ${response.status}`);
+      
       jobId = data.job_id;
-      if (!jobId) throw new Error("job_id absent de la réponse API");
+      if (!jobId) throw new Error(data?.error || "job_id absent de la réponse API.");
 
       pollingInterval = setInterval(async () => {
-        const statusResp = await fetch(`${API_URL}/api/deanonymize_status/${jobId}`);
-        const statusData = await statusResp.json();
-        if (statusData.status === "finished") {
-          clearInterval(pollingInterval);
-          outputText = statusData.deanonymized_text;
-          report = statusData.report || [];
-          isLoading = false;
-        } else if (statusData.status === "error") {
-          clearInterval(pollingInterval);
-          errorMessage = statusData.error || 'Erreur inconnue pendant la désanonymisation.';
-          isLoading = false;
+        const currentJobIdForPoll = jobId; 
+        if (!currentJobIdForPoll) {
+            if(pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = null;
+            return;
         }
-      }, 1200);
+        try {
+            const statusEndpoint = `${API_URL}/api/deanonymize_status/${currentJobIdForPoll}`;
+            const statusResp = await fetch(statusEndpoint);
+            
+            if (!statusResp.ok) {
+                const errorText = await statusResp.text();
+                errorMessage = `Erreur ${statusResp.status} suivi job: ${errorText.substring(0,100)}`; // Limiter la taille
+                if (statusResp.status === 404 && pollingInterval) clearInterval(pollingInterval); // Arrêter si job non trouvé
+                return; 
+            }
+            const statusData = await statusResp.json();
+
+            if (statusData.status === "finished") {
+              if(pollingInterval) clearInterval(pollingInterval);
+              pollingInterval = null;
+              outputText = statusData.deanonymized_text || "";
+              report = statusData.audit_log || []; 
+              isLoading = false;
+              jobId = null; 
+            } else if (statusData.status === "error") {
+              if(pollingInterval) clearInterval(pollingInterval);
+              pollingInterval = null;
+              errorMessage = statusData.error || 'Erreur traitement désanonymisation.';
+              isLoading = false;
+              jobId = null; 
+            }
+        } catch (pollError: any) {
+            errorMessage = `Erreur communication (polling): ${pollError.message.substring(0,100)}`;
+            if(pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = null;
+            isLoading = false;
+            jobId = null;
+        }
+      }, 2500);
     } catch (e: any) {
-      errorMessage = e.message || "Erreur lors de la désanonymisation.";
+      errorMessage = e.message || "Erreur lancement désanonymisation.";
       isLoading = false;
       if (pollingInterval) clearInterval(pollingInterval);
+      jobId = null;
     }
   }
+
+  onDestroy(() => {
+    if (pollingInterval) clearInterval(pollingInterval);
+  });
 </script>
 
-<div class="p-8">
-  <h1 class="text-2xl font-bold text-zinc-800 dark:text-zinc-100">Désanonymiser un fichier</h1>
+-->
+<div class="p-4 md:p-8">
+  <h1 class="text-xl md:text-2xl font-bold text-zinc-800 dark:text-zinc-100 mb-6">
+    Désanonymiser un Fichier
+  </h1>
 
-  <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <div>
-      <div class="block text-sm font-semibold mb-1 text-zinc-700 dark:text-zinc-300">📄 Fichier anonymisé à restaurer</div>
+      <label for="deanonymize-input-file" class="block text-sm font-semibold mb-2 text-zinc-700 dark:text-zinc-300">📄 Fichier anonymisé à restaurer</label>
       <FileDropZone
+        id="deanonymize-input-file"
+        dropZoneId="input-file-zone"
         fileName={inputFile ? inputFile.name : ""}
-        dragActive={false}
-        on:file={handleInputDrop}
+        accept=".txt,.csv,.xlsx,.docx,.pdf,.json"
+        on:file={handleFileDropped}
       />
       {#if inputFile}
-        <span class="text-blue-800 dark:text-blue-400">{inputFile.name}</span>
+        <p class="text-xs mt-1 text-blue-700 dark:text-blue-400">Fichier source : {inputFile.name}</p>
       {/if}
     </div>
     <div>
-      <div class="block text-sm font-semibold mb-1 text-zinc-700 dark:text-zinc-300">📑 Fichier de mapping (CSV)</div>
+      <label for="deanonymize-mapping-file" class="block text-sm font-semibold mb-2 text-zinc-700 dark:text-zinc-300">📑 Fichier de mapping (CSV)</label>
       <FileDropZone
+        id="deanonymize-mapping-file"
+        dropZoneId="mapping-file-zone"
         fileName={mappingFile ? mappingFile.name : ""}
-        dragActive={false}
-        on:file={handleMappingDrop}
+        accept=".csv"
+        on:file={handleFileDropped}
       />
       {#if mappingFile}
-        <span class="text-blue-800 dark:text-blue-400">{mappingFile.name}</span>
+        <p class="text-xs mt-1 text-blue-700 dark:text-blue-400">Fichier mapping : {mappingFile.name}</p>
       {/if}
     </div>
   </div>
 
-  <div class="flex items-center mt-4 mb-4 gap-2">
+  <div class="flex items-center mt-4 mb-6 gap-2">
     <input
       type="checkbox"
-      id="permissive"
+      id="permissiveToggleDeanonymize"
       bind:checked={permissive}
-      class="accent-blue-600 dark:accent-blue-400"
+      class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-blue-600 accent-blue-600 dark:accent-blue-400"
       disabled={isLoading}
     />
-    <label for="permissive" class="text-zinc-700 dark:text-zinc-200 select-none">
-      Mode permissif (tolérer les noms inconnus)
+    <label for="permissiveToggleDeanonymize" class="text-sm text-zinc-700 dark:text-zinc-200 select-none">
+      Mode permissif
     </label>
   </div>
 
-  <div class="flex gap-4 mt-2 mb-6">
+  <div class="flex flex-wrap gap-4 mt-2 mb-6">
     <button
-      class="px-6 py-2 font-semibold text-white rounded-xl bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-sm transition-all disabled:bg-zinc-400 disabled:cursor-wait"
+      class="px-6 py-2 font-semibold text-white rounded-xl bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       on:click={deanonymize}
       disabled={isLoading || !inputFile || !mappingFile}
       aria-busy={isLoading}
     >
       {#if isLoading}
-        <svg class="animate-spin h-5 w-5 mr-1 inline-block align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-        </svg>
+        <svg class="animate-spin h-5 w-5 mr-2 inline-block align-middle" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
         Traitement…
       {:else}
         Désanonymiser
       {/if}
     </button>
     <button
-      class="px-5 py-2 rounded-lg border border-zinc-300 text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition dark:border-gray-600 dark:text-zinc-100 dark:bg-gray-700 dark:hover:bg-gray-600"
+      class="px-5 py-2 rounded-lg border border-zinc-300 text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition dark:border-gray-600 dark:text-zinc-100 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50"
       type="button"
       on:click={resetAll}
       disabled={isLoading}
@@ -153,34 +209,31 @@
     </button>
   </div>
 
+  {#if errorMessage}
+    <div class="border border-red-200 bg-red-50 text-red-800 rounded-xl p-4 mt-4 shadow-md dark:border-red-700 dark:bg-red-900/30 dark:text-red-300" role="alert">
+      <strong class="font-semibold">Erreur :</strong>
+      <pre class="mt-1 whitespace-pre-wrap text-sm font-mono">{typeof errorMessage === 'object' ? JSON.stringify(errorMessage, null, 2) : errorMessage}</pre>
+    </div>
+  {/if}
+
   {#if outputText}
-    <div class="border border-green-200 bg-green-50 text-green-900 rounded-2xl p-4 flex flex-col gap-2 mt-4 shadow-sm dark:border-green-800 dark:bg-green-900 dark:text-green-200">
-      <span class="font-bold text-lg">Fichier désanonymisé</span>
+    <div class="border border-green-200 bg-green-50 text-green-900 rounded-2xl p-4 flex flex-col gap-2 mt-4 shadow-sm dark:border-green-700 dark:bg-green-900/30 dark:text-green-200">
+      <h3 class="font-bold text-lg">Fichier désanonymisé :</h3>
       <textarea
-        class="bg-white text-zinc-900 p-3 rounded-xl resize-y min-h-[60px] border border-zinc-300 font-mono w-full dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600"
+        class="w-full mt-1 p-3 border border-zinc-300 rounded-xl resize-y min-h-[120px] font-mono text-sm bg-white text-zinc-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600 dark:focus:ring-blue-600 dark:focus:border-blue-600"
         readonly
         value={outputText}
-        rows="8"
-      />
+        rows="10"
+      ></textarea>
     </div>
   {/if}
 
-  {#if errorMessage}
-    <div class="border border-red-200 bg-red-50 text-red-800 rounded-xl p-3 mt-4 dark:border-red-600 dark:bg-red-900 dark:text-red-300">
-      <strong>Erreur lors de la désanonymisation :</strong>
-      <pre class="whitespace-pre-wrap text-xs">{errorMessage}</pre>
-    </div>
-  {/if}
-
-  {#if report.length}
-    <div class="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-200 dark:bg-blue-900 dark:border-blue-800">
-      <div class="font-semibold text-blue-800 dark:text-blue-200 mb-2">Résumé du rapport :</div>
-      <ul class="space-y-1 text-blue-900 dark:text-blue-100 text-sm">
-        {#each report as log}
-          <li>
-            {log.code} → {log.original}
-            <span class="ml-2 text-xs text-gray-500">{log.status}</span>
-          </li>
+  {#if report && report.length > 0}
+    <div class="mt-6 p-4 rounded-xl bg-sky-50 border border-sky-200 dark:bg-sky-900/30 dark:border-sky-700">
+      <h3 class="font-semibold text-sky-800 dark:text-sky-200 mb-2">Journal / Avertissements :</h3>
+      <ul class="list-disc list-inside space-y-1 text-sky-900 dark:text-sky-100 text-sm">
+        {#each report as message}
+          <li>{typeof message === 'object' ? JSON.stringify(message) : message}</li>
         {/each}
       </ul>
     </div>
