@@ -4,7 +4,13 @@
     "module": "esnext",
     "target": "esnext",
     "types": ["svelte"],
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    // AJOUTS/VÉRIFICATIONS CRUCIALES CI-DESSOUS :
+    "baseUrl": ".", // Indique que la base est le répertoire où se trouve tsconfig.json (anonyfiles_gui/)
+    "paths": {
+      "$lib": ["src/lib"], // "$lib" pointe vers anonyfiles_gui/src/lib
+      "$lib/*": ["src/lib/*"] // "$lib/*" pointe vers anonyfiles_gui/src/lib/*
+    }
   },
   "include": ["src/**/*", "src/global.d.ts"],
   "exclude": ["node_modules/*", "src-tauri/*"]

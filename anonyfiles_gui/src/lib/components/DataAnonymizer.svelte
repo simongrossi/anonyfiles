@@ -1,4 +1,3 @@
-<!-- #anonyfiles/anonyfiles_gui/src/lib/components/DataAnonymizer.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
@@ -18,6 +17,10 @@
     handleFile
   } from '../utils/useFileHandler';
   import { createEventDispatcher } from 'svelte';
+
+  // Imports pour la suppression de job
+  import { currentJobId } from '$lib/stores/jobStore'; 
+  import { deleteJobFiles } from '$lib/utils/jobService'; 
 
   const dispatch = createEventDispatcher();
 
@@ -87,7 +90,20 @@
     options.forEach((opt) => (selected[opt.key] = opt.default));
     dragActive = false;
     customReplacementRules.set([]);
+    currentJobId.set(null); // Réinitialiser aussi l'ID du job
     dispatch("resetRequested");
+  }
+
+  async function handleDeleteCurrentJob() {
+    const jobIdToDelele = get(currentJobId);
+    if (jobIdToDelele) {
+      const success = await deleteJobFiles(jobIdToDelele);
+      if (success) {
+        resetAll(); 
+      }
+    } else {
+      console.warn("Tentative de suppression sans currentJobId");
+    }
   }
 </script>
 
@@ -154,15 +170,28 @@
     <button class="btn-secondary" type="button" on:click={resetAll} disabled={$isLoading}>Réinitialiser</button>
   </div>
 
-  {#if $outputText.trim().length > 0 || $isLoading}
+  {#if $outputText.trim().length > 0 || $errorMessage.trim().length > 0 || $isLoading}
     {#await import('./ResultView.svelte') then ResultViewModule}
-      <svelte:component this={ResultViewModule.default} />
+      <div class="mt-6"> <svelte:component this={ResultViewModule.default} />
+        
+        {#if $currentJobId && !$isLoading}
+          <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-center">
+            <button class="btn-secondary" style="background-color: #ef4444; color: white; border-color: #ef4444;" on:click={handleDeleteCurrentJob}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 0.5em; display: inline-block; vertical-align: text-bottom;">
+                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+              </svg>
+              Supprimer les Fichiers du Job Traité
+            </button>
+          </div>
+        {/if}
+      </div>
     {/await}
   {/if}
 
-  {#if $errorMessage}
+  {#if $errorMessage && !$isLoading}
     <div class="card-panel card-error mt-4">
-      <strong>Erreur :</strong>
+      <strong>Erreur (Anonymisation) :</strong>
       <pre class="whitespace-pre-wrap text-xs">{$errorMessage}</pre>
     </div>
   {/if}

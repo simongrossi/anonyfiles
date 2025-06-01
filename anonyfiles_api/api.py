@@ -1,13 +1,13 @@
 # anonyfiles/anonyfiles_api/api.py
 
 import fastapi
-from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException, status # Ajout de status
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException, status # status ajouté
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse, Response # Ajout de Response
+from fastapi.responses import JSONResponse, FileResponse, Response # Response ajoutée
 from fastapi.concurrency import run_in_threadpool
 from typing import Optional, Any, Dict, List
 from pathlib import Path
-import shutil # <--- AJOUTÉ
+import shutil # Ajouté pour la suppression de répertoire
 import json
 import uuid
 import os
@@ -23,7 +23,7 @@ from anonymizer.run_logger import log_run_event
 from anonyfiles_cli.cli_logger import CLIUsageLogger
 from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
-from main import load_config # Assuming 'main' refers to anonyfiles_cli/main.py
+from anonyfiles_cli.main import load_config # L'import de load_config depuis le main du CLI
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,7 +62,6 @@ async def startup_event():
         logger.error(f"Erreur lors du chargement de la configuration de base: {e}", exc_info=True)
         BASE_CONFIG = {}
 
-# --- Class Job (Mise à jour avec méthodes d'écriture de statut affinées) ---
 class Job:
     def __init__(self, job_id: str):
         self.job_id = job_id
@@ -152,16 +151,10 @@ class Job:
             self.set_status_as_error_sync(f"Critical error: Failed to write 'finished' status/audit_log after successful engine run: {str(e)}")
             return False
 
-    # --- NOUVELLE MÉTHODE POUR LA SUPPRESSION ---
-    def delete_job_directory_sync(self) -> bool:
-        """
-        Supprime le répertoire du job et tout son contenu.
-        Retourne True en cas de succès, False sinon.
-        """
+    def delete_job_directory_sync(self) -> bool: # Ajouté pour la suppression de job
         if not self.job_dir.exists():
             logger.warning(f"Job {self.job_id}: Tentative de suppression d'un répertoire de job inexistant: {self.job_dir}")
-            return False # Ou True si l'on considère que l'état désiré (absence du dossier) est atteint
-
+            return False 
         try:
             shutil.rmtree(self.job_dir)
             logger.info(f"Job {self.job_id}: Répertoire {self.job_dir} supprimé avec succès.")
@@ -169,9 +162,7 @@ class Job:
         except OSError as e:
             logger.error(f"Job {self.job_id}: Erreur lors de la suppression du répertoire {self.job_dir}: {e}", exc_info=True)
             return False
-    # --- FIN DE LA NOUVELLE MÉTHODE ---
 
-# --- Fonctions d'aide pour la logique du job d'anonymisation (adaptées) ---
 def _prepare_engine_options(config_options: dict, custom_rules: Optional[list]) -> Dict[str, Any]:
     exclude_entities = []
     if not config_options.get("anonymizePersons", True): exclude_entities.append("PER")
@@ -208,7 +199,7 @@ def _process_engine_result(
     output_path: Path,
     mapping_output_path: Path,
     log_entities_path: Path
-) -> None: # Ne retourne plus de booléen, le statut est géré via Job
+) -> None:
     engine_status_reported = engine_result.get("status")
     engine_error_message = engine_result.get("error")
 
@@ -220,8 +211,7 @@ def _process_engine_result(
         final_status_for_log_event = "success" if write_ok else "error"
         if not write_ok:
             final_error_for_log_event = f"Job {current_job.job_id}: Failed to write 'finished' status/audit after successful engine run."
-            # current_job.set_status_as_error_sync a déjà été appelé par set_status_as_finished_sync en cas d'échec d'écriture
-    else: # "error" ou statut inattendu du moteur
+    else: 
         error_msg_to_set = engine_error_message or f"Engine error or unexpected status: {engine_status_reported}"
         current_job.set_status_as_error_sync(error_msg_to_set)
         final_status_for_log_event = "error"
@@ -230,10 +220,15 @@ def _process_engine_result(
     logger.info(f"Job {current_job.job_id}: Moteur terminé. Statut pour log event: {final_status_for_log_event}, Erreur pour log event: {final_error_for_log_event}")
 
     log_run_event(
-        CLIUsageLogger, run_id=current_job.job_id, input_file=str(input_path),
-        output_file=str(output_path), mapping_file=str(mapping_output_path),
-        log_entities_file=str(log_entities_path), entities_detected=engine_result.get("entities_detected", []),
-        total_replacements=engine_result.get("total_replacements", 0), audit_log=engine_result.get("audit_log", []),
+        logger=CLIUsageLogger, # Paramètre logger explicité
+        run_id=current_job.job_id, 
+        input_file=str(input_path),
+        output_file=str(output_path), 
+        mapping_file=str(mapping_output_path),
+        log_entities_file=str(log_entities_path), 
+        entities_detected=engine_result.get("entities_detected", []), # Valeur par défaut si engine_result est partiel
+        total_replacements=engine_result.get("total_replacements", 0), # Valeur par défaut
+        audit_log=engine_result.get("audit_log", []), # Valeur par défaut
         status=final_status_for_log_event,
         error=final_error_for_log_event
     )
@@ -255,12 +250,19 @@ def _handle_job_error(
 
     current_job.set_status_as_error_sync(error_message)
 
+    # CORRECTION APPLIQUÉE ICI :
     log_run_event(
-        CLIUsageLogger, run_id=current_job.job_id, input_file=str(input_path),
+        logger=CLIUsageLogger, # Paramètre logger explicité
+        run_id=current_job.job_id,
+        input_file=str(input_path),
         output_file=str(output_path) if output_path else "",
         mapping_file=str(mapping_output_path) if mapping_output_path else "",
         log_entities_file=str(log_entities_path) if log_entities_path else "",
-        status="error", error=error_message
+        entities_detected=[],  # Fournir une valeur par défaut
+        total_replacements=0,  # Fournir une valeur par défaut
+        audit_log=[{"error_context": error_context, "original_exception": str(e), "reported_error": error_message}], # Fournir un log d'audit minimal
+        status="error",
+        error=error_message
     )
 
 def run_anonymization_job_sync(
@@ -279,7 +281,7 @@ def run_anonymization_job_sync(
     if BASE_CONFIG is None:
         logger.error(f"Job {job_id}: Config de base non chargée.")
         try: raise RuntimeError("Base configuration not loaded.")
-        except RuntimeError as e_conf: # NOSONAR
+        except RuntimeError as e_conf: 
             _handle_job_error(current_job, e_conf, "Base config error", input_path)
         return
 
@@ -303,7 +305,7 @@ def run_anonymization_job_sync(
         _handle_job_error(current_job, e_fnf, "File not found", input_path, output_path, mapping_output_path, log_entities_path)
     except PermissionError as e_perm:
         _handle_job_error(current_job, e_perm, "Permission error", input_path, output_path, mapping_output_path, log_entities_path)
-    except Exception as e:  # NOSONAR
+    except Exception as e:  
         _handle_job_error(current_job, e, "Unexpected error during job execution", input_path, output_path, mapping_output_path, log_entities_path)
     finally:
         logger.info(f"Job {job_id}: Traitement de run_anonymization_job_sync terminé.")
@@ -326,7 +328,7 @@ async def anonymize_file_endpoint(
 
     try:
         await run_in_threadpool(job_dir.mkdir, parents=True, exist_ok=True)
-    except Exception as e_mkdir: # NOSONAR
+    except Exception as e_mkdir: 
         logger.error(f"Impossible créer dir job {job_id}: {e_mkdir}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Could not create job directory for {job_id}.")
 
@@ -339,9 +341,8 @@ async def anonymize_file_endpoint(
             content = await file.read()
             await buffer.write(content)
         logger.info(f"Job {job_id}: Fichier '{input_filename_for_job}' (orig: {file.filename}) uploadé.")
-    except Exception as e_upload: # NOSONAR
+    except Exception as e_upload: 
         logger.error(f"Job {job_id}: Erreur upload '{input_filename_for_job}': {e_upload}", exc_info=True)
-        # Tenter de marquer le job comme erroné si l'upload échoue.
         await run_in_threadpool(current_job.set_status_as_error_sync, f"Failed to save uploaded file: {str(e_upload)}")
         raise HTTPException(status_code=500, detail=f"Could not save uploaded file for job {job_id}.")
     finally:
@@ -349,8 +350,6 @@ async def anonymize_file_endpoint(
 
     if not await run_in_threadpool(current_job.set_initial_status_sync):
         logger.error(f"Job {job_id}: Échec écriture statut initial 'pending'.")
-        # Ne pas lever d'HTTPException ici, car le job de fond pourrait quand même s'initialiser
-        # et écraser ce statut. Le log est important.
 
     try:
         config_opts_dict = json.loads(config_options)
@@ -367,7 +366,7 @@ async def anonymize_file_endpoint(
             if not isinstance(custom_rules_list, list):
                 logger.warning(f"Job {job_id}: custom_rules n'est pas liste. Reçu: {custom_replacement_rules}. Ignoré.")
                 custom_rules_list = None
-        except json.JSONDecodeError as e_json_rules: # NOSONAR
+        except json.JSONDecodeError as e_json_rules: 
             logger.warning(f"Job {job_id}: Erreur parsing custom_rules: {e_json_rules}. Reçu: {custom_replacement_rules}. Ignoré.", exc_info=True)
             custom_rules_list = None
 
@@ -395,8 +394,6 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
 
     current_status = await current_job.get_status_async()
     if current_status is None:
-        # Si get_status_async retourne None, c'est qu'il y a eu un problème pour lire/parser status.json
-        # La classe Job aura déjà loggué l'erreur spécifique.
         raise HTTPException(status_code=500, detail="Could not retrieve job status file or it's corrupted.")
 
     logger.info(f"Statut job {job_id_str} lu depuis status.json: {current_status.get('status')}")
@@ -424,7 +421,7 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
             mapping_file_path = await run_in_threadpool(current_job.get_file_path_sync, "mapping")
             log_entities_file_path = await run_in_threadpool(current_job.get_file_path_sync, "log_entities")
             audit_log_file_path = await run_in_threadpool(current_job.get_file_path_sync, "audit_log")
-        except Exception as e_get_paths:  # NOSONAR
+        except Exception as e_get_paths: 
             logger.error(f"Job {job_id_str}: Erreur obtention chemins fichiers: {e_get_paths}", exc_info=True)
             response_payload["status"] = "error"
             response_payload["error"] = "Error resolving result file paths for a 'finished' job."
@@ -484,7 +481,7 @@ async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: boo
     file_path_to_serve: Optional[Path] = None
     try:
         file_path_to_serve = await run_in_threadpool(current_job.get_file_path_sync, file_key)
-    except Exception as e_find:  # NOSONAR
+    except Exception as e_find: 
         logger.error(f"Job {job_id_str}: Erreur recherche fichier clé '{file_key}': {e_find}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error finding file for key '{file_key}'.")
 
@@ -506,7 +503,7 @@ async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: boo
         elif file_suffix == ".docx": media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         elif file_suffix == ".xlsx": media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         elif file_suffix == ".pdf": media_type = "application/pdf"
-    elif file_key == "audit_log" and file_path_to_serve.name == "audit_log.json": media_type = "application/json" # Nom fixe
+    elif file_key == "audit_log" and file_path_to_serve.name == "audit_log.json": media_type = "application/json"
 
     if as_attachment:
         return FileResponse(str(file_path_to_serve), filename=file_path_to_serve.name, media_type=media_type)
@@ -515,44 +512,31 @@ async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: boo
         if content is None:
              raise HTTPException(status_code=500, detail=f"Could not read file content for {file_path_to_serve.name}")
 
-        if media_type == "application/json": # Pour audit et output JSON
+        if media_type == "application/json":
             try: response_content = json.loads(content)
-            except json.JSONDecodeError:  # NOSONAR
+            except json.JSONDecodeError: 
                 logger.error(f"Job {job_id_str}: Erreur parsing JSON pour {file_path_to_serve.name}", exc_info=True)
                 raise HTTPException(status_code=500, detail=f"Could not parse JSON content for {file_path_to_serve.name}")
-        else: response_content = content # Pour text/plain, text/csv
+        else: response_content = content
 
         return JSONResponse(content={"filename": file_path_to_serve.name, "content": response_content, "media_type": media_type})
 
-# --- NOUVEL ENDPOINT POUR LA SUPPRESSION ---
-@app.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT) # Ajouté pour la suppression
 async def delete_job_endpoint(job_id: uuid.UUID):
-    """
-    Supprime un job et tous les fichiers associés (répertoire du job).
-    """
     job_id_str = str(job_id)
     current_job = Job(job_id_str)
     logger.info(f"Requête de suppression pour le job ID: {job_id_str}")
 
-    # Vérifier si le répertoire du job existe avant de tenter la suppression
     if not await run_in_threadpool(current_job.job_dir.exists):
         logger.warning(f"Job {job_id_str} non trouvé pour suppression. Répertoire: {current_job.job_dir}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
-    # Exécuter la suppression dans un threadpool car shutil.rmtree est bloquant
     deleted_successfully = await run_in_threadpool(current_job.delete_job_directory_sync)
 
     if not deleted_successfully:
-        # Si la suppression a échoué, delete_job_directory_sync a déjà loggué l'erreur.
-        # On lève une erreur 500 si le dossier existe toujours (ce qui indiquerait un vrai problème de suppression).
         if await run_in_threadpool(current_job.job_dir.exists):
              raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not delete job directory")
         else:
-            # Si le dossier n'existe plus (par exemple, il a été supprimé entre la vérification et l'appel,
-            # ou delete_job_directory_sync a retourné False mais a quand même réussi à le supprimer),
-            # on peut considérer l'opération comme réussie du point de vue du client.
             logger.info(f"Job {job_id_str}: Répertoire non trouvé après tentative de suppression ou déjà supprimé. Opération considérée comme réussie.")
-            # Pas besoin de lever d'exception ici, le statut 204 sera renvoyé.
-
+    
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-# --- FIN DU NOUVEL ENDPOINT ---

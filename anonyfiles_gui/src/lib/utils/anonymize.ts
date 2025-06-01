@@ -1,11 +1,23 @@
 // #anonyfiles/anonyfiles_gui/src/lib/utils/anonymize.ts
 import { get } from 'svelte/store';
 import { inputText, outputText, auditLog, mappingCSV, isLoading, errorMessage } from '../stores/anonymizationStore';
+import { currentJobId } from '$lib/stores/jobStore';
+
+// Définition de l'interface pour les paramètres
+interface RunAnonymizationParams {
+  fileType?: string; // Peut être 'txt', 'csv', 'xlsx', etc. ou undefined/null
+  fileName?: string;
+  hasHeader?: boolean;
+  xlsxFile?: File | null; // Le fichier Excel/CSV lui-même, peut être null
+  selected: Record<string, boolean>; // Pour les options d'anonymisation cochées, ex: { anonymizePersons: true }
+  customReplacementRules?: { pattern: string; replacement: string; isRegex?: boolean }[]; // Basé sur customRulesStore
+}
 
 function isTauri() {
   return !!(window && '__TAURI_IPC__' in window);
 }
 
+// Utilisation de l'interface dans la signature de la fonction
 export async function runAnonymization({
   fileType,
   fileName,
@@ -13,12 +25,13 @@ export async function runAnonymization({
   xlsxFile,
   selected,
   customReplacementRules
-}) {
+}: RunAnonymizationParams) { // <--- TYPE APPLIQUÉ ICI
   isLoading.set(true);
   errorMessage.set('');
   outputText.set('');
   auditLog.set([]);
   mappingCSV.set('');
+  currentJobId.set(null); 
 
   try {
     if (isTauri()) {
@@ -31,21 +44,19 @@ export async function runAnonymization({
       if (fileType === "txt" || !fileType) {
         formData.append('file', new Blob([get(inputText)], { type: 'text/plain' }), fileName || 'input.txt');
       } else if (fileType === "csv" || fileType === "xlsx") {
-        if (!xlsxFile) throw new Error("Fichier manquant pour le type xlsx/csv");
-        formData.append('file', xlsxFile, fileName);
+        if (!xlsxFile) throw new Error("Fichier manquant pour le type xlsx/csv"); // xlsxFile est vérifié ici
+        formData.append('file', xlsxFile, fileName); // xlsxFile est utilisé ici
         formData.append('has_header', String(!!hasHeader));
       }
 
-      // Options classiques (ex: anonymizePersons, anonymizeLocations, ...)
       formData.append('config_options', JSON.stringify(selected));
 
-      // Règles personnalisées, sérialisées en JSON, champ distinct
       if (customReplacementRules && customReplacementRules.length > 0) {
         console.log("runAnonymization - règles personnalisées envoyées :", customReplacementRules);
         formData.append('custom_replacements_json', JSON.stringify(customReplacementRules));
       }
 
-      formData.append('file_type', fileType);
+      formData.append('file_type', fileType || ''); // Assurer que file_type est une chaîne si undefined
 
       const response = await fetch(`${API_URL}/anonymize/`, {
         method: 'POST',
@@ -54,16 +65,39 @@ export async function runAnonymization({
 
       if (!response.ok) {
         const errMsg = await response.text();
-        throw new Error(`[${response.status}] Erreur backend: ${errMsg}`);
+        console.error("Erreur API (anonymize):", errMsg);
+        try {
+            const errJson = JSON.parse(errMsg);
+            throw new Error(`[${response.status}] Erreur backend: ${errJson.detail || errMsg}`);
+        } catch (e) {
+            throw new Error(`[${response.status}] Erreur backend: ${errMsg}`);
+        }
       }
 
       const data = await response.json();
 
       if (data.job_id) {
+        currentJobId.set(data.job_id); 
         let polling = true;
         while (polling) {
           await new Promise(r => setTimeout(r, 1200));
           const pollResp = await fetch(`${API_URL}/anonymize_status/${data.job_id}`);
+          
+          if (!pollResp.ok) {
+            const pollErrText = await pollResp.text();
+            console.error("Erreur API (anonymize_status):", pollErrText);
+            let specificError = `Erreur lors du polling du statut (HTTP ${pollResp.status}).`;
+            try {
+                const pollErrJson = JSON.parse(pollErrText);
+                specificError = pollErrJson.detail || specificError;
+            } catch(e) {
+                // pollErrText n'est pas du JSON
+            }
+            errorMessage.set(specificError);
+            polling = false; 
+            continue; 
+          }
+
           const pollData = await pollResp.json();
 
           if (pollData.status === "finished") {
@@ -72,17 +106,25 @@ export async function runAnonymization({
             mappingCSV.set(pollData.mapping_csv || '');
             polling = false;
           } else if (pollData.status === "error") {
-            throw new Error(pollData.error || "Erreur inconnue lors du polling.");
+            errorMessage.set(pollData.error || "Erreur inconnue lors du polling de l'anonymisation.");
+            polling = false; 
+          } else if (pollData.status === "pending") {
+            console.log("Job status pending for:", data.job_id);
+          } else {
+            errorMessage.set(`Statut de job inattendu: ${pollData.status}`);
+            polling = false;
           }
         }
       } else {
         outputText.set(data.outputText || data.anonymized_text || '');
         auditLog.set(data.auditLog || data.audit_log || []);
         mappingCSV.set(data.mappingCSV || data.mapping_csv || '');
+        currentJobId.set(null); 
       }
     }
   } catch (err: any) {
     errorMessage.set(err?.message || 'Erreur lors de l\'anonymisation');
+    currentJobId.set(null); 
   } finally {
     isLoading.set(false);
   }

@@ -1,4 +1,3 @@
-<!-- #anonyfiles/anonyfiles_gui/src/App.svelte -->
 <script lang="ts">
   import DataAnonymizer from './lib/components/DataAnonymizer.svelte';
   import DeAnonymizer from './lib/components/DeAnonymizer.svelte';
@@ -7,6 +6,8 @@
   import ReleasesView from './lib/components/ReleasesView.svelte';
   import AboutView from './lib/components/AboutView.svelte';
   import Sidebar from './lib/components/Sidebar.svelte';
+  // Assurez-vous que ce chemin est correct par rapport à l'emplacement de NotificationDisplay.svelte
+  import NotificationDisplay from './lib/components/NotificationDisplay.svelte';
   import { sidebarState } from './lib/stores/sidebarStore';
   import { inputText, outputText, auditLog } from './lib/stores/anonymizationStore';
   import { derived } from 'svelte/store';
@@ -26,8 +27,13 @@
     inputText.set('');
     outputText.set('');
     auditLog.set([]);
+    // Si vous avez currentJobId, vous pourriez aussi le réinitialiser ici :
+    // import { currentJobId } from './lib/stores/jobStore';
+    // currentJobId.set(null);
   }
 </script>
+
+<NotificationDisplay />
 
 <div class="flex h-screen bg-zinc-50 dark:bg-zinc-900">
   <Sidebar activeTab={tab} on:selectTab={(e) => tab = e.detail} />

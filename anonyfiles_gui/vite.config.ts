@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import path from "path";
+import path from "path"; // Assurez-vous que 'path' est importé
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -31,12 +31,15 @@ export default defineConfig(({ command }) => ({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: './index.html', // 👈 obligatoire pour corriger ton bug
+      input: './index.html',
     },
   },
   resolve: {
     alias: {
-      '@tauri-apps/api': path.resolve(__dirname, 'node_modules/@tauri-apps/api')
+      // Votre alias existant pour @tauri-apps/api
+      '@tauri-apps/api': path.resolve(__dirname, 'node_modules/@tauri-apps/api'),
+      // AJOUT DE L'ALIAS POUR $lib :
+      '$lib': path.resolve(__dirname, './src/lib') // Fait pointer $lib vers anonyfiles_gui/src/lib
     }
   }
 }));
