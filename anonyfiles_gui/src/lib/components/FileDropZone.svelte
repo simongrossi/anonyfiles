@@ -1,10 +1,11 @@
+<!-- #anonyfiles/anonyfiles_gui/src/lib/components/FileDropZone.svelte -->
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
 
   export let fileName: string = '';
   export let id: string = 'file-upload-' + Math.random().toString(36).substring(2, 9);
   export let accept: string = ".txt,.csv,.xlsx,.docx,.pdf,.json";
-  export let dropZoneId: string; // Identifiant unique pour cette instance (passé par le parent)
+  export let dropZoneId: string;
 
   const dispatch = createEventDispatcher();
   let internalDragActive = false;
@@ -26,7 +27,7 @@
       dispatch('file', { file: files[0], zoneId: dropZoneId });
     }
     if (target) {
-        target.value = '';
+      target.value = '';
     }
   }
 
@@ -41,14 +42,14 @@
     event.stopPropagation();
     const relatedTarget = event.relatedTarget as Node;
     if (!event.currentTarget || !(event.currentTarget as Node).contains(relatedTarget)) {
-        internalDragActive = false;
+      internalDragActive = false;
     }
   }
 </script>
 
 <div
   role="group"
-  class="dropzone border-2 border-dashed rounded-xl p-4 text-center mb-4 transition-colors duration-200 ease-in-out
+  class="dropzone border-2 border-dashed rounded-xl py-0.5 px-3 text-center mb-4 min-h-[60px] transition-colors duration-200 ease-in-out
          bg-white dark:bg-zinc-800 
          border-gray-300 dark:border-gray-600
          hover:border-blue-500 dark:hover:border-blue-400"
@@ -57,16 +58,16 @@
   on:dragover={handleDragOver}
   on:dragleave={handleDragLeave}
 >
-  <label for={id} class="cursor-pointer block w-full h-full flex flex-col justify-center items-center p-2">
-    <div class="text-zinc-500 dark:text-zinc-400 mb-2">
-      <svg class="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+  <label for={id} class="cursor-pointer w-full h-full flex flex-col justify-center items-center p-1">
+    <div class="text-zinc-500 dark:text-zinc-400 mb-1 text-sm">
+      <svg class="mx-auto h-5 w-5 text-gray-400 dark:text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
         <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
-      Déposez un fichier ou <span class="font-semibold text-blue-600 dark:text-blue-400">cliquez pour parcourir</span><br/>
+      Déposez un fichier ou <span class="font-semibold text-blue-600 dark:text-blue-400">cliquez pour parcourir</span>
       {#if accept && accept !== "*/*"}
-        <span class="text-xs mt-1">Formats : {accept.split(',').map(ext => ext.trim()).join(', ')}</span>
+        <span class="text-xs mt-1 block">Formats : {accept.split(',').map(ext => ext.trim()).join(', ')}</span>
       {:else}
-        <span class="text-xs mt-1">Tous types de fichiers</span>
+        <span class="text-xs mt-1 block">Tous types de fichiers</span>
       {/if}
     </div>
     <input
@@ -86,23 +87,17 @@
 
 <style>
   .dropzone {
-    min-height: 120px; 
+    min-height: 40px;
   }
   .dropzone--active {
     border-color: #2563eb !important;
     background-color: #eff6ff !important;
   }
-  /* Correction de l'avertissement CSS "Unused CSS selector" */
-  /* On indique à Svelte que .dark est une classe globale, souvent sur <html> ou <body> */
   :global(html.dark) .dropzone--active, 
   :global(body.dark) .dropzone--active {
     border-color: #3b82f6 !important;
     background-color: #1f2937 !important;
   }
-  /* Si vous êtes sûr que .dark est uniquement sur <html> par exemple, vous pouvez simplifier : */
-  /* :global(html.dark) .dropzone--active { ... } */
-  /* Ou même, si le contexte est clair pour le compilateur Tailwind/Svelte : */
-  /* :global(.dark) .dropzone--active { ... } */
 
   .sr-only { 
     position: absolute;
