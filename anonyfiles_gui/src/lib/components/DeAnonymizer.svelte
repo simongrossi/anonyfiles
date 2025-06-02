@@ -137,7 +137,7 @@
   });
 </script>
 
--->
+
 <div class="p-4 md:p-8">
   <h1 class="text-xl md:text-2xl font-bold text-zinc-800 dark:text-zinc-100 mb-6">
     Désanonymiser un Fichier
