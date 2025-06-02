@@ -5,18 +5,21 @@
 </script>
 
 <header class="w-full h-16 px-4 flex items-center justify-between fixed top-0 z-50 bg-zinc-900 text-white border-b border-zinc-800">
-  <!-- Logo (clair/sombre auto) -->
+  <!-- Logo clair/sombre -->
   <div class="flex items-center gap-2">
     <img src="/anonyfiles-icon-dark.svg" alt="Logo" class="h-7 w-7 dark:hidden" />
     <img src="/anonyfiles-icon-light.svg" alt="Logo" class="h-7 w-7 hidden dark:inline" />
   </div>
 
-  <!-- Titre centré (positionné via absolute) -->
-  <h1 class="absolute left-1/2 -translate-x-1/2 text-base sm:text-lg font-semibold tracking-wide">
-    {title}
+  <!-- Titre centré -->
+  <h1
+    class="absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold tracking-wide select-none"
+    style="font-family: 'Montserrat', sans-serif;"
+  >
+    🕵️‍♂️ {title}
   </h1>
 
-  <!-- Menu burger à droite en mode mobile -->
+  <!-- Menu burger mobile -->
   <div class="w-7 h-7 flex items-center justify-end">
     {#if $sidebarState.isMobile}
       <button

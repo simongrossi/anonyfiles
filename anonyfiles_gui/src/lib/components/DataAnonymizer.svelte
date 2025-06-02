@@ -18,9 +18,8 @@
   } from '../utils/useFileHandler';
   import { createEventDispatcher } from 'svelte';
 
-  // Imports pour la suppression de job
-  import { currentJobId } from '$lib/stores/jobStore'; 
-  import { deleteJobFiles } from '$lib/utils/jobService'; 
+  import { currentJobId } from '$lib/stores/jobStore';
+  import { deleteJobFiles } from '$lib/utils/jobService';
 
   const dispatch = createEventDispatcher();
 
@@ -46,17 +45,15 @@
     (["docx", "pdf", "json"].includes($fileType) && $fileName.length > 0);
 
   let dragActive = false;
+  const dataAnonymizerDropZoneId = "data-anonymizer-dropzone"; // ID pour la dropzone
 
-  function handleDragOver(event: DragEvent) {
-    event.preventDefault();
+  function handleDragOver(event: Event) {
+    const dragEvent = event as DragEvent;
+    dragEvent.preventDefault();
     dragActive = true;
   }
 
-  function handleDragLeave(event: DragEvent | CustomEvent) {
-    const dragEvent = event instanceof DragEvent ? event : (event as any).detail?.event;
-    if (dragEvent && typeof dragEvent.preventDefault === "function") {
-      dragEvent.preventDefault();
-    }
+  function handleDragLeave(event: Event) {
     dragActive = false;
   }
 
@@ -72,6 +69,7 @@
       });
     } catch (e) {
       console.error("Erreur dans anonymisation:", e);
+      // errorMessage.set(e.message || 'Une erreur inattendue est survenue.');
     }
   }
 
@@ -90,7 +88,7 @@
     options.forEach((opt) => (selected[opt.key] = opt.default));
     dragActive = false;
     customReplacementRules.set([]);
-    currentJobId.set(null); // Réinitialiser aussi l'ID du job
+    currentJobId.set(null);
     dispatch("resetRequested");
   }
 
@@ -99,7 +97,7 @@
     if (jobIdToDelele) {
       const success = await deleteJobFiles(jobIdToDelele);
       if (success) {
-        resetAll(); 
+        resetAll();
       }
     } else {
       console.warn("Tentative de suppression sans currentJobId");
@@ -109,22 +107,20 @@
 
 {#if $isLoading}
   <div class="fixed inset-0 z-50 bg-black bg-opacity-40 flex flex-col items-center justify-center">
-    <div class="flex flex-col items-center gap-3 p-8 bg-white rounded-2xl shadow-xl border border-zinc-200">
-      <svg class="animate-spin h-8 w-8 text-blue-700 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <div class="flex flex-col items-center gap-3 p-8 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-700">
+      <svg class="animate-spin h-8 w-8 text-blue-700 dark:text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
       </svg>
-      <span class="font-bold text-lg text-zinc-800 text-center">Anonymisation en cours…</span>
-      <span class="text-zinc-500 text-sm text-center max-w-xs">Merci de patienter pendant le traitement.</span>
+      <span class="font-bold text-lg text-zinc-800 dark:text-zinc-100 text-center">Anonymisation en cours…</span>
+      <span class="text-zinc-500 dark:text-zinc-400 text-sm text-center max-w-xs">Merci de patienter pendant le traitement.</span>
     </div>
   </div>
 {/if}
 
 <div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
   <FileDropZone
-    on:dragleave={(e) => handleDragLeave(e.detail?.event ?? e)}
-    {dragActive}
-    on:file={(event) => handleFile(event.detail.file)}
+    dropZoneId={dataAnonymizerDropZoneId} on:file={(event) => handleFile(event.detail.file)}
     on:dragover={handleDragOver}
     on:dragleave={handleDragLeave}
   />
@@ -145,9 +141,9 @@
         type="checkbox"
         id="hasHeader"
         bind:checked={$hasHeader}
-        class="accent-blue-600 dark:accent-blue-400"
+        class="accent-blue-600 dark:accent-blue-400 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-500"
       />
-      <label for="hasHeader">Le fichier contient une ligne d’en-tête</label>
+      <label for="hasHeader" class="text-zinc-700 dark:text-zinc-200">Le fichier contient une ligne d’en-tête</label>
     </div>
   {/if}
 
@@ -172,12 +168,16 @@
 
   {#if $outputText.trim().length > 0 || $errorMessage.trim().length > 0 || $isLoading}
     {#await import('./ResultView.svelte') then ResultViewModule}
-      <div class="mt-6"> <svelte:component this={ResultViewModule.default} />
+      <div class="mt-6">
+        <svelte:component this={ResultViewModule.default} />
         
         {#if $currentJobId && !$isLoading}
           <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-center">
-            <button class="btn-secondary" style="background-color: #ef4444; color: white; border-color: #ef4444;" on:click={handleDeleteCurrentJob}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 0.5em; display: inline-block; vertical-align: text-bottom;">
+            <button
+              class="btn-secondary bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white border-red-500 hover:border-red-600 dark:border-red-600 dark:hover:border-red-700"
+              on:click={handleDeleteCurrentJob}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" class="w-4 h-4 mr-2 inline-block align-text-bottom">
                 <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
                 <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
               </svg>

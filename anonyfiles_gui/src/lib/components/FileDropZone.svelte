@@ -1,4 +1,3 @@
-<!-- #anonyfiles/anonyfiles_gui/src/lib/components/FileDropZone.svelte -->
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
 
@@ -49,11 +48,7 @@
 
 <div
   role="group"
-  class="dropzone border-2 border-dashed rounded-xl py-0.5 px-3 text-center mb-4 min-h-[60px] transition-colors duration-200 ease-in-out
-         bg-white dark:bg-zinc-800 
-         border-gray-300 dark:border-gray-600
-         hover:border-blue-500 dark:hover:border-blue-400"
-  class:dropzone--active={internalDragActive}
+  class="dropzone border-2 border-dashed rounded-xl py-0.5 px-3 text-center mb-4 min-h-[60px] transition-colors duration-200 ease-in-out {internalDragActive ? 'border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-zinc-700' : 'bg-white dark:bg-zinc-800 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'}"
   on:drop={handleDrop}
   on:dragover={handleDragOver}
   on:dragleave={handleDragLeave}
@@ -86,18 +81,8 @@
 </div>
 
 <style>
-  .dropzone {
-    min-height: 40px;
-  }
-  .dropzone--active {
-    border-color: #2563eb !important;
-    background-color: #eff6ff !important;
-  }
-  :global(html.dark) .dropzone--active, 
-  :global(body.dark) .dropzone--active {
-    border-color: #3b82f6 !important;
-    background-color: #1f2937 !important;
-  }
+  /* Les styles pour .dropzone--active ont été déplacés dans l'attribut class du div ci-dessus. */
+  /* min-height: 40px; était redondant. */
 
   .sr-only { 
     position: absolute;
