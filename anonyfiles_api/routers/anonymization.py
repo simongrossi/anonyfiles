@@ -1,7 +1,7 @@
 # anonyfiles/anonyfiles_api/routers/anonymization.py
 
 import fastapi
-from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException, Request # Request est déjà là
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from typing import Optional, Any, Dict, List
@@ -11,7 +11,7 @@ import uuid
 import aiofiles
 import sys
 
-from ..core_config import logger # BASE_CONFIG n'est plus importé globalement ici
+from ..core_config import logger
 from ..job_utils import Job, BASE_INPUT_STEM_FOR_JOB_FILES
 
 CLI_MODULE_PATH = Path(__file__).resolve().parent.parent.parent / "anonyfiles_cli"
@@ -20,7 +20,7 @@ if str(CLI_MODULE_PATH) not in sys.path:
 
 from anonymizer.run_logger import log_run_event
 from anonyfiles_cli.cli_logger import CLIUsageLogger
-from anonymizer.anonyfiles_core import AnonyfilesEngine #
+from anonymizer.anonyfiles_core import AnonyfilesEngine
 from anonymizer.file_utils import default_output, default_mapping, default_log
 
 router = APIRouter()
@@ -133,14 +133,14 @@ def run_anonymization_job_sync(
     config_options: dict,
     has_header: Optional[bool],
     custom_rules: Optional[list],
-    passed_base_config: Dict[str, Any] 
+    passed_base_config: Dict[str, Any]
 ):
     current_job = Job(job_id)
     output_path: Optional[Path] = None
     mapping_output_path: Optional[Path] = None
     log_entities_path: Optional[Path] = None
 
-    if passed_base_config is None or not passed_base_config: # Vérifie si la config passée est valide
+    if passed_base_config is None or not passed_base_config:
         logger.error(f"Tâche {job_id}: La configuration de base (passed_base_config) est None ou vide pour la tâche de fond.")
         try:
             raise RuntimeError("Configuration de base (passed_base_config) non fournie ou vide à la tâche de fond.")
@@ -156,8 +156,8 @@ def run_anonymization_job_sync(
         output_path = default_output(input_path, current_job.job_dir, append_timestamp=True)
         log_entities_path = default_log(input_path, current_job.job_dir)
         mapping_output_path = default_mapping(input_path, current_job.job_dir)
-        
-        engine = AnonyfilesEngine(config=passed_base_config, **engine_opts) #
+
+        engine = AnonyfilesEngine(config=passed_base_config, **engine_opts)
         engine_result = _execute_engine_anonymization(
             engine, input_path, output_path, log_entities_path, mapping_output_path, processor_kwargs)
 
@@ -176,17 +176,19 @@ def run_anonymization_job_sync(
 
 @router.post("/anonymize/", tags=["Anonymisation"])
 async def anonymize_file_endpoint(
-    request: Request, 
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     config_options: str = Form(...),
+    # MODIFICATION CLÉ ICI :
+    # Conserver Form(None) pour l'API, mais ajouter plus de robustesse au parsing JSON.
     custom_replacement_rules: Optional[str] = Form(None),
     file_type: Optional[str] = Form(None),
     has_header: Optional[str] = Form(None)
 ):
     job_id = str(uuid.uuid4())
     current_job = Job(job_id)
-    
+
     logger.info(f"Requête d'anonymisation tâche: {job_id}, fichier: {file.filename}, type: {file_type}, header: {has_header}")
 
     await run_in_threadpool(current_job.job_dir.mkdir, parents=True, exist_ok=True)
@@ -218,16 +220,21 @@ async def anonymize_file_endpoint(
         await run_in_threadpool(current_job.set_status_as_error_sync, error_msg + " Échec du parsing des options de configuration.")
         raise HTTPException(status_code=400, detail=error_msg)
 
-    custom_rules_list = None
+    custom_rules_list = [] # Initialiser à une liste vide par défaut, pas None
     if custom_replacement_rules and custom_replacement_rules.strip():
+        logger.info(f"Tâche {job_id}: Tentative de parsing des règles personnalisées. Chaîne reçue: '{custom_replacement_rules}'") # LOG DÉBUG
         try:
-            custom_rules_list = json.loads(custom_replacement_rules)
-            if not isinstance(custom_rules_list, list):
-                logger.warning(f"Tâche {job_id}: custom_rules n'est pas une liste. Reçu: {custom_replacement_rules}. Ignoré.")
-                custom_rules_list = None
+            parsed_rules = json.loads(custom_replacement_rules)
+            if isinstance(parsed_rules, list):
+                custom_rules_list = parsed_rules
+                logger.info(f"Tâche {job_id}: Règles personnalisées parsées avec succès. Nombre de règles: {len(custom_rules_list)}") # LOG DÉBUG
+            else:
+                logger.warning(f"Tâche {job_id}: Le contenu des règles personnalisées n'est pas une liste JSON valide. Type reçu: {type(parsed_rules)}. Contenu: '{custom_replacement_rules}'. Ces règles seront ignorées.") # LOG DÉBUG
         except json.JSONDecodeError as e_json_rules:
-            logger.warning(f"Tâche {job_id}: Erreur de parsing de custom_rules: {e_json_rules}. Reçu: {custom_replacement_rules}. Ignoré.", exc_info=True)
-            custom_rules_list = None
+            logger.warning(f"Tâche {job_id}: Erreur de parsing JSON pour custom_replacement_rules: {e_json_rules}. Chaîne reçue: '{custom_replacement_rules}'. Ces règles seront ignorées.", exc_info=True) # LOG DÉBUG
+    else:
+        logger.info(f"Tâche {job_id}: Aucune chaîne de règles personnalisées fournie ou elle est vide. Aucune règle personnalisée ne sera appliquée.") # LOG DÉBUG
+
 
     has_header_bool: Optional[bool] = None
     if has_header is not None:
@@ -236,8 +243,8 @@ async def anonymize_file_endpoint(
     current_base_config_for_task = None
     if hasattr(request.app.state, 'BASE_CONFIG'):
         current_base_config_for_task = request.app.state.BASE_CONFIG
-    
-    if current_base_config_for_task is None or not current_base_config_for_task: # Vérifie aussi si le dict est vide
+
+    if current_base_config_for_task is None or not current_base_config_for_task:
         error_msg = "Erreur critique: La configuration de base du serveur (app.state.BASE_CONFIG) n'est pas chargée ou est vide."
         logger.error(f"Tâche {job_id}: {error_msg}")
         await run_in_threadpool(current_job.set_status_as_error_sync, error_msg)
@@ -249,7 +256,7 @@ async def anonymize_file_endpoint(
         input_path=input_path_for_job,
         config_options=config_opts_dict,
         has_header=has_header_bool,
-        custom_rules=custom_rules_list,
+        custom_rules=custom_rules_list, # <<< C'est ici que la liste parsée est passée
         passed_base_config=current_base_config_for_task.copy()
     )
     logger.info(f"Tâche {job_id}: Tâche de fond ajoutée pour {input_path_for_job}.")
@@ -295,8 +302,8 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
             mapping_file_path = await run_in_threadpool(current_job.get_file_path_sync, "mapping")
             log_entities_file_path = await run_in_threadpool(current_job.get_file_path_sync, "log_entities")
             audit_log_file_path = await run_in_threadpool(current_job.get_file_path_sync, "audit_log")
-        except Exception as e_get_paths:
-            logger.error(f"Tâche {job_id_str}: Erreur d'obtention des chemins de fichiers: {e_get_paths}", exc_info=True)
+        except Exception as e_find:
+            logger.error(f"Tâche {job_id_str}: Erreur d'obtention des chemins de fichiers: {e_find}", exc_info=True)
             response_payload["status"] = "error"
             response_payload["error"] = "Erreur de résolution des chemins des fichiers de résultats pour une tâche 'finished'."
             return JSONResponse(content=response_payload)
