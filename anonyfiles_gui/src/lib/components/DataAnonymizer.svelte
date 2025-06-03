@@ -4,7 +4,16 @@
   import FileDropZone from './FileDropZone.svelte';
   import CustomRulesManager from './CustomRulesManager.svelte';
   import AnonymizationOptions from './AnonymizationOptions.svelte';
-  import { inputText, outputText, auditLog, mappingCSV, isLoading, errorMessage } from '../stores/anonymizationStore';
+  import {
+    inputText,
+    outputText,
+    auditLog,
+    mappingCSV,
+    isLoading,
+    errorMessage,
+    inputLineCount, // AJOUTÉ : Importer le store pour le nombre de lignes en entrée
+    inputCharCount  // AJOUTÉ : Importer le store pour le nombre de caractères en entrée
+  } from '../stores/anonymizationStore';
   import { customReplacementRules } from '../stores/customRulesStore';
   import { runAnonymization } from '../utils/anonymize';
   import {
@@ -14,7 +23,7 @@
     xlsxFile,
     previewTable,
     previewHeaders,
-    handleFile
+    handleFile // handleFile est importé depuis useFileHandler
   } from '../utils/useFileHandler';
   import { createEventDispatcher } from 'svelte';
 
@@ -38,14 +47,31 @@
   let selected: { [key: string]: boolean } = {};
   options.forEach((opt) => (selected[opt.key] = opt.default));
 
+  // AJOUTÉ : Fonction pour mettre à jour les compteurs pour la saisie manuelle
+  function updateInputCountsFromTextarea(currentText: string) {
+    inputLineCount.set(currentText.split('\n').length);
+    inputCharCount.set(currentText.length);
+  }
+
+  // AJOUTÉ : Réagir aux changements de $inputText pour mettre à jour les compteurs
+  // Ceci est utile si $inputText peut être modifié par d'autres moyens que le on:input direct du textarea
+  // (par exemple, par handleFile via useFileHandler.ts qui met à jour $inputText)
+  $: if ($inputText) {
+    updateInputCountsFromTextarea($inputText);
+  } else { // Assurer la réinitialisation si $inputText devient vide
+    inputLineCount.set(0);
+    inputCharCount.set(0);
+  }
+
+
   $: canAnonymize =
     ($fileType === "txt" && $inputText.trim().length > 0) ||
-    ($fileType === "csv" && $inputText.trim().length > 0) ||
+    ($fileType === "csv" && $inputText.trim().length > 0) || // Pour CSV, on se base sur inputText qui est rempli par useFileHandler
     ($fileType === "xlsx" && $xlsxFile !== null) ||
-    (["docx", "pdf", "json"].includes($fileType) && $fileName.length > 0);
+    (["docx", "pdf", "json"].includes($fileType) && $fileName.length > 0); // json est aussi traité comme texte par useFileHandler
 
   let dragActive = false;
-  const dataAnonymizerDropZoneId = "data-anonymizer-dropzone"; // ID pour la dropzone
+  const dataAnonymizerDropZoneId = "data-anonymizer-dropzone";
 
   function handleDragOver(event: Event) {
     const dragEvent = event as DragEvent;
@@ -75,7 +101,11 @@
 
   function resetAll() {
     inputText.set("");
+    inputLineCount.set(0); // AJOUTÉ : Réinitialiser le compteur de lignes
+    inputCharCount.set(0); // AJOUTÉ : Réinitialiser le compteur de caractères
     outputText.set("");
+    // outputLineCount.set(0); // Sera fait dans anonymize.ts lors de la réinitialisation de outputText
+    // outputCharCount.set(0); // Idem
     auditLog.set([]);
     mappingCSV.set("");
     errorMessage.set("");
@@ -120,8 +150,8 @@
 
 <div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
   <FileDropZone
-    dropZoneId={dataAnonymizerDropZoneId} on:file={(event) => handleFile(event.detail.file)}
-    on:dragover={handleDragOver}
+    dropZoneId={dataAnonymizerDropZoneId}
+    on:file={(event) => handleFile(event.detail.file)} on:dragover={handleDragOver}
     on:dragleave={handleDragLeave}
   />
 
@@ -132,7 +162,11 @@
       class="input-text flex-grow resize-none border rounded p-2 w-full overflow-y-auto"
       placeholder="Collez ou saisissez votre texte ici..."
       bind:value={$inputText}
+      on:input={(e) => updateInputCountsFromTextarea(e.currentTarget.value)}
     ></textarea>
+    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
+      Lignes: {$inputLineCount} | Caractères: {$inputCharCount}
+    </div>
   </div>
 
   {#if $fileType === "csv" || $fileType === "xlsx"}

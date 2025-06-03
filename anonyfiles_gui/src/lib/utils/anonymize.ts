@@ -1,6 +1,15 @@
 // #anonyfiles/anonyfiles_gui/src/lib/utils/anonymize.ts
 import { get } from 'svelte/store';
-import { inputText, outputText, auditLog, mappingCSV, isLoading, errorMessage } from '../stores/anonymizationStore';
+import {
+  inputText,
+  outputText,
+  auditLog,
+  mappingCSV,
+  isLoading,
+  errorMessage,
+  outputLineCount, // Ajouté
+  outputCharCount  // Ajouté
+} from '../stores/anonymizationStore';
 import { currentJobId } from '$lib/stores/jobStore';
 
 // Définition de l'interface pour les paramètres
@@ -29,9 +38,11 @@ export async function runAnonymization({
   isLoading.set(true);
   errorMessage.set('');
   outputText.set('');
+  outputLineCount.set(0); // Initialisation
+  outputCharCount.set(0); // Initialisation
   auditLog.set([]);
   mappingCSV.set('');
-  currentJobId.set(null); 
+  currentJobId.set(null);
 
   try {
     if (isTauri()) {
@@ -77,12 +88,12 @@ export async function runAnonymization({
       const data = await response.json();
 
       if (data.job_id) {
-        currentJobId.set(data.job_id); 
+        currentJobId.set(data.job_id);
         let polling = true;
         while (polling) {
           await new Promise(r => setTimeout(r, 1200));
           const pollResp = await fetch(`${API_URL}/anonymize_status/${data.job_id}`);
-          
+
           if (!pollResp.ok) {
             const pollErrText = await pollResp.text();
             console.error("Erreur API (anonymize_status):", pollErrText);
@@ -94,20 +105,23 @@ export async function runAnonymization({
                 // pollErrText n'est pas du JSON
             }
             errorMessage.set(specificError);
-            polling = false; 
-            continue; 
+            polling = false;
+            continue;
           }
 
           const pollData = await pollResp.json();
 
           if (pollData.status === "finished") {
-            outputText.set(pollData.anonymized_text || '');
+            const currentOutputText = pollData.anonymized_text || ''; // Ajouté
+            outputText.set(currentOutputText);                        // Modifié
+            outputCharCount.set(currentOutputText.length);            // Ajouté
+            outputLineCount.set(currentOutputText.split('\n').length); // Ajouté
             auditLog.set(pollData.audit_log || []);
             mappingCSV.set(pollData.mapping_csv || '');
             polling = false;
           } else if (pollData.status === "error") {
             errorMessage.set(pollData.error || "Erreur inconnue lors du polling de l'anonymisation.");
-            polling = false; 
+            polling = false;
           } else if (pollData.status === "pending") {
             console.log("Job status pending for:", data.job_id);
           } else {
@@ -116,15 +130,18 @@ export async function runAnonymization({
           }
         }
       } else {
-        outputText.set(data.outputText || data.anonymized_text || '');
+        const directOutputText = data.outputText || data.anonymized_text || ''; // Ajouté
+        outputText.set(directOutputText);                                        // Modifié
+        outputCharCount.set(directOutputText.length);                             // Ajouté
+        outputLineCount.set(directOutputText.split('\n').length);                  // Ajouté
         auditLog.set(data.auditLog || data.audit_log || []);
         mappingCSV.set(data.mappingCSV || data.mapping_csv || '');
-        currentJobId.set(null); 
+        currentJobId.set(null);
       }
     }
   } catch (err: any) {
     errorMessage.set(err?.message || 'Erreur lors de l\'anonymisation');
-    currentJobId.set(null); 
+    currentJobId.set(null);
   } finally {
     isLoading.set(false);
   }
