@@ -1,15 +1,18 @@
+
 # 🧩 anonyfiles_api
 
-API FastAPI pour le projet [anonyfiles](https://github.com/simongrossi/anonyfiles)
+API [FastAPI](https://fastapi.tiangolo.com/) pour le projet [anonyfiles](https://github.com/simongrossi/anonyfiles)
 
 ---
 
 ## 🚀 Fonctionnalités principales
 
-- API REST pour anonymiser et désanonymiser des fichiers textes, tableurs ou documents Office
-- Basée sur [FastAPI](https://fastapi.tiangolo.com/)
-- Utilise le moteur d’anonymisation situé dans le dossier `anonymizer/`
-- Traitement asynchrone avec suivi par `job_id`
+- API REST pour **anonymiser** et **désanonymiser** des fichiers texte, tableurs ou documents bureautiques (.txt, .csv, .docx, .xlsx, .json, .pdf)
+- Basée sur FastAPI avec documentation Swagger intégrée
+- Utilise le moteur d’anonymisation du dossier `anonymizer/`
+- Traitement **asynchrone** avec suivi par `job_id`
+- Nettoyage automatique des fichiers temporaires
+- CORS activé pour utilisation avec le frontend GUI
 
 ---
 
@@ -17,20 +20,20 @@ API FastAPI pour le projet [anonyfiles](https://github.com/simongrossi/anonyfile
 
 - Python 3.10 ou 3.11 recommandé
 - [pip](https://pip.pypa.io/)
-- Dépendances listées dans `requirements.txt` (à la racine du projet ou dans ce dossier)
+- Dépendances listées dans `requirements.txt` (racine du projet ou local)
 
 ---
 
 ## ⚡ Installation
 
-Depuis le dossier racine du projet :
+Depuis la racine du projet :
 
 ```bash
 cd anonyfiles_api
 pip install -r ../requirements.txt
 ```
 
-Ou, si vous utilisez un `requirements.txt` local :
+Ou en local :
 
 ```bash
 pip install -r requirements.txt
@@ -40,15 +43,13 @@ pip install -r requirements.txt
 
 ## 🏃‍♂️ Lancement du serveur de développement
 
-Depuis la racine du projet :
-
 ```bash
 uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Sous Windows (si les imports échouent) :
 
-```cmd
+```dos
 set PYTHONPATH=.
 uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -57,32 +58,31 @@ uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
 
 ## 🔗 Endpoints principaux
 
-| Méthode | Endpoint                  | Description                                |
-|---------|---------------------------|--------------------------------------------|
-| POST    | `/anonymize`              | Anonymise un texte ou un fichier (async)   |
-| GET     | `/anonymize_status/{id}`  | Vérifie le statut d’un job d’anonymisation |
-| POST    | `/deanonymize`            | Désanonymise un texte via un mapping       |
-| GET     | `/health`                 | Vérifie le bon fonctionnement du serveur   |
+| Méthode | Endpoint                     | Description                                      |
+|---------|------------------------------|--------------------------------------------------|
+| POST    | `/anonymize`                 | Anonymise un fichier ou texte (asynchrone)       |
+| GET     | `/anonymize_status/{job_id}` | Vérifie le statut d’un job                       |
+| POST    | `/deanonymize`               | Désanonymise un texte en utilisant un mapping    |
+| GET     | `/health`                    | Vérifie le bon fonctionnement de l’API           |
 
-➡️ Voir la documentation interactive : http://localhost:8000/docs
+📘 Documentation interactive disponible sur : [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 🔄 API Anonyfiles - Asynchrone
+## 🔄 API Asynchrone – Détail
 
-Cette API permet d’anonymiser des fichiers via un traitement asynchrone.
+### `POST /anonymize/`
 
-### POST `/anonymize/`
+Lance un job d’anonymisation en arrière-plan.
 
-- Lance un job d’anonymisation en arrière-plan.
-- Paramètres :
-  - `file`: fichier à anonymiser (upload multipart/form-data)
-  - `config_options`: JSON string des options d’anonymisation (ex: entités à exclure, règles personnalisées)
-  - `file_type` *(optionnel)*
-  - `has_header` *(optionnel)*
+**Paramètres :**
 
-- Exemple de réponse :
+- `file` : fichier à anonymiser (`multipart/form-data`)
+- `config_options` : chaîne JSON des options d’anonymisation (ex. : entités à exclure, règles personnalisées)
+- `file_type` *(optionnel)*
+- `has_header` *(optionnel)*
 
+**Exemple de réponse :**
 ```json
 {
   "job_id": "uuid-unique-du-job",
@@ -90,16 +90,15 @@ Cette API permet d’anonymiser des fichiers via un traitement asynchrone.
 }
 ```
 
-### GET `/anonymize_status/{job_id}`
+### `GET /anonymize_status/{job_id}`
 
-- Permet de vérifier le statut du job.
-- Retourne :
-  - `pending` : en cours
-  - `finished` : terminé
-  - `error` : erreur lors du traitement
+Retourne le statut du job :
 
-#### Exemple de réponse (job terminé) :
+- `pending` : en cours
+- `finished` : terminé
+- `error` : échec
 
+**Exemple de réponse (job terminé) :**
 ```json
 {
   "status": "finished",
@@ -115,29 +114,28 @@ Cette API permet d’anonymiser des fichiers via un traitement asynchrone.
 }
 ```
 
-🧹 Les fichiers temporaires sont nettoyés automatiquement.  
-🌐 CORS activé pour permettre les appels depuis le frontend.  
-🔐 Utilise un UUID unique par job pour isoler les traitements.
-
 ---
 
 ## 🏗️ Structure du dossier
 
-```bash
+```
 anonyfiles_api/
-│
-├── api.py           # Point d'entrée FastAPI
-├── routes/          # (optionnel) fichiers pour séparer les endpoints
-├── models/          # (optionnel) schémas Pydantic
-├── ...
+├── api.py                 # Point d’entrée FastAPI (app, middlewares)
+├── core_config.py         # Configuration globale (logger, chemins, etc.)
+├── job_utils.py           # Gestion et suivi des jobs
+└── routers/               # Routers FastAPI
+    ├── anonymization.py     # Endpoints /anonymize et /anonymize_status
+    ├── deanonymization.py   # Endpoint /deanonymize
+    ├── files.py             # Téléchargement des fichiers anonymisés
+    └── jobs.py              # Suppression et gestion avancée des jobs
 ```
 
 ---
 
 ## 💡 Conseils
 
-- Toujours exécuter le serveur depuis la racine du projet pour garantir la résolution correcte des imports.
-- Pour un déploiement en production, privilégier Gunicorn/Uvicorn avec Nginx, ou un service cloud adapté.
+- Toujours lancer depuis la racine du projet pour éviter les erreurs d’import.
+- Pour un déploiement en production : utiliser Gunicorn ou Uvicorn avec Nginx, ou un service cloud (Render, Railway, etc.).
 
 ---
 
@@ -145,10 +143,11 @@ anonyfiles_api/
 
 - [FastAPI](https://fastapi.tiangolo.com/)
 - [Uvicorn](https://www.uvicorn.org/)
-- [Projet anonyfiles sur GitHub](https://github.com/simongrossi/anonyfiles)
+- [Projet Anonyfiles sur GitHub](https://github.com/simongrossi/anonyfiles)
 
 ---
 
 ## 👤 Auteur principal
 
-Simon Grossi
+**Simon Grossi**  
+Créateur du projet Anonyfiles – pour une anonymisation rapide, robuste, réversible.
