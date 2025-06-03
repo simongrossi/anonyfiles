@@ -7,26 +7,24 @@ import {
   mappingCSV,
   isLoading,
   errorMessage,
-  outputLineCount, // Ajouté
-  outputCharCount  // Ajouté
+  outputLineCount,
+  outputCharCount
 } from '../stores/anonymizationStore';
 import { currentJobId } from '$lib/stores/jobStore';
 
-// Définition de l'interface pour les paramètres
 interface RunAnonymizationParams {
-  fileType?: string; // Peut être 'txt', 'csv', 'xlsx', etc. ou undefined/null
+  fileType?: string;
   fileName?: string;
   hasHeader?: boolean;
-  xlsxFile?: File | null; // Le fichier Excel/CSV lui-même, peut être null
-  selected: Record<string, boolean>; // Pour les options d'anonymisation cochées, ex: { anonymizePersons: true }
-  customReplacementRules?: { pattern: string; replacement: string; isRegex?: boolean }[]; // Basé sur customRulesStore
+  xlsxFile?: File | null;
+  selected: Record<string, boolean>;
+  customReplacementRules?: { pattern: string; replacement: string; isRegex?: boolean }[];
 }
 
 function isTauri() {
   return !!(window && '__TAURI_IPC__' in window);
 }
 
-// Utilisation de l'interface dans la signature de la fonction
 export async function runAnonymization({
   fileType,
   fileName,
@@ -34,12 +32,12 @@ export async function runAnonymization({
   xlsxFile,
   selected,
   customReplacementRules
-}: RunAnonymizationParams) { // <--- TYPE APPLIQUÉ ICI
+}: RunAnonymizationParams) {
   isLoading.set(true);
   errorMessage.set('');
   outputText.set('');
-  outputLineCount.set(0); // Initialisation
-  outputCharCount.set(0); // Initialisation
+  outputLineCount.set(0);
+  outputCharCount.set(0);
   auditLog.set([]);
   mappingCSV.set('');
   currentJobId.set(null);
@@ -55,8 +53,8 @@ export async function runAnonymization({
       if (fileType === "txt" || !fileType) {
         formData.append('file', new Blob([get(inputText)], { type: 'text/plain' }), fileName || 'input.txt');
       } else if (fileType === "csv" || fileType === "xlsx") {
-        if (!xlsxFile) throw new Error("Fichier manquant pour le type xlsx/csv"); // xlsxFile est vérifié ici
-        formData.append('file', xlsxFile, fileName); // xlsxFile est utilisé ici
+        if (!xlsxFile) throw new Error("Fichier manquant pour le type xlsx/csv");
+        formData.append('file', xlsxFile, fileName);
         formData.append('has_header', String(!!hasHeader));
       }
 
@@ -64,10 +62,10 @@ export async function runAnonymization({
 
       if (customReplacementRules && customReplacementRules.length > 0) {
         console.log("runAnonymization - règles personnalisées envoyées :", customReplacementRules);
-        formData.append('custom_replacements_json', JSON.stringify(customReplacementRules));
+        formData.append('custom_replacement_rules', JSON.stringify(customReplacementRules));
       }
 
-      formData.append('file_type', fileType || ''); // Assurer que file_type est une chaîne si undefined
+      formData.append('file_type', fileType || '');
 
       const response = await fetch(`${API_URL}/anonymize/`, {
         method: 'POST',
@@ -78,10 +76,10 @@ export async function runAnonymization({
         const errMsg = await response.text();
         console.error("Erreur API (anonymize):", errMsg);
         try {
-            const errJson = JSON.parse(errMsg);
-            throw new Error(`[${response.status}] Erreur backend: ${errJson.detail || errMsg}`);
+          const errJson = JSON.parse(errMsg);
+          throw new Error(`[${response.status}] Erreur backend: ${errJson.detail || errMsg}`);
         } catch (e) {
-            throw new Error(`[${response.status}] Erreur backend: ${errMsg}`);
+          throw new Error(`[${response.status}] Erreur backend: ${errMsg}`);
         }
       }
 
@@ -99,11 +97,9 @@ export async function runAnonymization({
             console.error("Erreur API (anonymize_status):", pollErrText);
             let specificError = `Erreur lors du polling du statut (HTTP ${pollResp.status}).`;
             try {
-                const pollErrJson = JSON.parse(pollErrText);
-                specificError = pollErrJson.detail || specificError;
-            } catch(e) {
-                // pollErrText n'est pas du JSON
-            }
+              const pollErrJson = JSON.parse(pollErrText);
+              specificError = pollErrJson.detail || specificError;
+            } catch (e) {}
             errorMessage.set(specificError);
             polling = false;
             continue;
@@ -112,10 +108,10 @@ export async function runAnonymization({
           const pollData = await pollResp.json();
 
           if (pollData.status === "finished") {
-            const currentOutputText = pollData.anonymized_text || ''; // Ajouté
-            outputText.set(currentOutputText);                        // Modifié
-            outputCharCount.set(currentOutputText.length);            // Ajouté
-            outputLineCount.set(currentOutputText.split('\n').length); // Ajouté
+            const currentOutputText = pollData.anonymized_text || '';
+            outputText.set(currentOutputText);
+            outputCharCount.set(currentOutputText.length);
+            outputLineCount.set(currentOutputText.split('\n').length);
             auditLog.set(pollData.audit_log || []);
             mappingCSV.set(pollData.mapping_csv || '');
             polling = false;
@@ -130,10 +126,10 @@ export async function runAnonymization({
           }
         }
       } else {
-        const directOutputText = data.outputText || data.anonymized_text || ''; // Ajouté
-        outputText.set(directOutputText);                                        // Modifié
-        outputCharCount.set(directOutputText.length);                             // Ajouté
-        outputLineCount.set(directOutputText.split('\n').length);                  // Ajouté
+        const directOutputText = data.outputText || data.anonymized_text || '';
+        outputText.set(directOutputText);
+        outputCharCount.set(directOutputText.length);
+        outputLineCount.set(directOutputText.split('\n').length);
         auditLog.set(data.auditLog || data.audit_log || []);
         mappingCSV.set(data.mappingCSV || data.mapping_csv || '');
         currentJobId.set(null);
