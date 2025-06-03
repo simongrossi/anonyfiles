@@ -8,6 +8,7 @@
   import LogView from './lib/components/LogView.svelte';
   import ReleasesView from './lib/components/ReleasesView.svelte';
   import AboutView from './lib/components/AboutView.svelte';
+  import ReplacementRulesView from './lib/components/ReplacementRulesView.svelte';
   import NotificationDisplay from './lib/components/NotificationDisplay.svelte';
   import { sidebarState } from './lib/stores/sidebarStore';
   import { inputText, outputText, auditLog } from './lib/stores/anonymizationStore';
@@ -49,6 +50,8 @@
         <ConfigurationView />
       {:else if tab === 'releases'}
         <ReleasesView />
+      {:else if tab === 'replacementRules'}
+        <ReplacementRulesView />
       {:else if tab === 'about'}
         <AboutView />
       {/if}

@@ -13,6 +13,7 @@
     { icon: "🧵", label: "Log", key: "log" },
     { icon: "⚙️", label: "Configuration", key: "config" },
     { icon: "🆕", label: "Nouveautés", key: "releases" },
+    { icon: "🧩", label: "Règles avancées", key: "replacementRules" },
     { icon: "ℹ️", label: "À Propos", key: "about" }
   ];
 
