@@ -32,7 +32,7 @@
 
   <div class="text-center mt-8">
     <p class="text-sm text-gray-500 dark:text-gray-400">
-      Anonyfiles – Version <span class="font-mono">[alpha 0.1]</span>
+      Anonyfiles – Version <span class="font-mono">[1.2.0]</span>
     </p>
     <p class="text-sm text-gray-500 dark:text-gray-400">
       Développé par Simon Grossi. Le code source est disponible sur 
