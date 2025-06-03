@@ -1,10 +1,10 @@
 <script lang="ts">
   import { customReplacementRules } from '../stores/customRulesStore';
-  import { get } from 'svelte/store';
+  import { get } from 'svelte/store'; // Important pour récupérer la valeur du store
 
   let newPattern = '';
   let newReplacement = '';
-  let isRegex = false; // Initialisé à false, pas de regex par défaut
+  let isRegex = false;
 
   function addRule() {
     if (!newPattern.trim()) return;
@@ -13,12 +13,12 @@
       {
         pattern: newPattern.trim(),
         replacement: newReplacement.trim(),
-        isRegex // Utilise la valeur de isRegex
+        isRegex
       }
     ]);
     newPattern = '';
     newReplacement = '';
-    isRegex = false; // Réinitialise à false après ajout
+    isRegex = false;
   }
 
   function removeRule(index: number) {
@@ -27,60 +27,122 @@
     );
   }
 
-  // Fonction pour basculer l'état de isRegex
   function toggleRegex() {
     isRegex = !isRegex;
   }
+
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // NOUVEAU/MODIFIÉ : Fonction d'envoi à l'API (à intégrer à votre logique existante)
+  // Assurez-vous d'appeler cette fonction lorsque vous soumettez le formulaire
+  // Par exemple, si vous avez un bouton "Anonymiser" qui déclenche l'envoi.
+  // J'ai mis des placeholders pour 'yourFileBlob', 'yourFileName', 'yourConfigOptions' etc.
+  // Adaptez ces variables à la manière dont vous les gérez dans votre composant.
+  async function submitAnonymizationRequest(
+    yourFileBlob: Blob,
+    yourFileName: string,
+    yourConfigOptions: any, // Remplacez 'any' par le type réel de vos options de configuration
+    yourFileType: string,
+    yourHasHeader: boolean | null
+  ) {
+    const rules = get(customReplacementRules); // Récupère le tableau des règles du store
+    console.log("Règles personnalisées au moment de l'envoi:", rules); // Log pour vérifier
+
+    let rulesJsonString = '';
+    if (rules && rules.length > 0) {
+      rulesJsonString = JSON.stringify(rules);
+      console.log("Règles personnalisées stringifiées (pour envoi):", rulesJsonString); // Log
+    } else {
+      console.log("Aucune règle personnalisée à stringifier ou tableau vide."); // Log
+      // Si la liste est vide, on peut l'envoyer comme une chaîne vide ou "[]",
+      // mais le backend gère déjà 'None' ou chaîne vide. L'envoyer comme une chaîne vide est le plus simple.
+      rulesJsonString = '[]';
+    }
+
+
+    const formData = new FormData();
+    formData.append('file', yourFileBlob, yourFileName);
+    formData.append('config_options', JSON.stringify(yourConfigOptions)); // N'oubliez pas de stringifier les objets config
+    formData.append('custom_replacement_rules', rulesJsonString); // <--- C'EST LA LIGNE CRUCIALE
+    formData.append('file_type', yourFileType);
+    if (yourHasHeader !== null) {
+      formData.append('has_header', String(yourHasHeader)); // Convertir en chaîne
+    }
+
+    try {
+      const response = await fetch('/api/anonymize/', { // Assurez-vous que le chemin est correct
+        method: 'POST',
+        body: formData,
+        // Le Content-Type est automatiquement défini par FormData en 'multipart/form-data'
+        // N'ajoutez PAS manuellement 'Content-Type': 'application/json' ici !
+      });
+
+      const result = await response.json();
+      console.log('API Response:', result);
+
+      if (response.ok) {
+        // Gérer le succès, par exemple afficher le job_id
+        alert(`Anonymisation lancée ! Job ID: ${result.job_id}`);
+        // Rediriger ou mettre à jour l'interface pour suivre le statut
+      } else {
+        // Gérer les erreurs de l'API
+        alert(`Erreur de l'API: ${result.detail || 'Erreur inconnue'}`);
+      }
+
+    } catch (error) {
+      console.error('Erreur lors de l\'appel API:', error);
+      alert('Une erreur réseau est survenue lors de l\'anonymisation.');
+    }
+  }
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 </script>
 
 <style>
+  /* Vos styles existants pour les règles personnalisées */
   .rule-entry {
     display: flex;
-    flex-wrap: wrap; /* Permet le retour à la ligne sur petits écrans */
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem; /* Espace entre les éléments */
+    gap: 0.5rem;
     margin-bottom: 0.5rem;
-    border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
+    border-bottom: 1px solid #e5e7eb;
     padding-bottom: 0.5rem;
   }
   :global(html.dark) .rule-entry {
-    /* Séparateur en mode sombre */
-    border-bottom-color: #374151; /* Tailwind gray-700 */
+    border-bottom-color: #374151;
   }
 
   .rule-entry input[type="text"] {
-    flex: 1 1 150px; /* Base plus petite, permet de mieux s'adapter */
+    flex: 1 1 150px;
   }
 
   .regex-toggle-button {
-    /* Styles de base pour le bouton toggle */
-    background-color: #e5e7eb; /* gray-200 */
-    color: #4b5563; /* gray-700 */
+    background-color: #e5e7eb;
+    color: #4b5563;
     padding: 0.25rem 0.75rem;
-    border-radius: 9999px; /* fully rounded */
-    font-size: 0.875rem; /* text-sm */
+    border-radius: 9999px;
+    font-size: 0.875rem;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
     border: 1px solid transparent;
   }
 
   .regex-toggle-button.active {
-    background-color: #3b82f6; /* blue-500 */
+    background-color: #3b82f6;
     color: white;
-    border-color: #2563eb; /* blue-600 */
+    border-color: #2563eb;
   }
 
-  /* Dark mode styles for the toggle button */
   :global(html.dark) .regex-toggle-button {
-    background-color: #4b5563; /* gray-700 */
-    color: #d1d5db; /* gray-300 */
-    border-color: #374151; /* gray-800 */
+    background-color: #4b5563;
+    color: #d1d5db;
+    border-color: #374151;
   }
 
   :global(html.dark) .regex-toggle-button.active {
-    background-color: #60a5fa; /* blue-400 */
+    background-color: #60a5fa;
     color: white;
-    border-color: #3b82f6; /* blue-500 */
+    border-color: #3b82f6;
   }
 
   .rule-form {
@@ -99,7 +161,7 @@
   }
 
   .delete-btn {
-    color: #ef4444; /* Rouge pour le texte du bouton supprimer (Tailwind red-500) */
+    color: #ef4444;
     font-weight: bold;
     cursor: pointer;
     background: none;
@@ -109,14 +171,14 @@
   }
 
   .delete-btn:hover {
-    background-color: #fee2e2; /* Tailwind red-100 pour hover */
+    background-color: #fee2e2;
   }
   :global(html.dark) .delete-btn:hover {
-    background-color: #3f2121; /* Un rouge plus sombre pour hover en dark mode, ou ajustez */
-    color: #fca5a5; /* Tailwind red-300 pour le texte en hover dark */
+    background-color: #3f2121;
+    color: #fca5a5;
   }
   :global(html.dark) .delete-btn {
-    color: #f87171; /* Tailwind red-400 pour dark mode */
+    color: #f87171;
   }
 </style>
 
