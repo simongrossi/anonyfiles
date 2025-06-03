@@ -15,10 +15,15 @@
 html, body {
   @apply min-h-screen bg-zinc-50 text-zinc-900 antialiased;
 }
-.dark body {
+
+/* CORRECTION: Assurez-vous que ce sélecteur correspond à l'application de .dark sur <html> */
+/* Si .dark est sur <html>, ce sélecteur est correct. */
+/* Alternativement, vous pouvez appliquer les classes dark: directement sur body dans votre App.svelte */
+html.dark body { /* ou juste html.dark si body hérite bien ou si vous stylez body directement avec dark: variantes */
   @apply bg-zinc-900 text-zinc-100;
 }
-body {
+
+body { /* Styles de police globaux pour body */
   font-family: 'Inter', 'Montserrat', 'ui-sans-serif', 'system-ui', sans-serif;
   font-size: 1rem;
   line-height: 1.6;
@@ -27,17 +32,19 @@ body {
 /* -------- SCROLLBAR -------- */
 ::-webkit-scrollbar {
   width: 10px;
-  background: #f2f2f2;
+  background: #f2f2f2; /* Fond de la scrollbar en mode clair */
 }
 ::-webkit-scrollbar-thumb {
-  background: #d3d3d3;
+  background: #d3d3d3; /* Curseur de la scrollbar en mode clair */
   border-radius: 8px;
 }
-body.dark ::-webkit-scrollbar {
-  background: #23272a;
+
+/* CORRECTION: Styles de scrollbar pour le mode sombre si .dark est sur <html> */
+html.dark ::-webkit-scrollbar {
+  background: #23272a; /* Fond de la scrollbar en mode sombre */
 }
-body.dark ::-webkit-scrollbar-thumb {
-  background: #454b53;
+html.dark ::-webkit-scrollbar-thumb {
+  background: #454b53; /* Curseur de la scrollbar en mode sombre */
 }
 
 /* -------- FOCUS VISIBLE -------- */
@@ -50,11 +57,14 @@ body.dark ::-webkit-scrollbar-thumb {
 a {
   @apply text-blue-700 hover:underline;
 }
-.dark a {
+/* CORRECTION: Assurez-vous que le sélecteur .dark a pour parent <html> si .dark est sur <html> */
+html.dark a { /* ou utilisez les variantes dark: de Tailwind directement sur les liens */
   @apply text-blue-400;
 }
 
 /* -------- PANELS / CARTES -------- */
+/* Ces classes utilisent déjà les variantes dark: de Tailwind, elles fonctionneront correctement */
+/* si .dark est sur <html> et que darkMode: 'class' est configuré dans tailwind.config.js */
 .card-panel {
   @apply border rounded-2xl p-4 bg-white dark:bg-gray-800 shadow-sm;
 }
@@ -69,6 +79,7 @@ a {
 }
 
 /* -------- BOUTONS -------- */
+/* Ces classes utilisent déjà les variantes dark: de Tailwind (pour celles qui en ont besoin explicitement ici) */
 .btn-primary {
   @apply px-6 py-2 font-semibold text-white rounded-xl bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-sm transition-all disabled:bg-zinc-400 disabled:cursor-wait;
 }
