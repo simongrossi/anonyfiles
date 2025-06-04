@@ -13,4 +13,5 @@ pymupdf
 typer
 yamale
 docx
+cerberus
 
