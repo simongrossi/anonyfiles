@@ -63,3 +63,5 @@ commits_raw.json
 full_commits.txt
 /anonyfiles_cli/output_test
 /output_test
+/venv_anonyfiles
+/test_data
