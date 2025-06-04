@@ -97,10 +97,4 @@
     />
   </div>
 
-  <div class="w-full mt-8">
-    <h3 class="text-lg font-semibold text-zinc-700 dark:text-zinc-100 mb-4">
-      📚 Ajouter des règles à partir d’un preset
-    </h3>
-    <PresetSelector />
-  </div>
 </div>
