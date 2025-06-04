@@ -5,16 +5,17 @@ from pathlib import Path
 import json
 from typing import Optional, List, Dict, Any
 import yaml
+from rich.panel import Panel
 
 # Assurez-vous que CLIUsageLogger est bien importable.
 from .cli_logger import CLIUsageLogger
 
 # Imports depuis les modules de votre projet
 from .anonymizer.anonyfiles_core import AnonyfilesEngine
+from .anonymizer.deanonymize import Deanonymizer
 from .anonymizer.run_logger import log_run_event
 from .anonymizer.file_utils import timestamp
 
-# --- NOUVEAUX IMPORTS DES MANAGERS ET EXCEPTIONS ---
 from .managers.path_manager import PathManager
 from .managers.validation_manager import ValidationManager
 from .managers.config_manager import ConfigManager
@@ -24,6 +25,38 @@ from .ui.console_display import ConsoleDisplay
 app = typer.Typer(pretty_exceptions_show_locals=False)
 console = ConsoleDisplay()
 
+# --- Exit codes centralisés ---
+class ExitCodes:
+    SUCCESS = 0
+    USER_CANCEL = 1
+    GENERAL_ERROR = 2
+    CONFIG_ERROR = 3
+    PROCESSING_ERROR = 4
+
+# --- Validation centrale des entrées ---
+def validate_cli_inputs(
+    input_file: Path,
+    output: Optional[Path],
+    custom_replacements_json: Optional[str],
+    csv_no_header: bool,
+    has_header_opt: Optional[str]
+):
+    supported_exts = {".txt", ".csv", ".docx", ".xlsx", ".pdf", ".json"}
+    if input_file.suffix.lower() not in supported_exts:
+        console.console.print(f"[bold red]Erreur : extension non supportée : {input_file.suffix}[/bold red]")
+        raise typer.Exit(code=ExitCodes.CONFIG_ERROR)
+    if csv_no_header and input_file.suffix.lower() != ".csv":
+        console.console.print(f"[bold red]Erreur : --csv-no-header ne peut être utilisé que pour les fichiers CSV.[/bold red]")
+        raise typer.Exit(code=ExitCodes.CONFIG_ERROR)
+    if custom_replacements_json:
+        try:
+            json.loads(custom_replacements_json)
+        except Exception as e:
+            console.console.print(f"[bold red]Erreur de format JSON pour --custom-replacements-json : {e}[/bold red]")
+            raise typer.Exit(code=ExitCodes.CONFIG_ERROR)
+    if has_header_opt and has_header_opt.lower() not in ("true", "false"):
+        console.console.print("[bold red]Erreur : --has-header-opt doit être 'true' ou 'false'[/bold red]")
+        raise typer.Exit(code=ExitCodes.CONFIG_ERROR)
 
 def process_anonymization(
     input_file: Path,
@@ -86,12 +119,19 @@ def anonymize(
     append_timestamp: bool = typer.Option(True, help="Ajoute un timestamp aux noms des fichiers de sortie par défaut."),
     force: bool = typer.Option(False, "--force", "-f", help="Force l’écrasement des fichiers de sortie existants.")
 ):
-    """
-    Anonymise un fichier (texte, CSV, JSON, etc.) en utilisant spaCy et des règles configurables.
-    """
+    # ----------- AJOUT : validation centrale des entrées -----------
+    validate_cli_inputs(
+        input_file=input_file,
+        output=output,
+        custom_replacements_json=custom_replacements_json,
+        csv_no_header=csv_no_header,
+        has_header_opt=has_header_opt
+    )
+    # ---------------------------------------------------------------
+
     console.display_welcome()
-    console.console.print(f"📂 Anonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]") # Corrected
-    
+    console.console.print(f"📂 Anonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]")
+
     run_id = timestamp()
 
     csv_has_header_bool: Optional[bool] = None
@@ -103,18 +143,18 @@ def anonymize(
     try:
         # 1. Charger la configuration effective (fusionnée)
         effective_config = ConfigManager.get_effective_config(config)
-        console.console.print("🔧 Configuration chargée et validée.") # Corrected
+        console.console.print("🔧 Configuration chargée et validée.")
 
         # 2. Résolution des chemins de sortie
         path_manager = PathManager(input_file, output_dir, run_id, append_timestamp)
         paths = path_manager.resolve_paths(output, mapping_output, log_entities, dry_run)
-        console.console.print("➡️  Chemins de sortie résolus.") # Corrected
+        console.console.print("➡️  Chemins de sortie résolus.")
 
         # 3. Vérifications pré-traitement (écrasement de fichiers)
         if not dry_run:
             ValidationManager.check_overwrite([p for p in paths.values() if p.name != "dry_run_output.tmp" and p.name != "dry_run_mapping.tmp" and p.name != "dry_run_log.tmp"], force)
         
-        console.console.print("⚙️  Démarrage du traitement d'anonymisation...") # Corrected
+        console.console.print("⚙️  Démarrage du traitement d'anonymisation...")
 
         # 4. Traitement principal
         result = process_anonymization(
@@ -128,7 +168,7 @@ def anonymize(
         )
 
         # 5. Post-processing et affichage des résultats
-        console.display_results(result, dry_run, paths) # This calls a method on console which then uses console.console.print internally
+        console.display_results(result, dry_run, paths)
 
         # 6. Logging centralisé de l'exécution
         log_run_event(
@@ -146,12 +186,11 @@ def anonymize(
         )
 
     except AnonyfilesError as e:
-        console.handle_error(e, "anonymize_command") # This calls a method on console which then uses console.console.print internally
+        console.handle_error(e, "anonymize_command")
         raise typer.Exit(e.exit_code)
     except Exception as e:
-        console.handle_error(e, "anonymize_command_unexpected") # This calls a method on console which then uses console.console.print internally
+        console.handle_error(e, "anonymize_command_unexpected")
         raise typer.Exit(2)
-
 
 @app.command()
 def deanonymize(
@@ -165,9 +204,9 @@ def deanonymize(
     """
     Désanonymise un fichier anonymisé à partir d'un mapping CSV.
     """
-    console.display_welcome() # This calls a method on console which then uses console.console.print internally
-    console.console.print(f"🔁 Désanonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]") # Corrected
-    console.console.print(f"🔗 Fichier de mapping : [bold green]{mapping_csv}[/bold green]") # Corrected
+    console.display_welcome()
+    console.console.print(f"🔁 Désanonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]")
+    console.console.print(f"🔗 Fichier de mapping : [bold green]{mapping_csv}[/bold green]")
 
     strict_mode = not permissive
     
@@ -194,40 +233,39 @@ def deanonymize(
         if not dry_run:
             if output_path:
                 output_path.write_text(restored_text, encoding="utf-8")
-                console.console.print(f"✅ Fichier restauré avec succès : [bold green]{output_path}[/bold green]") # Corrected
+                console.console.print(f"✅ Fichier restauré avec succès : [bold green]{output_path}[/bold green]")
             else:
-                console.console.print("INFO: Mode non-dry_run mais aucun fichier de sortie (--output) spécifié. Texte restauré non sauvegardé.") # Corrected
-                console.console.print("\n--- Texte restauré (aperçu, max 1000 caractères) ---") # Corrected
+                console.console.print("INFO: Mode non-dry_run mais aucun fichier de sortie (--output) spécifié. Texte restauré non sauvegardé.")
+                console.console.print("\n--- Texte restauré (aperçu, max 1000 caractères) ---")
                 console.console.print(restored_text[:1000] + ("..." if len(restored_text) > 1000 else ""), style="dim")
-                console.console.print("---------------------------------------------------") # Corrected
+                console.console.print("---------------------------------------------------")
 
             if report_path:
                 report_path.write_text(json.dumps(report_data, indent=2, ensure_ascii=False), encoding="utf-8")
-                console.console.print(f"📊 Rapport de désanonymisation détaillé sauvegardé : [bold green]{report_path}[/bold green]") # Corrected
+                console.console.print(f"📊 Rapport de désanonymisation détaillé sauvegardé : [bold green]{report_path}[/bold green]")
             elif not output_path:
-                console.console.print("\n--- Rapport de désanonymisation (JSON) ---") # Corrected
+                console.console.print("\n--- Rapport de désanonymisation (JSON) ---")
                 console.console.print(json.dumps(report_data, indent=2, ensure_ascii=False), style="dim")
-                console.console.print("----------------------------------------") # Corrected
+                console.console.print("----------------------------------------")
             
-            console.console.print("✅ Désanonymisation terminée.") # Corrected
+            console.console.print("✅ Désanonymisation terminée.")
 
         else:
-            console.console.print(Panel.fit( # Corrected
+            console.console.print(Panel.fit(
                 "[bold yellow]Simulation de désanonymisation (dry_run) terminée.[/bold yellow]\n"
                 f"Fichier d'entrée analysé : [green]{input_file}[/green]\n"
                 f"Fichier de mapping utilisé : [green]{mapping_csv}[/green]\n"
                 f"Mode strict : [yellow]{strict_mode}[/yellow] (permissif : [yellow]{permissive}[/yellow])",
                 border_style="yellow"
             ))
-            console.console.print(f"Nombre de codes remplacés (estimé) : [bold]{report_data.get('replacements_successful_count', 'N/A')}[/bold]") # Corrected
-            console.console.print(f"Couverture du mapping (estimé) : [bold]{report_data.get('coverage_percentage', 'N/A')}[/bold]") # Corrected
+            console.console.print(f"Nombre de codes remplacés (estimé) : [bold]{report_data.get('replacements_successful_count', 'N/A')}[/bold]")
+            console.console.print(f"Couverture du mapping (estimé) : [bold]{report_data.get('coverage_percentage', 'N/A')}[/bold]")
             if report_data.get('warnings_generated_during_deanonymization'):
-                console.console.print("⚠️ Avertissements générés pendant la simulation :") # Corrected
+                console.console.print("⚠️ Avertissements générés pendant la simulation :")
                 for warning_msg in report_data['warnings_generated_during_deanonymization']:
-                    console.console.print(f"  - [yellow]{warning_msg}[/yellow]") # Corrected
-            console.console.print("Aucun fichier n'a été écrit.") # Corrected
+                    console.console.print(f"  - [yellow]{warning_msg}[/yellow]")
+            console.console.print("Aucun fichier n'a été écrit.")
         
-        # Log de l'exécution pour la désanonymisation
         log_run_event(
             logger=CLIUsageLogger,
             run_id=timestamp(),
@@ -242,14 +280,12 @@ def deanonymize(
             error=None
         )
 
-
     except AnonyfilesError as e:
-        console.handle_error(e, "deanonymize_command") # This calls a method on console which then uses console.console.print internally
+        console.handle_error(e, "deanonymize_command")
         raise typer.Exit(e.exit_code)
     except Exception as e:
-        console.handle_error(e, "deanonymize_command_unexpected") # This calls a method on console which then uses console.console.print internally
+        console.handle_error(e, "deanonymize_command_unexpected")
         raise typer.Exit(2)
-
 
 if __name__ == "__main__":
     ConfigManager.create_default_user_config()
