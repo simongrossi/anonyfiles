@@ -62,3 +62,4 @@ anonyfiles_cli/test_outputs_exemple_txt/exemple_anonymized.txt
 commits_raw.json
 full_commits.txt
 /anonyfiles_cli/output_test
+/output_test
