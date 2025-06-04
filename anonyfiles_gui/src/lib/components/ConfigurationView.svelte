@@ -1,6 +1,8 @@
+<!-- #anonyfiles/anonyfiles_gui/src/lib/components/ConfigurationView.svelte -->
 <script lang="ts">
   import SwitchTheme from './SwitchTheme.svelte';
   import { onMount, onDestroy } from 'svelte';
+  import PresetSelector from './PresetSelector.svelte';
 
   function getStoredThemeMode(): 'auto' | 'light' | 'dark' {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
@@ -22,7 +24,7 @@
       applyDark = true;
     } else if (modeToApply === 'light') {
       applyDark = false;
-    } else { // modeToApply === 'auto'
+    } else {
       applyDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
@@ -34,7 +36,7 @@
   }
 
   function handleThemeChange(newMode: 'auto' | 'light' | 'dark') {
-    themeMode = newMode; 
+    themeMode = newMode;
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       localStorage.setItem('theme', newMode);
     }
@@ -74,12 +76,11 @@
   });
 
   $: {
-    if (typeof window !== 'undefined') { 
+    if (typeof window !== 'undefined') {
       applyTheme(themeMode);
       setupSystemThemeListener();
     }
   }
-
 </script>
 
 <div class="max-w-xl mx-auto p-6 sm:p-8 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl flex flex-col items-center border border-gray-200 dark:border-gray-700">
@@ -96,4 +97,10 @@
     />
   </div>
 
+  <div class="w-full mt-8">
+    <h3 class="text-lg font-semibold text-zinc-700 dark:text-zinc-100 mb-4">
+      📚 Ajouter des règles à partir d’un preset
+    </h3>
+    <PresetSelector />
   </div>
+</div>

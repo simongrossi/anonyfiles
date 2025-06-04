@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node copy-presets.js && vite build",
     "tauri": "tauri"
   },
   "dependencies": {
     "@tauri-apps/api": "^1.6.0",
-    "svelte": "4.2.19"
+    "svelte": "4.2.19",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.0.3",
