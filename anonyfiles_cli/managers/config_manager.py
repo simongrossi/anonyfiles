@@ -1,11 +1,14 @@
 # anonyfiles_cli/managers/config_manager.py
 
 import yaml
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
 from ..exceptions import ConfigurationError
 from .validation_manager import ValidationManager
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigManager:
@@ -38,7 +41,7 @@ class ConfigManager:
         try:
             return cls._load_yaml_file(cls.DEFAULT_USER_CONFIG_FILE)
         except ConfigurationError as e:
-            print(f"AVERTISSEMENT: {e}")
+            logger.warning("%s", e)
             return {}
 
     @classmethod
@@ -54,7 +57,11 @@ class ConfigManager:
         try:
             app_default_config = cls._load_yaml_file(cls.DEFAULT_APP_CONFIG_TEMPLATE)
         except ConfigurationError as e:
-            print(f"AVERTISSEMENT: Impossible de charger le template de configuration par défaut '{cls.DEFAULT_APP_CONFIG_TEMPLATE}': {e}. L'application utilisera des valeurs par défaut minimales.")
+            logger.warning(
+                "Impossible de charger le template de configuration par défaut '%s': %s. L'application utilisera des valeurs par défaut minimales.",
+                cls.DEFAULT_APP_CONFIG_TEMPLATE,
+                e,
+            )
 
         merged_config = app_default_config.copy()
         user_config = cls.get_user_config()
@@ -87,6 +94,6 @@ class ConfigManager:
             try:
                 with open(cls.DEFAULT_USER_CONFIG_FILE, "w", encoding="utf-8") as f:
                     yaml.dump(initial_user_config, f, indent=2, sort_keys=False, allow_unicode=True)
-                print(f"Configuration utilisateur par défaut créée à: {cls.DEFAULT_USER_CONFIG_FILE}")
+                logger.info("Configuration utilisateur par défaut créée à: %s", cls.DEFAULT_USER_CONFIG_FILE)
             except Exception as e:
-                print(f"Erreur lors de la création de la configuration utilisateur par défaut: {e}")
+                logger.error("Erreur lors de la création de la configuration utilisateur par défaut: %s", e)
