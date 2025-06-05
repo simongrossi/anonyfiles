@@ -4,6 +4,7 @@ from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPExce
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from pathlib import Path
+import aiofiles
 import uuid
 import json
 import sys
@@ -150,9 +151,9 @@ async def deanonymize_file_endpoint(
 
     await run_in_threadpool(job_dir.mkdir, parents=True, exist_ok=True)
 
-    input_filename = file.filename if file.filename else "input_file_to_deanonymize"
-    mapping_filename = mapping.filename if mapping.filename else "mapping_file.csv"
-    
+    input_filename = Path(file.filename).name if file.filename else "input_file_to_deanonymize"
+    mapping_filename = Path(mapping.filename).name if mapping.filename else "mapping_file.csv"
+
     input_path = job_dir / input_filename
     mapping_path = job_dir / mapping_filename
 
