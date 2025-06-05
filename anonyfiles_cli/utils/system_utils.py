@@ -3,8 +3,11 @@
 import os
 import sys
 import typer
+import logging # Ajout de l'import logging
 from pathlib import Path
-from typing import Optional # Pour Optional dans detect_file_encoding
+from typing import Optional  # Pour Optional dans detect_file_encoding
+
+logger = logging.getLogger(__name__) # Initialisation du logger
 
 # Importation conditionnelle de chardet
 try:
@@ -26,9 +29,11 @@ def open_file_in_editor(file_path: Path):
         try:
             typer.launch(str(file_path))
         except Exception:
-            # Note: Si vous avez une instance de ConsoleDisplay ici, vous pouvez l'utiliser
-            # pour un affichage plus stylisé. Pour l'instant, un simple print.
-            print(f"Impossible d'ouvrir le fichier avec xdg-open. Veuillez ouvrir manuellement : {file_path}")
+            # Note: Affiche un message utilisateur et journalise pour diagnostic
+            typer.echo(
+                f"Impossible d'ouvrir le fichier avec xdg-open. Veuillez ouvrir manuellement : {file_path}"
+            )
+            logger.warning("Failed to open file via xdg-open: %s", file_path) # Ajout du log de warning
 
 def detect_file_encoding(file_path: Path) -> str:
     """
@@ -52,4 +57,5 @@ def detect_file_encoding(file_path: Path) -> str:
         return encoding
     except Exception as e:
         # Note: Loggez l'erreur via ConsoleDisplay si possible.
-        return 'utf-8' # Fallback en cas d'erreur de lecture ou de détection
+        logger.error("Erreur lors de la détection de l'encodage de %s: %s", file_path, e) # Ajout du log d'erreur
+        return 'utf-8'  # Fallback en cas d'erreur de lecture ou de détection
