@@ -1,21 +1,21 @@
 # anonyfiles_cli/config_default.yaml
-spacy_model: fr_core_news_md # Ou le modèle que vous utilisez
+spacy_model: fr_core_news_md
 
 replacements:
   PER:
-    type: codes # Ou votre stratégie actuelle pour les personnes
+    type: codes
     options:
-      prefix: NOM_ # Exemple de préfixe
-      padding: 3   # Exemple de padding
+      prefix: NOM_
+      padding: 3
 
   LOC:
-    type: faker    # Exemple, ou votre stratégie actuelle pour les lieux
+    type: faker
     options:
       locale: fr_FR
       provider: address
 
   ORG:
-    type: redact  # Exemple, ou votre stratégie actuelle pour les organisations
+    type: redact
     options:
       text: "[ENTREPRISE_ANONYME]"
 
@@ -26,8 +26,10 @@ replacements:
       padding: 3
 
   EMAIL:
-    type: faker # Ou votre stratégie actuelle pour les emails
-    # options: ...
+    type: faker
+    options:
+      locale: fr_FR
+      provider: email # Cette ligne est cruciale
 
-# exclude_entities:
-#   - MISC
+exclude_entities: # Cette section est cruciale
+  - MISC

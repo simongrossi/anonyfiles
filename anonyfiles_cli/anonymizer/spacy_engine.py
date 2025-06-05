@@ -3,7 +3,11 @@ import spacy
 import re
 from functools import lru_cache # Importe lru_cache pour le cache intelligent
 
-EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+# ANCIEN: EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
+# NOUVEAU: Utilise \b (word boundary) pour s'assurer que le match est une adresse email complète
+# et ne capture pas la ponctuation finale si elle n'est pas structurellement une partie de l'email.
+EMAIL_REGEX = r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}\b'
+
 DATE_REGEX = (
     r'\b('
     r'(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4})|'         # 12/06/1980 ou 12-06-80
