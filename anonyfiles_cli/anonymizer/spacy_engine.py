@@ -1,7 +1,11 @@
-# anonyfiles/anonyfiles_cli/anonymizer/spacy_engine.py
+# anonyfiles_cli/anonymizer/spacy_engine.py
+
 import spacy
 import re
-from functools import lru_cache # Importe lru_cache pour le cache intelligent
+import logging
+from functools import lru_cache 
+
+logger = logging.getLogger(__name__)
 
 # ANCIEN: EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
 # NOUVEAU: Utilise \b (word boundary) pour s'assurer que le match est une adresse email complète
@@ -26,7 +30,7 @@ def _load_spacy_model_cached(model_name: str):
     Charge un modèle spaCy et met le résultat en cache.
     Cela évite de recharger le modèle si le même est demandé plusieurs fois.
     """
-    print(f"Loading spaCy model: {model_name} (this might be cached)...")
+    logger.info("Loading spaCy model: %s (this might be cached)...", model_name)
     try:
         return spacy.load(model_name)
     except Exception as e:
