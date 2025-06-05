@@ -2,6 +2,9 @@
 
 import random
 import string
+import logging #
+
+logger = logging.getLogger(__name__) #
 # Importer Faker si vous prévoyez de l'utiliser réellement pour le type "faker"
 # from faker import Faker
 
@@ -82,7 +85,12 @@ class ReplacementSession:
                         try:
                             code = format_str.format(entity_text)
                         except Exception as e:
-                            print(f"AVERTISSEMENT (Replacer): Erreur de formatage du placeholder pour l'entité '{entity_text}' avec le format '{format_str}': {e}. Utilisation du format simple.")
+                            logger.warning( #
+                                "Erreur de formatage du placeholder pour l'entité '%s' avec le format '%s': %s. Utilisation du format simple.", #
+                                entity_text, #
+                                format_str, #
+                                e, #
+                            )
                             # Fallback si le format_str est complexe et attendu pour inclure entity_text
                             # mais que entity_text cause un souci ou si le format est juste un tag sans {}
                             if "{}" in format_str: # Si le format attendait une valeur
@@ -99,7 +107,11 @@ class ReplacementSession:
                         provider = rule_options.get("provider", label.lower()) # ex: "name", "address"
                         code = f"{{{{FAKER_{provider.upper()}}}}}" # Placeholder simple
                     else:
-                        print(f"AVERTISSEMENT (Replacer): Type de règle '{rule_type}' inconnu pour label '{label}'. Utilisation de la génération de code par défaut.")
+                        logger.warning( #
+                            "Type de règle '%s' inconnu pour label '%s'. Utilisation de la génération de code par défaut.", #
+                            rule_type, #
+                            label, #
+                        )
                         code = self._generate_code(label, current_label_index, rule_options) # Utilise rule_options si dispo
                         label_counters[label] = current_label_index + 1
                 else: # Pas de règle spécifique ou règle malformée
