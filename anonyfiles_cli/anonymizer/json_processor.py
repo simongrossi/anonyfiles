@@ -1,11 +1,15 @@
-# anonymizer/json_processor.py
-import json # S'assurer que json est importé
-import os # S'assurer que os est importé
+# anonyfiles_cli/anonymizer/json_processor.py
+
+import json
+import os
+import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional # Assurez-vous que Dict, Any, Optional sont là
+from typing import List, Dict, Any, Optional
 
 from .base_processor import BaseProcessor
 # from .utils import apply_positional_replacements # Probablement plus nécessaire ici
+
+logger = logging.getLogger(__name__)
 
 class JsonProcessor(BaseProcessor):
     def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
@@ -15,7 +19,7 @@ class JsonProcessor(BaseProcessor):
         except FileNotFoundError:
             raise
         except Exception as e:
-            print(f"Erreur lors de la lecture de {input_path}: {e}")
+            logger.error("Erreur lors de la lecture de %s: %s", input_path, e)
             return [""]
 
 
@@ -30,7 +34,10 @@ class JsonProcessor(BaseProcessor):
         if final_processed_blocks:
             content_to_write = final_processed_blocks[0]
         else:
-            print(f"INFO (JsonProcessor): Aucun bloc traité fourni pour {output_path}, écriture d'un JSON vide (ou texte vide).")
+            logger.info(
+                "INFO (JsonProcessor): Aucun bloc traité fourni pour %s, écriture d'un JSON vide (ou texte vide).",
+                output_path,
+            )
             # Pour un JSON, un contenu vide pourrait être "{}", "[]", ou juste "" selon la sémantique désirée.
             # Ici, on écrit ce que l'Engine a produit.
 
@@ -47,7 +54,10 @@ class JsonProcessor(BaseProcessor):
         except json.JSONDecodeError:
             # Si ce n'est plus du JSON valide (par exemple, si des clés ont été anonymisées
             # d'une manière qui casse la structure), on écrit le texte tel quel.
-            print(f"AVERTISSEMENT (JsonProcessor): Le contenu pour {output_path} n'est plus un JSON valide après traitement. Écriture en tant que texte brut.")
+            logger.warning(
+                "AVERTISSEMENT (JsonProcessor): Le contenu pour %s n'est plus un JSON valide après traitement. Écriture en tant que texte brut.",
+                output_path,
+            )
             with open(output_path, 'w', encoding='utf-8') as fout:
                 fout.write(content_to_write)
 
