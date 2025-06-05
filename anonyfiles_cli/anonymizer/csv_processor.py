@@ -2,10 +2,13 @@
 
 import csv
 import os
-from pathlib import Path # Ajout de Path
-from typing import List # Ajout de List
+import logging #
+from pathlib import Path  #
+from typing import List  #
 from .base_processor import BaseProcessor
 # apply_positional_replacements n'est plus nécessaire ici car le traitement se fait dans anonyfiles_core
+
+logger = logging.getLogger(__name__) #
 
 class CsvProcessor(BaseProcessor):
     """
@@ -35,7 +38,7 @@ class CsvProcessor(BaseProcessor):
             raise
         except Exception as e:
             # Loguer ou lever une exception plus spécifique si nécessaire
-            print(f"Erreur lors de l'extraction des blocs du CSV {input_path}: {e}")
+            logger.error("Erreur lors de l'extraction des blocs du CSV %s: %s", input_path, e) #
             # Retourner une liste vide ou lever pour indiquer un échec critique
             return []
         return cell_texts
@@ -70,7 +73,10 @@ class CsvProcessor(BaseProcessor):
                 for row_orig in reader_orig:
                     original_row_structures.append(len(row_orig))
         except FileNotFoundError:
-            print(f"Erreur critique : Fichier original {original_input_path} non trouvé lors de la reconstruction.")
+            logger.error( #
+                "Erreur critique : Fichier original %s non trouvé lors de la reconstruction.", #
+                original_input_path, #
+            )
             # Écrire un fichier de sortie vide ou lever une exception ?
             # Pour l'instant, on écrit un fichier vide si l'original n'est pas là.
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -78,7 +84,11 @@ class CsvProcessor(BaseProcessor):
                 pass
             return
         except Exception as e:
-            print(f"Erreur lors de la lecture du fichier CSV original {original_input_path} pour reconstruction : {e}")
+            logger.error( #
+                "Erreur lors de la lecture du fichier CSV original %s pour reconstruction : %s", #
+                original_input_path, #
+                e, #
+            )
             # Idem, écrire un fichier vide ou lever
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, mode='w', encoding='utf-8', newline='') as fout:
@@ -94,7 +104,12 @@ class CsvProcessor(BaseProcessor):
                 # Pas assez de blocs traités pour le nombre de cellules attendues.
                 # Cela peut arriver si l'extraction ou le traitement a eu un problème.
                 # On remplit avec des chaînes vides ou on loggue une erreur.
-                print(f"Avertissement : Pas assez de blocs traités pour reconstruire la ligne avec {num_cols_in_original_row} colonnes. Index actuel: {current_block_index}, Blocs restants: {len(final_processed_blocks) - current_block_index}")
+                logger.warning( #
+                    "Avertissement : Pas assez de blocs traités pour reconstruire la ligne avec %s colonnes. Index actuel: %s, Blocs restants: %s", #
+                    num_cols_in_original_row, #
+                    current_block_index, #
+                    len(final_processed_blocks) - current_block_index, #
+                )
                 # Remplir avec des chaînes vides pour les cellules manquantes
                 actual_cols_to_take = min(num_cols_in_original_row, len(final_processed_blocks) - current_block_index)
                 new_row = final_processed_blocks[current_block_index : current_block_index + actual_cols_to_take]
@@ -106,7 +121,10 @@ class CsvProcessor(BaseProcessor):
             current_block_index += num_cols_in_original_row
 
         if current_block_index < len(final_processed_blocks):
-            print(f"Avertissement : {len(final_processed_blocks) - current_block_index} blocs traités n'ont pas été utilisés dans la reconstruction du CSV.")
+            logger.warning( #
+                "Avertissement : %s blocs traités n'ont pas été utilisés dans la reconstruction du CSV.", #
+                len(final_processed_blocks) - current_block_index, #
+            )
             # Cela pourrait indiquer un décalage ou un problème dans le comptage des cellules/blocs.
 
         # Écrire le fichier CSV de sortie
@@ -116,5 +134,9 @@ class CsvProcessor(BaseProcessor):
                 writer = csv.writer(fout)
                 writer.writerows(anonymized_rows)
         except Exception as e:
-            print(f"Erreur lors de l'écriture du fichier CSV anonymisé {output_path}: {e}")
+            logger.error( #
+                "Erreur lors de l'écriture du fichier CSV anonymisé %s: %s", #
+                output_path, #
+                e, #
+            )
             # Gérer l'erreur d'écriture, potentiellement lever pour que l'appelant sache
