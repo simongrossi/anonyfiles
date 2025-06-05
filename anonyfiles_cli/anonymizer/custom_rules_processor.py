@@ -3,8 +3,11 @@
 import re
 from typing import List, Dict, Any, Optional
 import typer
+import logging #
 
 from .audit import AuditLogger
+
+logger = logging.getLogger(__name__) #
 
 class CustomRulesProcessor:
     """
@@ -26,17 +29,19 @@ class CustomRulesProcessor:
                     try:
                         rule["compiled_pattern"] = re.compile(pattern_str, flags=re.IGNORECASE)
                     except re.error as e:
-                        typer.echo(
-                            f"AVERTISSEMENT (CustomRulesProcessor): Regex invalide pour la règle personnalisée '{pattern_str}': {e}. Règle ignorée.",
-                            err=True,
+                        logger.warning( #
+                            "AVERTISSEMENT (CustomRulesProcessor): Regex invalide pour la règle personnalisée '%s': %s. Règle ignorée.", #
+                            pattern_str, #
+                            e, #
                         )
                         continue
 
                 self.custom_rules.append(rule)
 
-        if self.custom_rules:
-            typer.echo(
-                f"DEBUG (CustomRulesProcessor Init): Initialisé avec {len(self.custom_rules)} règle(s) personnalisée(s)."
+          if self.custom_rules:
+            logger.debug( #
+                "DEBUG (CustomRulesProcessor Init): Initialisé avec %s règle(s) personnalisée(s).", #
+                len(self.custom_rules), #
             )
 
     def apply_to_block(self, text_block: str) -> str:
@@ -82,7 +87,11 @@ class CustomRulesProcessor:
                         self.custom_replacements_count += count
                         self.custom_replacements_mapping[pattern_str] = replacement
             except re.error as e:
-                typer.echo(f"AVERTISSEMENT (CustomRulesProcessor): Regex invalide pour la règle personnalisée '{pattern_str}': {e}. Règle ignorée.", err=True)
+                logger.warning( #
+                    "AVERTISSEMENT (CustomRulesProcessor): Regex invalide pour la règle personnalisée '%s': %s. Règle ignorée.", #
+                    pattern_str, #
+                    e, #
+                )
         return modified_text
 
     def get_custom_replacements_mapping(self) -> Dict[str, str]:
