@@ -2,12 +2,15 @@
 
 import json
 import yaml
+import logging # Ajout de l'import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
 import typer
 from cerberus import Validator
 
 from ..exceptions import ConfigurationError, FileIOError, AnonyfilesError
+
+logger = logging.getLogger(__name__) # Initialisation du logger
 
 # Définition du SCHEMA de configuration (peut être importé de config_validator.py)
 SCHEMA = {
@@ -112,6 +115,6 @@ class ValidationManager:
             response = typer.confirm(prompt_message)
             if not response:
                 raise FileIOError("Opération annulée par l'utilisateur: fichiers de sortie existants non écrasés.")
-            typer.echo("Continuant avec l'écrasement des fichiers existants.")
+            logger.info("Continuant avec l'écrasement des fichiers existants.") # Modifié pour utiliser logger.info
         elif existing_files and force:
-            typer.echo("⚠️  Les fichiers de sortie existants seront écrasés (mode --force).")
+            logger.warning("⚠️  Les fichiers de sortie existants seront écrasés (mode --force).") # Modifié pour utiliser logger.warning
