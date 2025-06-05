@@ -1,5 +1,5 @@
 import tempfile
-from anonymizer.txt_processor import TxtProcessor
+from anonyfiles_cli.anonymizer.txt_processor import TxtProcessor
 
 def test_extract_blocks_simple():
     with tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8") as tmp:

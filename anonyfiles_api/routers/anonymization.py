@@ -14,14 +14,14 @@ import sys
 from ..core_config import logger
 from ..job_utils import Job, BASE_INPUT_STEM_FOR_JOB_FILES
 
-CLI_MODULE_PATH = Path(__file__).resolve().parent.parent.parent / "anonyfiles_cli"
-if str(CLI_MODULE_PATH) not in sys.path:
-    sys.path.append(str(CLI_MODULE_PATH))
-
-from anonymizer.run_logger import log_run_event
+from anonyfiles_cli.anonymizer.run_logger import log_run_event
 from anonyfiles_cli.cli_logger import CLIUsageLogger
-from anonymizer.engine import AnonyfilesEngine
-from anonymizer.file_utils import default_output, default_mapping, default_log
+from anonyfiles_cli.anonymizer.engine import AnonyfilesEngine
+from anonyfiles_cli.anonymizer.file_utils import (
+    default_output,
+    default_mapping,
+    default_log,
+)
 
 router = APIRouter()
 

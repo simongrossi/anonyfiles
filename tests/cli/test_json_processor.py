@@ -1,5 +1,5 @@
 import tempfile
-from anonymizer.json_processor import JsonProcessor
+from anonyfiles_cli.anonymizer.json_processor import JsonProcessor
 
 def test_extract_blocks_json():
     content = '{"name": "Jean Dupont", "email": "jean.dupont@example.com"}'

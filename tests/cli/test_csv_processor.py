@@ -1,6 +1,6 @@
 import tempfile
 import csv
-from anonymizer.csv_processor import CsvProcessor
+from anonyfiles_cli.anonymizer.csv_processor import CsvProcessor
 
 def test_extract_blocks_csv():
     with tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8", newline='') as tmp:

@@ -1,17 +1,7 @@
 # anonyfiles_cli/main.py
-#-*- coding: utf-8 -*- # Assurez-vous que cette ligne est bien présente et correcte
-
-import sys
-from pathlib import Path
-
-# NOUVEAU BLOC TRÈS IMPORTANT : AJOUTE LA RACINE DU PROJET AU SYS.PATH
-# Cela garantit que 'anonyfiles_cli' sera toujours trouvé comme un paquet de niveau supérieur.
-# Remonte de deux niveaux par rapport à l'emplacement de main.py (anonyfiles_cli/ -> anonyfiles/)
-project_root_dir = Path(__file__).resolve().parent.parent
-if str(project_root_dir) not in sys.path:
-    sys.path.insert(0, str(project_root_dir))
-
-# ... le reste de votre main.py commence ici ...
+# -*- coding: utf-8 -*-
+#
+# Entrée du programme CLI
 import typer
 
 # Importe les applications Typer des modules de commandes séparés

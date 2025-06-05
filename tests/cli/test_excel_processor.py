@@ -1,6 +1,6 @@
 import tempfile
 import pandas as pd
-from anonymizer.excel_processor import ExcelProcessor
+from anonyfiles_cli.anonymizer.excel_processor import ExcelProcessor
 
 def test_extract_blocks_excel():
     tmp = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".xlsx")

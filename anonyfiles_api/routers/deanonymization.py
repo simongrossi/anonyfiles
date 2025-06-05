@@ -19,15 +19,13 @@ from ..job_utils import Job
 # Pour l'instant, nous supposons que la désanonymisation n'a pas besoin de BASE_CONFIG.
 from ..core_config import logger
 
-# Ajustements de sys.path pour les imports du module CLI
-CLI_MODULE_PATH = Path(__file__).resolve().parent.parent.parent / "anonyfiles_cli"
-if str(CLI_MODULE_PATH) not in sys.path:
-    sys.path.append(str(CLI_MODULE_PATH))
-
-from anonymizer.deanonymize import Deanonymizer
-from anonymizer.file_utils import ensure_folder, timestamp # ensure_folder n'est plus utilisé ici directement
-from anonymizer.run_logger import log_run_event
-from anonyfiles_cli.cli_logger import CLIUsageLogger # Utilisé pour log_run_event
+from anonyfiles_cli.anonymizer.deanonymize import Deanonymizer
+from anonyfiles_cli.anonymizer.file_utils import (
+    ensure_folder,
+    timestamp,
+)
+from anonyfiles_cli.anonymizer.run_logger import log_run_event
+from anonyfiles_cli.cli_logger import CLIUsageLogger  # Utilisé pour log_run_event
 
 router = APIRouter()
 # 'logger' est maintenant importé depuis core_config
