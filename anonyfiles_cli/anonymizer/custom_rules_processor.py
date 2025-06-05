@@ -11,13 +11,33 @@ class CustomRulesProcessor:
     Gère l'application des règles de remplacement personnalisées sur des blocs de texte.
     """
     def __init__(self, custom_replacement_rules: Optional[List[Dict[str, Any]]], audit_logger: AuditLogger):
-        self.custom_rules = custom_replacement_rules or []
+        self.custom_rules: List[Dict[str, Any]] = []
         self.audit_logger = audit_logger
         self.custom_replacements_mapping: Dict[str, str] = {}
         self.custom_replacements_count = 0
-        
+        if custom_replacement_rules:
+            for rule in custom_replacement_rules:
+                # Ignore empty patterns early
+                pattern_str = rule.get("pattern")
+                if not pattern_str:
+                    continue
+
+                if rule.get("isRegex", False):
+                    try:
+                        rule["compiled_pattern"] = re.compile(pattern_str, flags=re.IGNORECASE)
+                    except re.error as e:
+                        typer.echo(
+                            f"AVERTISSEMENT (CustomRulesProcessor): Regex invalide pour la règle personnalisée '{pattern_str}': {e}. Règle ignorée.",
+                            err=True,
+                        )
+                        continue
+
+                self.custom_rules.append(rule)
+
         if self.custom_rules:
-            typer.echo(f"DEBUG (CustomRulesProcessor Init): Initialisé avec {len(self.custom_rules)} règle(s) personnalisée(s).")
+            typer.echo(
+                f"DEBUG (CustomRulesProcessor Init): Initialisé avec {len(self.custom_rules)} règle(s) personnalisée(s)."
+            )
 
     def apply_to_block(self, text_block: str) -> str:
         """
@@ -32,17 +52,18 @@ class CustomRulesProcessor:
             pattern_str = rule.get("pattern")
             replacement = rule.get("replacement", "[CUSTOM_REDACTED]")
             is_regex = rule.get("isRegex", False)
+            compiled_pattern: Optional[re.Pattern] = rule.get("compiled_pattern")
             
             if not pattern_str:
                 continue
 
             try:
-                if is_regex:
+                if is_regex and compiled_pattern is not None:
                     # Capture all occurrences to log each replacement
                     # Utilise une copie temporaire pour itérer afin d'éviter les problèmes
                     # si `modified_text` est altéré pendant l'itération.
                     temp_modified_text_for_re_finditer = modified_text 
-                    for match in re.finditer(pattern_str, temp_modified_text_for_re_finditer, flags=re.IGNORECASE):
+                    for match in compiled_pattern.finditer(temp_modified_text_for_re_finditer):
                         matched_text = re.escape(match.group(0)) # Escape pour le sub pour ne pas interpréter comme regex
                         
                         # Remplacer une occurrence à la fois pour ne pas créer de chevauchements
