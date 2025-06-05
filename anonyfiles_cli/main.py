@@ -9,7 +9,7 @@ from pathlib import Path
 # Remonte de deux niveaux par rapport à l'emplacement de main.py (anonyfiles_cli/ -> anonyfiles/)
 project_root_dir = Path(__file__).resolve().parent.parent
 if str(project_root_dir) not in sys.path:
-    sys.sys.path.insert(0, str(project_root_dir))
+    sys.path.insert(0, str(project_root_dir))
 
 # ... le reste de votre main.py commence ici ...
 import typer
