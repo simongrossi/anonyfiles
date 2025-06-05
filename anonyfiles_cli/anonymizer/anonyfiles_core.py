@@ -1,14 +1,12 @@
 # anonyfiles/anonyfiles_cli/anonymizer/anonyfiles_core.py
 
 import re
-import csv # Import du module CSV
+import csv
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import typer
 
-# Imports depuis les modules de votre projet
 from .spacy_engine import SpaCyEngine
-# Importer les constantes REGEX directement depuis le module .spacy_engine
 from .spacy_engine import EMAIL_REGEX, DATE_REGEX, PHONE_REGEX, IBAN_REGEX
 from .replacer import ReplacementSession
 from .txt_processor import TxtProcessor
@@ -36,7 +34,7 @@ class AnonyfilesEngine:
                  custom_replacement_rules: Optional[List[Dict[str, str]]] = None):
         self.config = config or {}
         model = self.config.get("spacy_model", "fr_core_news_md")
-        self.engine = SpaCyEngine(model=model) # Instance de SpaCyEngine
+        self.engine = SpaCyEngine(model=model)
         self.entities_exclude = set()
         self.entities_exclude.update(self.config.get("exclude_entities", []))
 
@@ -66,6 +64,7 @@ class AnonyfilesEngine:
         self.custom_rules = custom_replacement_rules or []
         self.audit_logger = AuditLogger()
         self.custom_replacements_count = 0
+        self.custom_replacements_mapping = {} # Nouveau : pour stocker les mappings des règles custom
 
         typer.echo(f"DEBUG (Engine Init): Entités spaCy activées initialement : {self.enabled_labels}")
         typer.echo(f"DEBUG (Engine Init): Entités à exclure (config + CLI) : {self.entities_exclude}")
@@ -87,20 +86,22 @@ class AnonyfilesEngine:
 
             try:
                 if is_regex:
-                    new_text, n_repl = re.subn(pattern_str, replacement, modified_text, flags=re.IGNORECASE)
+                    # Capture all occurrences to log each replacement
+                    temp_modified_text = modified_text
+                    for match in re.finditer(pattern_str, temp_modified_text, flags=re.IGNORECASE):
+                        matched_text = match.group(0)
+                        modified_text = re.sub(re.escape(matched_text), replacement, modified_text, 1) # Replace one by one
+                        self.audit_logger.log(matched_text, replacement, "custom_regex", 1, original_text=matched_text) # Log chaque remplacement
+                        self.custom_replacements_count += 1
+                        self.custom_replacements_mapping[matched_text] = replacement # Add to mapping
                 else:
-                    # Correction pour que le remplacement de texte simple ne se fasse que sur des mots entiers si possible,
-                    # mais re.escape est plus sûr pour éviter les erreurs de regex si le pattern contient des caractères spéciaux.
-                    # L'utilisation de \b peut être problématique si pattern_str contient des non-alphanumériques.
-                    # On garde re.escape pour la robustesse, le \b peut être ajouté si besoin spécifique.
-                    pattern_escaped_for_regex = re.escape(pattern_str) 
-                    new_text, n_repl = re.subn(pattern_escaped_for_regex, replacement, modified_text, flags=re.IGNORECASE)
-
-
-                if n_repl > 0:
-                    self.audit_logger.log(pattern_str, replacement, "custom_regex" if is_regex else "custom_text", n_repl)
-                    self.custom_replacements_count += n_repl
-                modified_text = new_text
+                    # Simple text replacement
+                    count = modified_text.count(pattern_str) # Count occurrences
+                    if count > 0:
+                        modified_text = modified_text.replace(pattern_str, replacement)
+                        self.audit_logger.log(pattern_str, replacement, "custom_text", count, original_text=pattern_str) # Log
+                        self.custom_replacements_count += count
+                        self.custom_replacements_mapping[pattern_str] = replacement # Add to mapping
             except re.error as e:
                 typer.echo(f"AVERTISSEMENT (Moteur): Regex invalide pour la règle personnalisée '{pattern_str}': {e}. Règle ignorée.", err=True)
         return modified_text
@@ -114,6 +115,7 @@ class AnonyfilesEngine:
 
         self.audit_logger.reset()
         self.custom_replacements_count = 0
+        self.custom_replacements_mapping = {} # Réinitialiser aussi le mapping custom
 
         ext = input_path.suffix.lower()
         processor_class = PROCESSOR_MAP.get(ext)
@@ -145,14 +147,13 @@ class AnonyfilesEngine:
             typer.echo("INFO (Engine): Contenu vide après application des règles personnalisées (ou initialement vide).")
             if not dry_run and output_path:
                 output_path.parent.mkdir(parents=True, exist_ok=True)
-                # CORRECTION 1 ICI : Utilisation de 'input_path'
                 processor.reconstruct_and_write_anonymized_file(output_path, [], input_path, **kwargs)
 
             if mapping_output_path and not dry_run:
                 mapping_output_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(mapping_output_path, "w", encoding="utf-8", newline='') as f_map:
                     map_writer = csv.writer(f_map)
-                    map_writer.writerow(["anonymized", "original", "label"])
+                    map_writer.writerow(["anonymized", "original", "label", "source"]) # Ajout de "source"
             return {
                 "status": "success", "message": "Input effectively empty, no spaCy processing.",
                 "entities_detected": [], "audit_log": self.audit_logger.summary(),
@@ -216,14 +217,13 @@ class AnonyfilesEngine:
             typer.echo("INFO (Engine): Aucune entité spaCy à anonymiser et aucune règle personnalisée n'a été appliquée.")
             if not dry_run and output_path:
                 output_path.parent.mkdir(parents=True, exist_ok=True)
-                # CORRECTION 2 ICI : Utilisation de 'input_path'
-                processor.reconstruct_and_write_anonymized_file(output_path, blocks_after_custom_rules, input_path, **kwargs) # Changé 'original_input_path' en 'input_path'
+                processor.reconstruct_and_write_anonymized_file(output_path, blocks_after_custom_rules, input_path, **kwargs)
 
             if mapping_output_path and not dry_run:
                 mapping_output_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(mapping_output_path, "w", encoding="utf-8", newline='') as f_map:
                     map_writer = csv.writer(f_map)
-                    map_writer.writerow(["anonymized", "original", "label"])
+                    map_writer.writerow(["anonymized", "original", "label", "source"]) # Ajout de "source"
             return {
                 "status": "success", "message": "No spaCy entities found to anonymize and no custom rules applied.",
                 "entities_detected": [], "audit_log": self.audit_logger.summary(),
@@ -236,16 +236,14 @@ class AnonyfilesEngine:
 
         for original, code in mapping_dict_spacy.items():
             label = next((lbl for txt, lbl in unique_spacy_entities if txt == original), "UNKNOWN_SPACY_LABEL")
-            # Compter les occurrences dans les blocs *après* les règles custom, car c'est ce texte qui sera traité par spaCy.
             n_repl_spacy_in_block = 0
             for block_idx, block_text_after_custom in enumerate(blocks_after_custom_rules):
-                # Obtenir les entités spaCy spécifiques à ce bloc (celles qui seront effectivement remplacées)
                 entities_in_this_block_to_replace_offsets = spacy_entities_per_block_with_offsets[block_idx]
                 for ent_text_offset, ent_label_offset, _, _ in entities_in_this_block_to_replace_offsets:
                     if ent_text_offset == original and ent_label_offset == label:
-                        n_repl_spacy_in_block += 1 # Compte chaque instance qui sera remplacée
+                        n_repl_spacy_in_block += 1
 
-            if n_repl_spacy_in_block > 0 : # Modifié pour utiliser le compte précis
+            if n_repl_spacy_in_block > 0 :
                  self.audit_logger.log(original, code, f"spacy_{label}", n_repl_spacy_in_block)
 
 
@@ -254,10 +252,8 @@ class AnonyfilesEngine:
             for i, block_text_after_custom in enumerate(blocks_after_custom_rules):
                 entities_in_this_block_to_replace = spacy_entities_per_block_with_offsets[i]
                 
-                unique_spacy_entities_tuples = set(unique_spacy_entities) # Contient (text, label)
+                unique_spacy_entities_tuples = set(unique_spacy_entities)
 
-                # Filtrer pour ne garder que les entités (avec leurs offsets) qui sont dans la liste unique_spacy_entities
-                # et qui doivent donc être remplacées par les codes spaCy.
                 filtered_entities_for_replacement_in_block = [
                     ent_offset for ent_offset in entities_in_this_block_to_replace
                     if (ent_offset[0], ent_offset[1]) in unique_spacy_entities_tuples
@@ -266,8 +262,8 @@ class AnonyfilesEngine:
                 if block_text_after_custom.strip() and filtered_entities_for_replacement_in_block:
                     fully_anonymized_block = apply_positional_replacements(
                         block_text_after_custom,
-                        replacements_map_spacy, # Le map des remplacements spaCy {original_text: replacement_code}
-                        filtered_entities_for_replacement_in_block # Liste des (text, label, start, end) pour ce bloc
+                        replacements_map_spacy,
+                        filtered_entities_for_replacement_in_block
                     )
                     truly_final_blocks_for_processor.append(fully_anonymized_block)
                 else:
@@ -283,8 +279,6 @@ class AnonyfilesEngine:
             if isinstance(processor, PdfProcessor):
                 processor_specific_kwargs["spacy_entities_on_custom_text_per_block"] = spacy_entities_per_block_with_offsets
 
-            # Le troisième argument doit être le chemin du fichier original pour la structure,
-            # qui est 'input_path' dans le contexte de cette méthode 'anonymize'.
             processor.reconstruct_and_write_anonymized_file(
                 output_path=output_path,
                 final_processed_blocks=truly_final_blocks_for_processor,
@@ -305,22 +299,25 @@ class AnonyfilesEngine:
             typer.echo(f"DEBUG (Engine): Écriture du fichier mapping ici : {mapping_output_path}")
             with open(mapping_output_path, "w", encoding="utf-8", newline='') as f_map:
                 map_writer = csv.writer(f_map)
-                map_writer.writerow(["anonymized", "original", "label"])
+                map_writer.writerow(["anonymized", "original", "label", "source"]) # Ajout de "source"
+                
+                # Ajouter les mappings des règles personnalisées
+                for original, anonymized in self.custom_replacements_mapping.items():
+                    map_writer.writerow([anonymized, original, "CUSTOM", "custom_rule"])
+
+                # Ajouter les mappings spaCy
                 for original, code in mapping_dict_spacy.items():
-                    # Retrouver le label associé à 'original' depuis unique_spacy_entities
                     label = next((lbl for txt, lbl in unique_spacy_entities if txt == original), "UNKNOWN_SPACY_LABEL")
-                    map_writer.writerow([code, original, label])
+                    map_writer.writerow([code, original, label, "spacy"])
 
         total_replacements_logged = self.audit_logger.total()
         typer.echo(f"INFO (Engine): Anonymisation terminée. Total des remplacements (custom + spaCy) enregistrés dans l'audit : {total_replacements_logged}")
 
         return {
             "status": "success",
-            "entities_detected": unique_spacy_entities, # Contient (text, label)
+            "entities_detected": unique_spacy_entities,
             "output_path": str(output_path) if output_path and not dry_run else None,
-            "replacements_applied_spacy": replacements_map_spacy, # Contient {original_text: replacement_code}
+            "replacements_applied_spacy": replacements_map_spacy,
             "audit_log": self.audit_logger.summary(),
             "total_replacements": total_replacements_logged,
         }
-
-# ... (Fin de la classe) ...

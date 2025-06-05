@@ -5,18 +5,16 @@ from collections import defaultdict
 from typing import Dict, Set, Tuple, List, Optional
 import re
 
-# PAS D'IMPORTATION "from anonymizer.deanonymize import Deanonymizer" ICI
-
 class Deanonymizer:
     def __init__(self, mapping_path: str, strict: bool = True):
         self.mapping_path = mapping_path
         self.strict = strict
         self.code_to_originals: Dict[str, Set[str]] = defaultdict(set)
-        self.warnings: List[str] = [] # Avertissements spécifiques à un run de deanonymize_text
-        self.map_loading_warnings: List[str] = [] # Avertissements spécifiques au chargement du mapping
-        self.collisions: Dict[str, Set[str]] = {} 
+        self.warnings: List[str] = []
+        self.map_loading_warnings: List[str] = []
+        self.collisions: Dict[str, Set[str]] = {}
         self.unknown_codes_in_text: Set[str] = set()
-        self._load_mapping() 
+        self._load_mapping()
 
     def _load_mapping(self):
         try:
@@ -24,6 +22,8 @@ class Deanonymizer:
                 reader = csv.DictReader(csvfile)
                 possible_code_fields = ["anonymized", "Code"]
                 possible_original_fields = ["original", "Nom Original"]
+                possible_label_fields = ["label", "Label"] # Nouveau : pour le label
+                possible_source_fields = ["source", "Source"] # Nouveau : pour la source
                 header_fields = reader.fieldnames
                 if not header_fields:
                     self.map_loading_warnings.append(f"Fichier mapping vide ou sans en-tête : {self.mapping_path}")
@@ -31,35 +31,44 @@ class Deanonymizer:
 
                 code_field = next((f for f in possible_code_fields if f in header_fields), None)
                 original_field = next((f for f in possible_original_fields if f in header_fields), None)
+                label_field = next((f for f in possible_label_fields if f in header_fields), None)
+                source_field = next((f for f in possible_source_fields if f in header_fields), None)
+
 
                 if not code_field or not original_field:
                     self.map_loading_warnings.append(
                         f"Colonnes requises ('anonymized'/'Code' ET 'original'/'Nom Original') non trouvées "
                         f"dans {self.mapping_path}. Colonnes trouvées : {header_fields}"
                     )
-                    return 
+                    return
 
                 for row_number, row in enumerate(reader, 1):
                     try:
-                        anonymized_val = row.get(code_field) 
+                        anonymized_val = row.get(code_field)
                         original_val = row.get(original_field)
+                        # Pour l'instant, on ne stocke pas label ou source directement dans code_to_originals
+                        # car il n'est pas utilisé pour la logique de remplacement.
+                        # Il serait pertinent si on voulait filtrer par label ou source pendant la désanonymisation.
+                        # Mais pour la désanonymisation simple, code -> original suffit.
+                        # Cependant, pour le rapport, on pourrait les récupérer si nécessaire.
+
                         if anonymized_val is not None and original_val is not None:
                             self.code_to_originals[anonymized_val.strip()].add(original_val.strip())
                         else:
                             self.map_loading_warnings.append(
                                 f"Ligne {row_number} ignorée dans {self.mapping_path}: valeur de code ou d'original manquante/None."
                             )
-                    except Exception as e_row: 
+                    except Exception as e_row:
                         self.map_loading_warnings.append(
                              f"Erreur à la ligne {row_number} dans {self.mapping_path}: {str(e_row)}."
                         )
-            
+
             temp_collisions = {}
             for code, originals in self.code_to_originals.items():
                 if len(originals) > 1:
-                    temp_collisions[code] = originals # Stocke des sets ici
+                    temp_collisions[code] = originals
                     self.map_loading_warnings.append(
-                        f"Collision dans le mapping: le code '{code}' correspond à plusieurs originaux : {list(originals)}" # Log en liste pour lisibilité
+                        f"Collision dans le mapping: le code '{code}' correspond à plusieurs originaux : {list(originals)}"
                     )
             self.collisions = temp_collisions
 
@@ -68,13 +77,15 @@ class Deanonymizer:
         except Exception as e:
             self.map_loading_warnings.append(f"Erreur majeure lors du chargement du fichier mapping {self.mapping_path}: {str(e)}")
 
-
     def deanonymize_text(self, text: str, dry_run: bool = False) -> Tuple[str, dict]:
-        self.warnings = list(self.map_loading_warnings) 
+        self.warnings = list(self.map_loading_warnings)
         self.unknown_codes_in_text = set()
-        
+
+        # Le motif pour les codes anonymisés (par exemple {{NOM_XXX}} ou [CUSTOM_REDACTED])
+        # doit être suffisamment générique pour capturer tous les remplacements générés.
+        # Ici, j'utilise un motif qui capture ce qui ressemble à {{...}} ou [...]
         code_pattern = re.compile(r'(\{\{[^{}]+\}\}|\[[^\[\]]+\])')
-        
+
         all_distinct_codes_found_in_text = set()
         attempted_replacements_info = {"successful": 0, "ambiguous_kept": 0, "unknown_kept": 0}
 
@@ -84,24 +95,24 @@ class Deanonymizer:
 
             if code_from_text in self.code_to_originals:
                 originals_set = self.code_to_originals[code_from_text]
-                
+
                 if len(originals_set) == 1:
                     attempted_replacements_info["successful"] += 1
                     return next(iter(originals_set))
-                else: 
+                else:
                     attempted_replacements_info["ambiguous_kept"] += 1
                     warning_msg = f"Collision: Le code '{code_from_text}' dans le texte correspond à plusieurs originaux ({list(originals_set)}). Placeholder inséré."
                     if warning_msg not in self.warnings: self.warnings.append(warning_msg)
-                    return f"[AMBIGUOUS_CODE:{code_from_text}]" 
+                    return f"[AMBIGUOUS_CODE:{code_from_text}]"
 
-            else: 
+            else:
                 self.unknown_codes_in_text.add(code_from_text)
                 attempted_replacements_info["unknown_kept"] += 1
                 warning_msg = f"Code inconnu: Le code '{code_from_text}' trouvé dans le texte n'a pas de correspondance dans le mapping. Placeholder inséré."
                 if warning_msg not in self.warnings: self.warnings.append(warning_msg)
                 return f"[UNKNOWN_MAPPING:{code_from_text}]"
 
-        result_text = text 
+        result_text = text
         if self.code_to_originals or not self.map_loading_warnings:
             result_text = re.sub(code_pattern, replacement_function, text)
         else:
@@ -109,16 +120,14 @@ class Deanonymizer:
 
         codes_in_mapping_that_were_referenced = {k for k in self.code_to_originals if k in all_distinct_codes_found_in_text}
 
-        # Le champ "map_collisions_details" contiendra des sets.
-        # La conversion en liste pour la sérialisation JSON sera faite dans deanonymize_api.py
         report = {
             "distinct_codes_in_text_list": sorted(list(all_distinct_codes_found_in_text)),
             "distinct_codes_in_text_count": len(all_distinct_codes_found_in_text),
             "codes_from_text_found_in_mapping_count": len(codes_in_mapping_that_were_referenced),
             "codes_from_text_not_found_in_mapping_list": sorted(list(self.unknown_codes_in_text)),
             "codes_from_text_not_found_in_mapping_count": len(self.unknown_codes_in_text),
-            "map_collisions_details": self.collisions, # Ceci est un Dict[str, Set[str]]
-            "warnings_generated_during_deanonymization": self.warnings, 
+            "map_collisions_details": self.collisions,
+            "warnings_generated_during_deanonymization": self.warnings,
             "replacements_successful_count": attempted_replacements_info["successful"],
             "replacements_ambiguous_kept_count": attempted_replacements_info["ambiguous_kept"],
             "replacements_unknown_kept_count": attempted_replacements_info["unknown_kept"],
@@ -129,7 +138,6 @@ class Deanonymizer:
         return result_text, report
 
     def generate_report(self, report: dict, output_path: Optional[str] = None):
-        # ... (Le reste de la fonction generate_report peut rester tel quel, elle est pour la CLI) ...
         lines = [
             "=== Rapport de Désanonymisation ===",
             f"Mode dry-run: {report['dry_run']}",
@@ -143,12 +151,11 @@ class Deanonymizer:
             f"Couverture du mapping (codes du texte présents dans mapping): {report['coverage_percentage']}",
         ]
 
-        # map_collisions_details contient des sets, il faut les convertir en listes pour l'affichage
         map_collisions_display = report.get('map_collisions_details', {})
         if map_collisions_display:
             lines.append("\n---- Collisions détectées dans le fichier mapping (code -> multiples originaux) ----")
             for code, originals_set in map_collisions_display.items():
-                lines.append(f"  - Code '{code}' peut correspondre à : {list(originals_set)}") # Convertir en liste
+                lines.append(f"  - Code '{code}' peut correspondre à : {list(originals_set)}")
         
         if report.get('codes_from_text_not_found_in_mapping_list'):
             lines.append("\n---- Codes du texte source NON TROUVÉS dans le fichier mapping ----")
@@ -176,7 +183,6 @@ class Deanonymizer:
 
 if __name__ == "__main__":
     import sys
-    # ... (Le bloc __main__ reste inchangé) ...
     if len(sys.argv) < 4:
         print("Usage: python deanonymize.py <input_file_path> <mapping_csv_path> <output_file_path> [--dry-run] [--strict | --permissive]")
         sys.exit(1)
@@ -187,7 +193,7 @@ if __name__ == "__main__":
     
     cli_is_dry_run_mode = "--dry-run" in sys.argv
     
-    cli_is_strict_mode_active = True 
+    cli_is_strict_mode_active = True
     if "--permissive" in sys.argv:
         cli_is_strict_mode_active = False
     
@@ -199,13 +205,12 @@ if __name__ == "__main__":
         
         if cli_deanonymizer_instance.map_loading_warnings and not cli_deanonymizer_instance.code_to_originals:
             print("\nERREUR CRITIQUE: Le fichier de mapping n'a pas pu être chargé correctement ou est vide. Voir avertissements:")
-            # Pour afficher les avertissements, on génère un rapport minimal.
             minimal_report_for_error = {
-                "dry_run": cli_is_dry_run_mode, 
-                "strict_mode": cli_is_strict_mode_active, 
+                "dry_run": cli_is_dry_run_mode,
+                "strict_mode": cli_is_strict_mode_active,
                 "warnings_generated_during_deanonymization": cli_deanonymizer_instance.map_loading_warnings,
-                "map_collisions_details": cli_deanonymizer_instance.collisions, # Afficher aussi les collisions si détectées
-                "distinct_codes_in_text_count": 0, # Initialiser les autres champs attendus par generate_report
+                "map_collisions_details": cli_deanonymizer_instance.collisions,
+                "distinct_codes_in_text_count": 0,
                 "codes_from_text_found_in_mapping_count": 0,
                 "codes_from_text_not_found_in_mapping_count": 0,
                 "replacements_successful_count": 0,
@@ -227,7 +232,7 @@ if __name__ == "__main__":
                 f_output_cli.write(cli_restored_text_content)
             print(f"\nTexte désanonymisé écrit dans : {cli_output_file_path}")
         
-        cli_deanonymizer_instance.generate_report(cli_report_information) 
+        cli_deanonymizer_instance.generate_report(cli_report_information)
 
         if cli_is_dry_run_mode:
             print("\nNOTE: C'était un dry-run. Aucun fichier de sortie n'a été modifié ou créé.")
