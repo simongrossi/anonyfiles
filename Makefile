@@ -26,9 +26,8 @@ setup:
 	env-api/bin/pip install --upgrade pip setuptools wheel
 	env-api/bin/pip install -r anonyfiles_api/requirements.txt
 
-	@echo "📦 Téléchargement du modèle spaCy fr_core_news_md..."
-	env-api/bin/python -m spacy download fr_core_news_md
-
+	# Déplacé et potentiellement modifié l'installation du modèle spaCy
+	# pour qu'il soit dans l'environnement CLI qui l'utilise principalement
 	@echo "📦 Installation des dépendances pour anonyfiles_gui (si requirements.txt présent)..."
 	if [ -f anonyfiles_gui/requirements.txt ]; then \
 		env-gui/bin/pip install --upgrade pip setuptools wheel && \
@@ -40,14 +39,20 @@ setup:
 	@echo "📦 Installation des modules npm pour anonyfiles_gui..."
 	cd anonyfiles_gui && npm install
 
+	# Appel de la cible spacy-models pour télécharger les modèles nécessaires APRÈS l'installation des dépendances python
+	$(MAKE) spacy-models
+
 	@echo "✅ Tous les environnements sont prêts."
 
 spacy-models:
-	@echo "📦 Téléchargement du modèle spaCy fr_core_news_md..."
-	env-api/bin/python -m spacy download fr_core_news_md
+	@echo "📦 Téléchargement des modèles spaCy nécessaires (fr_core_news_md)..."
+	# Télécharger dans l'environnement CLI car c'est lui qui utilise le moteur spaCy pour l'anonymisation
+	env-cli/bin/python3 -m spacy download fr_core_news_md
+	# Ajouter d'autres modèles si vous les utilisez, par exemple fr_core_news_sm
+	# env-cli/bin/python3 -m spacy download fr_core_news_sm
 
 cli:
-	env-cli/bin/python anonyfiles_cli/main.py anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
+	env-cli/bin/python3 anonyfiles_cli/main.py anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
 
 api:
 	env-api/bin/uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload
