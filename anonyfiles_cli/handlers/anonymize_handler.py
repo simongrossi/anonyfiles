@@ -13,8 +13,8 @@ from ..managers.path_manager import PathManager
 from ..managers.config_manager import ConfigManager
 from ..managers.validation_manager import ValidationManager
 from ..ui.console_display import ConsoleDisplay
-from ..cli_logger import CLIUsageLogger # Pour log_run_event
-from ..exceptions import AnonyfilesError, ProcessingError # Pour la gestion des erreurs
+from ..cli_logger import CLIUsageLogger
+from ..exceptions import AnonyfilesError, ProcessingError
 
 
 class AnonymizeHandler:
@@ -108,6 +108,10 @@ class AnonymizeHandler:
                 status=result.get("status", "unknown"),
                 error=result.get("error")
             )
+            # AJOUTEZ CETTE LIGNE POUR AFFICHER L'ID DU JOB
+            if not dry_run and paths.get("output_file"):
+                full_output_base_path = path_manager.base_output_dir.resolve()
+                self.console.console.print(f"\n✨ Job ID : [bold green]{run_id}[/bold green] (utilisez 'anonyfiles_cli job delete {run_id} --output-dir {full_output_base_path}' pour supprimer les fichiers)")
             return True # Indique le succès
 
         except AnonyfilesError as e:

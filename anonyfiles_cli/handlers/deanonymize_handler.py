@@ -9,8 +9,8 @@ from ..anonymizer.deanonymize import Deanonymizer
 from ..anonymizer.file_utils import timestamp
 from ..anonymizer.run_logger import log_run_event
 from ..ui.console_display import ConsoleDisplay
-from ..cli_logger import CLIUsageLogger # Pour log_run_event
-from ..exceptions import AnonyfilesError # Pour la gestion des erreurs
+from ..cli_logger import CLIUsageLogger
+from ..exceptions import AnonyfilesError
 
 
 class DeanonymizeHandler:
@@ -27,6 +27,7 @@ class DeanonymizeHandler:
         """
         Traite la désanonymisation d'un fichier en orchestrant les différentes étapes.
         """
+        run_id = timestamp() # Générez le run_id ici pour la désanonymisation aussi
         self.console.console.print(f"🔁 Désanonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]")
         self.console.console.print(f"🔗 Fichier de mapping : [bold green]{mapping_csv}[/bold green]")
 
@@ -35,11 +36,12 @@ class DeanonymizeHandler:
         try:
             output_path = output
             if not output_path and not dry_run:
-                output_path = input_file.parent / f"{input_file.stem}_deanonymise_{timestamp()}{input_file.suffix}"
+                # Assurez-vous que le run_id est utilisé pour le nommage si on le génère
+                output_path = input_file.parent / f"{input_file.stem}_deanonymise_{run_id}{input_file.suffix}"
                 
             report_path = report
             if not report_path and not dry_run and output_path:
-                report_path = output_path.parent / f"{input_file.stem}_deanonymise_report_{timestamp()}.json"
+                report_path = output_path.parent / f"{input_file.stem}_deanonymise_report_{run_id}.json"
 
             if not dry_run and output_path:
                 output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -47,10 +49,31 @@ class DeanonymizeHandler:
                     return False # Indique l'échec (annulation par l'utilisateur)
 
             with open(input_file, encoding="utf-8") as f:
-                content_to_deanonymize = f.read()
+                content = f.read()
 
-            deanonymizer = Deanonymizer(str(mapping_csv), strict=strict_mode)
-            restored_text, report_data = deanonymizer.deanonymize_text(content_to_deanonymize, dry_run=dry_run)
+            deanonymizer = Deanonymizer(str(mapping_csv), strict=not permissive)
+
+            # Si le chargement du mapping a des erreurs critiques qui empêchent la désanonymisation
+            if deanonymizer.map_loading_warnings and not deanonymizer.code_to_originals:
+                warning_message = f"Échec critique du chargement du fichier mapping '{mapping_csv}'. Avertissements: {deanonymizer.map_loading_warnings}"
+                self.console.console.print(f"❌ {warning_message}", style="red")
+                # Log l'événement d'erreur ici si le processus ne peut pas continuer
+                log_run_event(
+                    logger=CLIUsageLogger,
+                    run_id=run_id,
+                    input_file=str(input_file),
+                    output_file="N/A",
+                    mapping_file=str(mapping_csv),
+                    log_entities_file="",
+                    entities_detected=[],
+                    total_replacements=0,
+                    audit_log=[warning_message],
+                    status="error",
+                    error=warning_message
+                )
+                return False
+
+            restored_text, report_data = deanonymizer.deanonymize_text(content, dry_run=dry_run)
 
             if not dry_run:
                 if output_path:
@@ -90,7 +113,7 @@ class DeanonymizeHandler:
             
             log_run_event(
                 logger=CLIUsageLogger,
-                run_id=timestamp(),
+                run_id=run_id, # Utilisez l'ID généré au début
                 input_file=str(input_file),
                 output_file=str(output_path) if output_path and not dry_run else "DRY_RUN_NO_OUTPUT",
                 mapping_file=str(mapping_csv),
@@ -101,6 +124,10 @@ class DeanonymizeHandler:
                 status="success" if not report_data.get("warnings_generated_during_deanonymization") else "success_with_warnings",
                 error=None
             )
+            # AJOUTEZ CETTE LIGNE POUR AFFICHER L'ID DU JOB
+            if not dry_run and output_path:
+                actual_base_path = output_path.parent.resolve()
+                self.console.console.print(f"\n✨ Job ID : [bold green]{run_id}[/bold green] (utilisez 'anonyfiles_cli job delete {run_id} --output-dir {actual_base_path}' pour supprimer les fichiers)")
             return True # Indique le succès
 
         except AnonyfilesError as e:
