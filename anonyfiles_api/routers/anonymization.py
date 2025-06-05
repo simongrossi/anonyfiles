@@ -25,6 +25,16 @@ from anonymizer.file_utils import default_output, default_mapping, default_log
 
 router = APIRouter()
 
+
+async def _iter_uploadfile_chunks(upload_file: UploadFile, chunk_size: int = 1024 * 1024):
+    """Yield chunks from an UploadFile without loading it all into memory."""
+    while True:
+        chunk = await upload_file.read(chunk_size)
+        if not chunk:
+            break
+        yield chunk
+
+
 def _prepare_engine_options(config_options: dict, custom_rules: Optional[list]) -> Dict[str, Any]:
     exclude_entities = []
     if not config_options.get("anonymizePersons", True): exclude_entities.append("PER")
@@ -199,8 +209,8 @@ async def anonymize_file_endpoint(
 
     try:
         async with aiofiles.open(input_path_for_job, "wb") as buffer:
-            content = await file.read()
-            await buffer.write(content)
+            async for chunk in _iter_uploadfile_chunks(file):
+                await buffer.write(chunk)
         logger.info(f"Tâche {job_id}: Fichier '{input_filename_for_job}' (orig: {file.filename}) téléversé.")
     except Exception as e_upload:
         logger.error(f"Tâche {job_id}: Erreur de téléversement '{input_filename_for_job}': {e_upload}", exc_info=True)

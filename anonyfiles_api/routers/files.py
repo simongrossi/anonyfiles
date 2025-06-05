@@ -63,14 +63,4 @@ async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: boo
     if as_attachment:
         return FileResponse(str(file_path_to_serve), filename=file_path_to_serve.name, media_type=media_type)
     else:
-        content = await current_job.read_file_content_async(file_path_to_serve)
-        if content is None:
-             raise HTTPException(status_code=500, detail=f"Impossible de lire le contenu du fichier pour {file_path_to_serve.name}")
-
-        if media_type == "application/json":
-            try: response_content = json.loads(content)
-            except json.JSONDecodeError:
-                logger.error(f"Tâche {job_id_str}: Erreur de parsing JSON pour {file_path_to_serve.name}", exc_info=True)
-                raise HTTPException(status_code=500, detail=f"Impossible de parser le contenu JSON pour {file_path_to_serve.name}")
-        else: response_content = content
-        return JSONResponse(content={"filename": file_path_to_serve.name, "content": response_content, "media_type": media_type})
+        return FileResponse(str(file_path_to_serve), media_type=media_type)
