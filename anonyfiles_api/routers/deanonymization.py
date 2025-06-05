@@ -29,6 +29,16 @@ from anonyfiles_cli.anonymizer.run_logger import log_run_event
 from anonyfiles_cli.cli_logger import CLIUsageLogger  # Utilisé pour log_run_event
 
 router = APIRouter()
+
+# Utilisé pour télécharger les fichiers en streaming
+async def _iter_uploadfile_chunks(upload_file: UploadFile, chunk_size: int = 1024 * 1024):
+    """Yield chunks from an UploadFile without loading it all into memory."""
+    while True:
+        chunk = await upload_file.read(chunk_size)
+        if not chunk:
+            break
+        yield chunk
+
 # 'logger' est maintenant importé depuis core_config
 
 def run_deanonymization_job_sync(
@@ -159,8 +169,8 @@ async def deanonymize_file_endpoint(
 
     try:
         async with aiofiles.open(input_path, "wb") as buffer:
-            content = await file.read()
-            await buffer.write(content)
+            async for chunk in _iter_uploadfile_chunks(file):
+                await buffer.write(chunk)
         logger.info(f"Tâche {job_id}: Fichier d'entrée '{input_filename}' sauvegardé dans '{input_path}'")
     except Exception as e_save_input:
         logger.error(f"Tâche {job_id}: Échec de la sauvegarde du fichier d'entrée '{input_filename}': {e_save_input}", exc_info=True)
@@ -174,8 +184,8 @@ async def deanonymize_file_endpoint(
 
     try:
         async with aiofiles.open(mapping_path, "wb") as buffer:
-            content = await mapping.read()
-            await buffer.write(content)
+            async for chunk in _iter_uploadfile_chunks(mapping):
+                await buffer.write(chunk)
         logger.info(f"Tâche {job_id}: Fichier de mapping '{mapping_filename}' sauvegardé dans '{mapping_path}'")
     except Exception as e_save_mapping:
         logger.error(f"Tâche {job_id}: Échec de la sauvegarde du fichier de mapping '{mapping_filename}': {e_save_mapping}", exc_info=True)
