@@ -1,7 +1,7 @@
 # anonyfiles_cli/anonymizer/file_processor_factory.py
 
 from pathlib import Path
-from typing import Type
+from typing import Dict, Type # Corrected: Added Dict import
 
 from .base_processor import BaseProcessor
 from .txt_processor import TxtProcessor

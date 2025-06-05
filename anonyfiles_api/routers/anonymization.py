@@ -20,7 +20,7 @@ if str(CLI_MODULE_PATH) not in sys.path:
 
 from anonymizer.run_logger import log_run_event
 from anonyfiles_cli.cli_logger import CLIUsageLogger
-from anonymizer.anonyfiles_core import AnonyfilesEngine
+from anonymizer.engine import AnonyfilesEngine
 from anonymizer.file_utils import default_output, default_mapping, default_log
 
 router = APIRouter()
