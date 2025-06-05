@@ -46,17 +46,3 @@ class TxtProcessor(BaseProcessor):
 
         with open(output_path, 'w', encoding='utf-8') as fout:
             fout.write(content_to_write)
-
-    # Ancienne méthode write_final_blocks (maintenant redondante)
-    # def write_final_blocks(self, output_path: Path,
-    #                        final_anonymized_blocks: List[str],
-    #                        original_document_path_for_structure: Optional[Path] = None,
-    #                        **kwargs):
-    #     raise DeprecationWarning("TxtProcessor.write_final_blocks est obsolète.")
-
-    # Ancienne méthode replace_entities (maintenant redondante pour le flux principal)
-    # def replace_entities(self, input_path: Path, output_path: Path,
-    #                      replacements: Dict[str, str],
-    #                      entities_per_block_with_offsets: List[List[Any]],
-    #                      **kwargs):
-    #     raise DeprecationWarning("TxtProcessor.replace_entities est obsolète.")
