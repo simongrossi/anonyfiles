@@ -1,19 +1,30 @@
 # anonyfiles_cli/main.py
+#-*- coding: utf-8 -*- # Assurez-vous que cette ligne est bien présente et correcte
 
-import typer
+import sys
 from pathlib import Path
 
+# NOUVEAU BLOC TRÈS IMPORTANT : AJOUTE LA RACINE DU PROJET AU SYS.PATH
+# Cela garantit que 'anonyfiles_cli' sera toujours trouvé comme un paquet de niveau supérieur.
+# Remonte de deux niveaux par rapport à l'emplacement de main.py (anonyfiles_cli/ -> anonyfiles/)
+project_root_dir = Path(__file__).resolve().parent.parent
+if str(project_root_dir) not in sys.path:
+    sys.path.insert(0, str(project_root_dir))
+
+# ... le reste de votre main.py commence ici ...
+import typer
+
 # Importe les applications Typer des modules de commandes séparés
-from .commands import anonymize, deanonymize, config, batch, utils
-from .managers.config_manager import ConfigManager
-from .ui.console_display import ConsoleDisplay
+from anonyfiles_cli.commands import anonymize, deanonymize, config, batch, utils # Changement ici: import absolu depuis la racine du projet
+from anonyfiles_cli.managers.config_manager import ConfigManager # Changement ici: import absolu
+from anonyfiles_cli.ui.console_display import ConsoleDisplay # Changement ici: import absolu
 
 app = typer.Typer(pretty_exceptions_show_locals=False, help="Anonyfiles CLI - Outil d'anonymisation de documents.")
 console = ConsoleDisplay()
 
 # Ajout des sous-commandes depuis les modules séparés
 app.add_typer(anonymize.app, name="anonymize", help="Commandes pour anonymiser les fichiers.")
-app.add_typer(deanonymize.app, name="deanonymize", help="Commandes pour désanonymiser les fichiers.")
+app.add_typer(deanonymize.app, name="deanonymize", help="Commandes pour desanonymiser les fichiers.") # Changé en "desanonymiser" pour l'encodage
 app.add_typer(config.app, name="config", help="Gère la configuration d'Anonyfiles.")
 app.add_typer(batch.app, name="batch", help="Traite des fichiers en lot.")
 app.add_typer(utils.app, name="utils", help="Commandes utilitaires diverses.")
