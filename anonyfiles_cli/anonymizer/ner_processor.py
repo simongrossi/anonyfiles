@@ -3,9 +3,12 @@
 import re
 from typing import List, Dict, Any, Tuple, Set
 import typer
+import logging #
 
 from .spacy_engine import SpaCyEngine
 from .spacy_engine import EMAIL_REGEX, DATE_REGEX, PHONE_REGEX, IBAN_REGEX
+
+logger = logging.getLogger(__name__) #
 
 class NERProcessor:
     """
@@ -17,7 +20,10 @@ class NERProcessor:
         self.excluded_labels = excluded_labels
         
         self.final_enabled_labels_for_spacy = self.enabled_labels - self.excluded_labels
-        typer.echo(f"DEBUG (NERProcessor Init): Labels spaCy effectivement activés pour la détection : {self.final_enabled_labels_for_spacy}")
+        logger.debug( #
+            "DEBUG (NERProcessor Init): Labels spaCy effectivement activés pour la détection : %s", #
+            self.final_enabled_labels_for_spacy, #
+        )
 
     def detect_entities_in_blocks(self, text_blocks: List[str]) -> Tuple[List[Tuple[str, str]], List[List[Tuple[str, str, int, int]]]]:
         """
