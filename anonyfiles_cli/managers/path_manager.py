@@ -2,8 +2,10 @@
 
 from pathlib import Path
 from typing import Dict, Optional
-from ..anonymizer.file_utils import timestamp, ensure_folder, make_run_dir, default_output, default_mapping, default_log
+# C'EST LA LIGNE CLÉ À VÉRIFIER : DOIT ÊTRE UN IMPORT RELATIF AVEC DEUX POINTS (..)
 from ..exceptions import FileIOError
+from ..anonymizer.file_utils import timestamp, ensure_folder, make_run_dir, default_output, default_mapping, default_log
+
 
 class PathManager:
     """
@@ -39,11 +41,11 @@ class PathManager:
     ) -> Dict[str, Path]:
         """
         Résout tous les chemins de fichiers de sortie.
-        Si un chemin n'est pas fourni, un chemin par défaut est généré dans le répertoire de run.
+        Si un chemin n'est pas fourni, un chemin par default est généré dans le répertoire de run.
         :param output_override: Chemin du fichier de sortie spécifié par l'utilisateur.
         :param mapping_override: Chemin du fichier de mapping spécifié par l'utilisateur.
         :param log_entities_override: Chemin du fichier de log des entités spécifié par l'utilisateur.
-        :param dry_run: Si True, ne crée pas de répertoires pour les chemins par défaut.
+        :param dry_run: Si True, ne crée pas de répertoires pour les chemins par default.
         :return: Un dictionnaire contenant les chemins résolus.
         """
         paths: Dict[str, Path] = {}
@@ -61,7 +63,7 @@ class PathManager:
             if not dry_run: # Ne générer de chemin par défaut que si on va écrire
                 paths["output_file"] = default_output(self.input_file, self.run_dir, self.append_timestamp)
             else:
-                # En dry_run, si non spécifié, le chemin par défaut ne sera pas utilisé pour l'écriture
+                # En dry_run, si non spécifié, le chemin par default ne sera pas utilisé pour l'écriture
                 # On peut le laisser à None ou un chemin "virtuel" si besoin
                 paths["output_file"] = self.base_output_dir / "dry_run_output.tmp" # Chemin factice
 
