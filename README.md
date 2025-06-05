@@ -74,6 +74,9 @@ cd anonyfiles
 
 ➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
 
+![Aperçu de la CLI](https://i.imgur.com/GJksQfm.jpeg)
+
+
 ### Installation GUI
 
 ➡️ Voir [`anonyfiles_gui/README.md`](anonyfiles_gui/README.md)
