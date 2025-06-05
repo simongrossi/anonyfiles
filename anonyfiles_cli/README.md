@@ -100,7 +100,7 @@ Le projet anonyfiles\_cli est conçu de manière modulaire, avec une séparation
 * log/ : logs CSV (peut être configuré dans anonyfiles\_outputs/runs/{job\_id}/)
 * mappings/ : fichiers de correspondance (peut être configuré dans anonyfiles\_outputs/runs/{job\_id}/)
 * examples/ : jeux de données
-* tests/ : tests unitaires à compléter
+* tests/cli/ : tests unitaires
 
 ## **💡 Utilisation rapide**
 
@@ -114,7 +114,7 @@ Le résultat affichera un Job ID (un timestamp) et le chemin vers les fichiers g
 
 python -m anonyfiles\_cli.main anonymize anonyfiles\_cli/input.txt \
  --output-dir anonyfiles\_cli/output\_test \
- --config anonyfiles\_cli/config/config.yaml \
+ --config anonyfiles\_cli/config.yaml \
  --custom-replacements-json '[{"pattern": "ProjetX", "replacement": "[SECRET\_PROJET]", "isRegex": false}]' \
  --log-entities anonyfiles\_cli/log/log.csv \
  --mapping-output anonyfiles\_cli/mappings/mapping.csv
