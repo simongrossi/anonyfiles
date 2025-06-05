@@ -1,10 +1,14 @@
 # anonymizer/txt_processor.py
-import os # S'assurer que os est importé
+
+import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional # Assurez-vous que Dict, Any, Optional sont là si vous les utilisez dans les signatures
+from typing import List, Dict, Any, Optional
+import logging
 
 from .base_processor import BaseProcessor
 # from .utils import apply_positional_replacements # Probablement plus nécessaire ici directement
+
+logger = logging.getLogger(__name__)
 
 class TxtProcessor(BaseProcessor):
     def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
@@ -21,7 +25,7 @@ class TxtProcessor(BaseProcessor):
         except Exception as e:
             # Log l'erreur et retourne une liste avec un bloc vide pour éviter de planter
             # si on veut que le programme continue malgré tout (discutable)
-            print(f"Erreur lors de la lecture de {input_path}: {e}")
+            logger.error("Erreur lors de la lecture de %s: %s", input_path, e)
             return [""]
 
 
@@ -38,7 +42,10 @@ class TxtProcessor(BaseProcessor):
         else:
             # Cas où le fichier original était vide ou les règles ont tout supprimé,
             # et l'Engine a passé une liste vide.
-            print(f"INFO (TxtProcessor): Aucun bloc traité fourni pour {output_path}, écriture d'un fichier vide.")
+            logger.info(
+                "INFO (TxtProcessor): Aucun bloc traité fourni pour %s, écriture d'un fichier vide.",
+                output_path,
+            )
 
         output_dir = output_path.parent # Utiliser output_path.parent pour le dossier
         if not output_dir.exists(): # S'assurer que le dossier de sortie existe
