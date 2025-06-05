@@ -1,0 +1,69 @@
+Monsieur Jean Dupont habite au 12 avenue des Champs-Élysées, 75008 Paris.
+Son adresse e-mail est jean.dupont@example.com et il est né le 12 juin 1980.
+Son numéro de sécurité sociale : 1 84 12 75 123 456 89. Son IBAN est FR76 3000 6000 0112 3456 7890 189.
+
+L’entreprise ACME Corp, basée à New York, a été fondée par M. DUPONT et Mme Martin.
+Contactez-nous au 01 42 68 53 00 ou par fax au 09 87 65 43 21.
+Pour toute question, envoyer un mail à support@acme-corp.fr ou visiter le site www.acme-corp.fr.
+
+Les réunions prévues sont les suivantes :
+- 23/07/2023 à 10h (avec Dr. Gérard Durand)
+- Mardi 3 janvier 2022 à la Mairie de Lyon
+- Le 07-09-21 : signature du contrat (avec Pierre Dujardin).
+
+Élèves présents : Alice LEROY, Bob legrand, Clara Lefèvre, D’Artagnan O’Connor.
+Contact : alice.leroy@lyceesimone.fr
+
+Adresse secondaire : 18 bis rue de la Liberté, 69003 Lyon.  
+IBAN entreprise : DE89 3704 0044 0532 0130 00.
+
+Rendez-vous au CHU d’Angers, 4e étage, bureau 408B.
+
+Monsieur Dupont a-t-il payé par carte ? Numéro : 4532 9836 2938 2910  
+Clé API (test) : sk_test_51Ht6Tw1UGdQJd4x... (factice)
+Note : Code promo à anonymiser : CODEPROMO2024
+
+Numéro de téléphone en format international : +33 6 12 34 56 78
+Et un mail bizarre : test-email+pro@gmail.com
+
+Données en double :
+- Monsieur Jean Dupont
+- jean.dupont@example.com
+- 12 avenue des Champs-Élysées
+
+Phrase “piège” : Le faux IBAN est FR7630006000011234567890189 et ceci n’est pas un vrai IBAN.  
+Un mail non valide : test[at]notanemail
+
+Proposition :
+« Cher M. Durand, merci de contacter le service juridique avant le 15 août 2024. »
+
+Date en toutes lettres : Quinze août deux mille vingt-quatre
+
+Bloc notes interne : 
+- “À rappeler après 19h : Mme Martine Martin, directrice RH (martine.martin@acme-corp.fr)”
+- « Virement bancaire prévu le 14.10.2024 (RIB : FR1420041010050500013M02606) »
+- “IBAN ‘piège’ : FR7630006000011234567890189bis”
+
+Contacts externes : John Smith, CEO, john.smith@international.com, London, GB.
+Alias : JeanD, PierreD, GérardD, AliceL.
+
+Texte multi-lignes :
+Madame Sophie Dubois  
+28 rue Pasteur  
+31000 Toulouse
+
+Son IBAN : FR76 1234 5678 9012 3456 7890 123  
+Téléphone : 05 61 23 45 67  
+Email : sophie.dubois@toulouse.fr
+
+Entités dans un tableau :
+| Nom               | Email                        | Ville     | Date naissance |
+|-------------------|-----------------------------|-----------|---------------|
+| Clara Lefèvre     | clara.lefevre@lyon.fr       | Lyon      | 1995-03-14    |
+| Romain Lambert    | r.lambert@paris.fr          | Paris     | 1989-11-02    |
+| Louise Dupuis     | l.dupuis@bordeaux.fr        | Bordeaux  | 1997-05-06    |
+
+Commentaires internes :
+“Confidentiel – à ne pas transmettre à l’externe.”
+
+FIN DU DOCUMENT
