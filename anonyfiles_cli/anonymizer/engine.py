@@ -3,83 +3,6 @@
 import csv
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
-import typer
-import logging
-
-from .spacy_engine import SpaCyEngine
-from .replacer import ReplacementSession
-from .utils import apply_positional_replacements
-from .audit import AuditLogger
-
-# Import des nouveaux modules
-from .custom_rules_processor import CustomRulesProcessor
-from .ner_processor import NERProcessor
-from .file_processor_factory import FileProcessorFactory
-from .replacement_generator import ReplacementGenerator
-from .writer import AnonymizedFileWriter
-
-logger = logging.getLogger(__name__)
-
-
-class AnonyfilesEngine:
-    """
-    Orchestre le processus complet d'anonymisation d'un fichier.
-    """
-    def __init__(self, config: Dict[str, Any],
-                 exclude_entities_cli: Optional[List[str]] = None,
-                 custom_replacement_rules: Optional[List[Dict[str, str]]] = None):
-        
-        self.config = config or {}
-        
-        # Initialisation du logger d'audit
-        self.audit_logger = AuditLogger()
-
-        # Initialisation du CustomRulesProcessor
-        self.custom_rules_processor = CustomRulesProcessor(custom_replacement_rules, self.audit_logger)
-
-        # Initialisation des entités à exclure
-        self.entities_exclude = set()
-        self.entities_exclude.update(self.config.get("exclude_entities", []))
-
-        # Mapping des clés GUI aux labels spaCy et gestion des enabled_labels
-        mapping_gui_keys = {
-            "anonymizePersons": "PER", "anonymizeLocations": "LOC",
-            "anonymizeOrgs": "ORG", "anonymizeEmails": "EMAIL",
-            "anonymizeDates": "DATE", "anonymizeMisc": "MISC",
-            "anonymizePhones": "PHONE", "anonymizeIbans": "IBAN",
-            "anonymizeAddresses": "ADDRESS"
-        }
-        self.enabled_labels = set()
-        for key, label in mapping_gui_keys.items():
-            if self.config.get(key, True):
-                self.enabled_labels.add(label)
-            else:
-                self.entities_exclude.add(label)
-
-        if exclude_entities_cli:
-            for e_list in exclude_entities_cli:
-                 for e in e_list.split(","):
-                    self.entities_exclude.add(e.strip().upper())
-
-        # Initialisation de SpaCyEngine et NERProcessor
-        model = self.config.get("spacy_model", "fr_core_news_md")
-        self.spacy_engine = SpaCyEngine(model=model)
-        self.ner_processor = NERProcessor(self.spacy_engine, self.enabled_labels, self.entities_exclude)
-        
-        # Initialisation du ReplacementGenerator
-        self.replacement_generator = ReplacementGenerator(self.config, self.audit_logger)
-
-        # Initialisation du Writer (dépend de dry_run, sera initialisé dans anonymize())
-        self.writer: Optional[AnonymizedFileWriter] = None
-
-        logger.debug(
-            "DEBUG (AnonyfilesEngine Init): Entités à exclure (config + CLI) : %s",
-            self.entities_exclude,
-        )
-import csv
-from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
-import typer
 import logging
 
 from .spacy_engine import SpaCyEngine
@@ -249,8 +172,8 @@ class AnonyfilesEngine:
             entities_in_this_block_to_replace = spacy_entities_per_block_with_offsets[i]
             
             # Filtrer les entités pour s'assurer qu'elles sont dans unique_spacy_entities (par le texte et le label)
-            # Normalement, cela devrait déjà être le cas avec le NERProcessor, mais sécurité.
-            unique_spacy_entities_set_of_tuples = set(unique_spacy_entities) # Pour recherche rapide
+            # Normalement, cela devrait already be the case with the NERProcessor, but security.
+            unique_spacy_entities_set_of_tuples = set(unique_spacy_entities) # For faster lookup
             filtered_entities_for_replacement_in_block = [
                 ent_offset for ent_offset in entities_in_this_block_to_replace
                 if (ent_offset[0], ent_offset[1]) in unique_spacy_entities_set_of_tuples
@@ -273,8 +196,8 @@ class AnonyfilesEngine:
                 output_path=output_path,
                 final_processed_blocks=truly_final_blocks_for_processor,
                 original_input_path=input_path, 
-                spacy_entities_per_block_with_offsets=spacy_entities_per_block_with_offsets, # Nécessaire pour PDF/DOCX
-                **kwargs # Passe les kwargs restants (ex: has_header pour CSV/XLSX)
+                spacy_entities_per_block_with_offsets=spacy_entities_per_block_with_offsets, # Necessary for PDF/DOCX
+                **kwargs # Pass remaining kwargs (e.g., has_header for CSV/XLSX)
             )
 
             if log_entities_path:
