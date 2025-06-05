@@ -56,7 +56,6 @@ class NERProcessor:
                         for match in re.finditer(pattern, block_text, re.IGNORECASE if label == "DATE" else 0):
                             detected_entities_for_this_block.append((match.group(0), label, match.start(), match.end()))
                 
-                # Correction ici : Utilisation de la bonne variable pour le tri
                 # 3. Nettoyer et dédupliquer les entités du bloc avec gestion de priorité
                 processed_entities_for_this_block: List[Tuple[str, str, int, int]] = []
                 best_entities_by_span: Dict[Tuple[int, int], Tuple[str, str]] = {}
@@ -95,6 +94,6 @@ class NERProcessor:
                 
                 spacy_entities_per_block_with_offsets.append(processed_entities_for_this_block)
             
-            final_unique_entities_list = [(text, data[0]) for text, data in all_unique_entities_across_blocks.items()]
-            
-            return final_unique_entities_list, spacy_entities_per_block_with_offsets
+        final_unique_entities_list = [(text, data[0]) for text, data in all_unique_entities_across_blocks.items()]
+        
+        return final_unique_entities_list, spacy_entities_per_block_with_offsets
