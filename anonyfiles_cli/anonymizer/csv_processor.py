@@ -20,7 +20,7 @@ class CsvProcessor(BaseProcessor):
         Retourne une liste à plat contenant toutes les cellules de données (pas de header si has_header=True).
         L'option 'has_header' est récupérée via kwargs.
         """
-        has_header = kwargs.get('has_header', True)
+        has_header = kwargs.get('has_header', False)
         cell_texts: List[str] = []
         try:
             with open(input_path, mode='r', encoding='utf-8', newline='') as f:
@@ -48,7 +48,7 @@ class CsvProcessor(BaseProcessor):
         Reconstruit le fichier CSV en utilisant les blocs de texte (cellules) finalisés
         et l'écrit dans output_path.
         """
-        has_header = kwargs.get('has_header', True)
+        has_header = kwargs.get('has_header', False)
         anonymized_rows: List[List[str]] = []
         original_row_structures: List[int] = []
         header_row: List[str] = []
