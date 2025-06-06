@@ -182,7 +182,22 @@ log_dir = "~/anonyfiles_logs"
 ```
 
 Ces valeurs seront chargées automatiquement par la CLI et la GUI pour
-déterminer où écrire les fichiers générés.
+déterminer où écrire les fichiers générés. Vous pouvez également
+fournir un autre fichier en définissant la variable d’environnement
+`ANONYFILES_DEFAULTS_FILE` qui pointera vers un fichier `default_paths.toml`
+personnalisé. Exemple d’activation :
+
+```bash
+# Dans un shell
+export ANONYFILES_DEFAULTS_FILE=/etc/anonyfiles/paths.toml
+```
+
+Ou dans un service Systemd :
+
+```ini
+[Service]
+Environment=ANONYFILES_DEFAULTS_FILE=/etc/anonyfiles/paths.toml
+```
 
 ## 📖 Documentation détaillée
 
