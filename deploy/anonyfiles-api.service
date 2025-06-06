@@ -3,10 +3,11 @@ Description=Anonyfiles API FastAPI service
 After=network.target
 
 [Service]
-User=debian
-WorkingDirectory=/home/debian/anonyfiles
-Environment="PATH=/home/debian/anonyfiles/env-api/bin"
-ExecStart=/home/debian/anonyfiles/env-api/bin/uvicorn anonyfiles_api.api:app --host 127.0.0.1 --port 8000
+EnvironmentFile=/etc/default/anonyfiles-api
+User=${ANONYFILES_USER}
+WorkingDirectory=${ANONYFILES_HOME}
+Environment="PATH=${ANONYFILES_HOME}/env-api/bin"
+ExecStart=${ANONYFILES_HOME}/env-api/bin/uvicorn anonyfiles_api.api:app --host ${ANONYFILES_HOST} --port ${ANONYFILES_PORT}
 Restart=always
 RestartSec=5
 
