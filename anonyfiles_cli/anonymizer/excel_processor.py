@@ -64,3 +64,31 @@ class ExcelProcessor(BaseProcessor):
             os.makedirs(output_dir, exist_ok=True)
 
         anonymized_df.to_excel(output_path, index=False)
+
+    def reconstruct_and_write_anonymized_file(
+        self,
+        output_path,
+        final_processed_blocks,
+        original_input_path,
+        **kwargs
+    ):
+        """Reconstruit un fichier Excel à partir des blocs traités et l'enregistre."""
+        df = pd.read_excel(original_input_path)
+
+        if df.empty:
+            df.to_excel(output_path, index=False)
+            return
+
+        anonymized_df = df.copy()
+        cell_index_counter = 0
+        for row_index in range(anonymized_df.shape[0]):
+            for col_index in range(anonymized_df.shape[1]):
+                if cell_index_counter < len(final_processed_blocks):
+                    anonymized_df.iloc[row_index, col_index] = final_processed_blocks[cell_index_counter]
+                cell_index_counter += 1
+
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+
+        anonymized_df.to_excel(output_path, index=False)
