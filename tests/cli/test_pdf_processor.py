@@ -12,6 +12,17 @@ def create_simple_pdf(path: Path, text: str) -> None:
     doc.save(path)
 
 
+def test_extract_blocks_pdf():
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    create_simple_pdf(Path(tmp.name), "Pierre habite a Paris")
+
+    processor = PdfProcessor()
+    blocks = processor.extract_blocks(tmp.name)
+
+    assert len(blocks) == 1
+    assert "Pierre habite a Paris" in blocks[0]
+
+
 def test_reconstruct_and_write_anonymized_file_pdf():
     tmp_in = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     tmp_out = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
