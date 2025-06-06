@@ -165,7 +165,7 @@ python -m anonyfiles\_cli.main job delete 20250605-122744 --output-dir /home/deb
 | --has-header-opt | true ou false pour les fichiers CSV/XLSX (prioritaire sur --csv-no-header) |
 | --csv-no-header | Indique que le fichier CSV d'entrée N'A PAS d'en-tête |
 | --append-timestamp | Ajoute un horodatage aux noms des fichiers de sortie par défaut |
-| --dry-run | Mode simulation : affiche les actions sans modifier les fichiers |
+| --dry-run | Mode simulation : affiche les actions sans modifier les fichiers (fonctionne aussi pour `config create` et `config reset`) |
 | job delete <JOB\_ID> | Supprime un job spécifique et son répertoire. Nécessite --output-dir si non par défaut. |
 | job list | Liste les IDs de tous les jobs. Nécessite --output-dir si non par défaut. |
 
@@ -183,6 +183,10 @@ python -m anonyfiles\_cli.main deanonymize fichier\_anonymise.txt \
  --mapping-csv anonyfiles\_cli/mappings/mapping.csv \
  -o anonyfiles\_cli/fichier\_restaure.txt \
  --permissive
+
+### **Validation d'un fichier de configuration**
+
+python -m anonyfiles\_cli.main config validate-config mon\_config.yaml
 
 ## **🧹 Exemple de fichier config.yaml**
 
