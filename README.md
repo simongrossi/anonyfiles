@@ -212,10 +212,14 @@ déterminer où écrire les fichiers générés.
 
 ---
 
-## 📦 Déploiement de l'API (systemd)
+## 📦 Déploiement de l'API
 
-Le fichier `deploy/anonyfiles-api.service` permet de lancer l'API comme service systemd.
-Les réglages principaux s'appuient sur des variables d'environnement à définir (par exemple dans `/etc/default/anonyfiles-api`) :
+Un guide détaillé (Docker, systemd, Nixpacks) est disponible dans
+[`deploy/README.md`](deploy/README.md).
+
+Le fichier `deploy/anonyfiles-api.service` permet de lancer l'API comme service
+systemd. Les réglages principaux s'appuient sur des variables d'environnement à
+définir (par exemple dans `/etc/default/anonyfiles-api`) :
 
 - `ANONYFILES_USER` : utilisateur exécutant le service
 - `ANONYFILES_HOME` : répertoire racine du projet

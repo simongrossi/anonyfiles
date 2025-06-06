@@ -15,6 +15,6 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: |
-          pip install -r requirements-test.txt
+          python -m pip install -r requirements-test.txt
       - name: Run tests
-        run: pytest -q
+        run: pytest -q tests
