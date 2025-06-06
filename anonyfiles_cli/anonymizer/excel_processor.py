@@ -2,8 +2,11 @@
 
 import pandas as pd
 import os
+import logging
 from .base_processor import BaseProcessor
 from .utils import apply_positional_replacements
+
+logger = logging.getLogger(__name__)
 
 class ExcelProcessor(BaseProcessor):
     """
@@ -78,6 +81,18 @@ class ExcelProcessor(BaseProcessor):
         if df.empty:
             df.to_excel(output_path, index=False)
             return
+
+        expected_count = int(df.shape[0] * df.shape[1])
+        if expected_count != len(final_processed_blocks):
+            logger.warning(
+                "Mismatch entre %s cellules attendues et %s blocs fournis pour %s",
+                expected_count,
+                len(final_processed_blocks),
+                output_path,
+            )
+            raise ValueError(
+                f"Le nombre de cellules ({expected_count}) ne correspond pas au nombre de blocs finaux ({len(final_processed_blocks)})."
+            )
 
         anonymized_df = df.copy()
         cell_index_counter = 0

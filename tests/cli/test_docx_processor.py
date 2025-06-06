@@ -2,6 +2,7 @@ from anonyfiles_cli.anonymizer.word_processor import DocxProcessor
 from docx import Document
 from pathlib import Path
 import tempfile, os
+import pytest
 
 def test_extract_blocks_docx():
     tmp = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
@@ -34,3 +35,21 @@ def test_reconstruct_and_write_anonymized_file_docx():
     doc_result = Document(tmp_out.name)
     assert "NOM003" in doc_result.paragraphs[0].text
     assert "VILLE_Z" in doc_result.paragraphs[0].text
+
+
+def test_reconstruct_and_write_anonymized_file_docx_mismatch():
+    tmp_in = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
+    tmp_out = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
+    doc = Document()
+    doc.add_paragraph("Texte unique")
+    doc.save(tmp_in.name)
+
+    processor = DocxProcessor()
+
+    # Fournir une liste vide pour provoquer un décalage de compte
+    with pytest.raises(ValueError):
+        processor.reconstruct_and_write_anonymized_file(
+            Path(tmp_out.name),
+            [],
+            Path(tmp_in.name),
+        )
