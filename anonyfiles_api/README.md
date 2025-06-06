@@ -50,7 +50,7 @@ uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
 Sous Windows (si les imports échouent) :
 
 ```dos
-set PYTHONPATH=.
+pip install -e .
 uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
 ```
 

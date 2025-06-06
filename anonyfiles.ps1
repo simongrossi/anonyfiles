@@ -25,7 +25,7 @@ switch ($action) {
     "cli" {
         Write-Host "▶️ Lancement du CLI..."
         .\env-cli\Scripts\Activate.ps1
-        python anonyfiles_cli\main.py
+        anonyfiles-cli
     }
     "gui" {
         Write-Host "🖥️ Lancement de la GUI (Tauri)..."
