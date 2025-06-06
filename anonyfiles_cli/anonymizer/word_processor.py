@@ -67,3 +67,31 @@ class DocxProcessor(BaseProcessor):
             os.makedirs(output_dir, exist_ok=True)
 
         doc.save(output_path)
+
+    def reconstruct_and_write_anonymized_file(
+        self,
+        output_path,
+        final_processed_blocks,
+        original_input_path,
+        **kwargs
+    ):
+        """Reconstruit un document DOCX à partir des blocs traités et l'enregistre."""
+        doc = Document(original_input_path)
+        paragraphs = doc.paragraphs
+
+        for i, p in enumerate(paragraphs):
+            new_text = ""
+            if i < len(final_processed_blocks):
+                new_text = final_processed_blocks[i]
+
+            for run_element in p._element.xpath('./w:r'):
+                run_element.getparent().remove(run_element)
+
+            if new_text.strip():
+                p.add_run(new_text)
+
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+
+        doc.save(output_path)
