@@ -8,6 +8,7 @@ import shutil
 from anonyfiles_cli.managers.config_manager import ConfigManager
 from anonyfiles_cli.ui.console_display import ConsoleDisplay
 from anonyfiles_cli.exceptions import AnonyfilesError
+from anonyfiles_cli.utils.default_paths import get_default_output_dir
 
 app = typer.Typer(help="Commandes pour gérer et nettoyer les jobs.")
 console = ConsoleDisplay()
@@ -36,7 +37,7 @@ def delete_job(
                 output_dir = Path(default_configured_output_dir)
             else:
                 # Fallback si non configuré ou absent
-                output_dir = Path.cwd() / "anonyfiles_outputs"
+                output_dir = get_default_output_dir()
         
         # Le répertoire où les jobs sont stockés (jobs/run_id)
         # Selon file_utils.py, c'est `base_output_dir / "runs" / run_id`
@@ -84,7 +85,7 @@ def list_jobs(
             if default_configured_output_dir:
                 output_dir = Path(default_configured_output_dir)
             else:
-                output_dir = Path.cwd() / "anonyfiles_outputs"
+                output_dir = get_default_output_dir()
         
         runs_base_dir = output_dir / "runs"
 

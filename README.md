@@ -166,7 +166,23 @@ Les fichiers suivants sont disponibles à la racine du projet :
 
 * `Makefile`
 * `anonyfiles.ps1`
+
 * `anonyfiles.bat`
+
+## 📂 Fichier `default_paths.toml`
+
+Les chemins de sortie par défaut peuvent être configurés dans le fichier
+`default_paths.toml` à la racine du projet. Exemple :
+
+```toml
+[paths]
+output_dir = "~/anonyfiles_outputs"
+mapping_dir = "~/anonyfiles_mappings"
+log_dir = "~/anonyfiles_logs"
+```
+
+Ces valeurs seront chargées automatiquement par la CLI et la GUI pour
+déterminer où écrire les fichiers générés.
 
 ## 📖 Documentation détaillée
 

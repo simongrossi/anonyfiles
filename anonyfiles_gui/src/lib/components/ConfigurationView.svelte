@@ -3,6 +3,7 @@
   import SwitchTheme from './SwitchTheme.svelte';
   import { onMount, onDestroy } from 'svelte';
   import PresetSelector from './PresetSelector.svelte';
+  import ConfigPresetManager from './ConfigPresetManager.svelte';
 
   function getStoredThemeMode(): 'auto' | 'light' | 'dark' {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
@@ -96,5 +97,7 @@
       aria-labelledby="theme-label"
     />
   </div>
+
+  <ConfigPresetManager />
 
 </div>
