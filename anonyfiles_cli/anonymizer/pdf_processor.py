@@ -51,28 +51,34 @@ class PdfProcessor(BaseProcessor):
         entities_per_block_with_offsets=None,
         **kwargs
     ):
-        """Reconstruit un PDF en appliquant les redactions basées sur les entités."""
-        doc = fitz.open(original_input_path)
+        """Reconstruit un PDF à partir des blocs traités."""
+        original_doc = fitz.open(original_input_path)
+        new_doc = fitz.open()
 
         if entities_per_block_with_offsets is None:
             entities_per_block_with_offsets = kwargs.get("entities_per_block_with_offsets", [])
 
-        for page_num, page in enumerate(doc):
-            if page_num >= len(entities_per_block_with_offsets):
-                break
-            entities = entities_per_block_with_offsets[page_num]
-            if not entities:
-                continue
+        for page_num, original_page in enumerate(original_doc):
+            rect = original_page.rect
+            new_page = new_doc.new_page(width=rect.width, height=rect.height)
 
-            for ent_text, ent_label, start, end in entities:
-                areas = page.search_for(ent_text)
-                for area in areas:
-                    page.add_redact_annot(area, fill=(1, 1, 1))
+            text = ""
+            if page_num < len(final_processed_blocks):
+                text = final_processed_blocks[page_num]
 
-            page.apply_redactions()
+            new_page.insert_textbox(rect, text)
+
+            if page_num < len(entities_per_block_with_offsets):
+                entities = entities_per_block_with_offsets[page_num]
+                for ent_text, ent_label, start, end in entities:
+                    areas = new_page.search_for(ent_text)
+                    for area in areas:
+                        new_page.add_redact_annot(area, fill=(1, 1, 1))
+                if entities:
+                    new_page.apply_redactions()
 
         output_dir = os.path.dirname(output_path)
         if output_dir and not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
 
-        doc.save(output_path)
+        new_doc.save(output_path)
