@@ -111,7 +111,7 @@ Pour simplifier l'installation et l'exécution sous Linux et macOS, utilisez le 
 #### ✨ Installation initiale (une seule fois)
 
 ```bash
-Makefile setup
+make setup
 ```
 
 Cette commande va :
@@ -125,11 +125,11 @@ Cette commande va :
 #### 🔢 Commandes courantes
 
 ```bash
-Makefile cli         # Lancer un exemple CLI
-Makefile api         # Lancer l'API FastAPI
-Makefile gui         # Construire les fichiers statiques de la GUI (build web)
-Makefile test-api    # Lancer un test API (avec curl)
-Makefile clean       # Nettoyer les environnements virtuels
+make cli         # Lancer un exemple CLI
+make api         # Lancer l'API FastAPI
+make gui         # Construire les fichiers statiques de la GUI (build web)
+make test-api    # Lancer un test API (avec curl)
+make clean       # Nettoyer les environnements virtuels
 ```
 
 ---
