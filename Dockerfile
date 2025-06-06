@@ -1,7 +1,5 @@
 FROM python:3.11-slim
 
-ENV PYTHONPATH=/app/anonyfiles_cli
-
 WORKDIR /app
 
 COPY . /app

@@ -20,7 +20,7 @@ IF "%ACTION%"=="setup" (
     python anonyfiles_api\api.py
 ) ELSE IF "%ACTION%"=="cli" (
     call env-cli\Scripts\activate.bat
-    python anonyfiles_cli\main.py
+    anonyfiles-cli
 ) ELSE IF "%ACTION%"=="gui" (
     cd anonyfiles_gui
     npm run tauri dev

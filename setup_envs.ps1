@@ -8,6 +8,7 @@ Write-Host "📦 Installation des dépendances..."
 
 .\env-cli\Scripts\Activate.ps1
 pip install -r anonyfiles_cli\requirements.txt
+pip install -e .
 deactivate
 
 .\env-api\Scripts\Activate.ps1

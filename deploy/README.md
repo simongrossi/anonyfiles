@@ -14,7 +14,7 @@ docker run -p 8000:8000 anonyfiles
 Pour certains hébergeurs (Heroku, Scalingo...), le `Procfile` fournit la commande de démarrage :
 
 ```procfile
-web: PYTHONPATH=./anonyfiles_cli uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port $PORT
+web: uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port $PORT
 ```
 
 ## 🛠️ Service systemd
