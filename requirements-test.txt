@@ -1,0 +1,7 @@
+fastapi
+pytest
+python-docx
+pandas
+openpyxl
+aiofiles
+typer

@@ -15,6 +15,7 @@ def get_app():
 
 def test_health_endpoint():
     app = get_app()
+    app.state.BASE_CONFIG = {"dummy": True}
     client = TestClient(app)
     resp = client.get("/health")
     assert resp.status_code == 200
