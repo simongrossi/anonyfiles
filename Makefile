@@ -29,8 +29,6 @@ setup:
 	env-api/bin/pip install --upgrade pip setuptools wheel
 	env-api/bin/pip install -r anonyfiles_api/requirements.txt
 
-	# Déplacé et potentiellement modifié l'installation du modèle spaCy
-	# pour qu'il soit dans l'environnement CLI qui l'utilise principalement
 	@echo "📦 Installation des dépendances pour anonyfiles_gui (si requirements.txt présent)..."
 	if [ -f anonyfiles_gui/requirements.txt ]; then \
 		env-gui/bin/pip install --upgrade pip setuptools wheel && \
@@ -42,17 +40,13 @@ setup:
 	@echo "📦 Installation des modules npm pour anonyfiles_gui..."
 	cd anonyfiles_gui && npm install
 
-	# Appel de la cible spacy-models pour télécharger les modèles nécessaires APRÈS l'installation des dépendances python
 	$(MAKE) spacy-models
 
 	@echo "✅ Tous les environnements sont prêts."
 
 spacy-models:
 	@echo "📦 Téléchargement des modèles spaCy nécessaires (fr_core_news_md)..."
-	# Télécharger dans l'environnement CLI car c'est lui qui utilise le moteur spaCy pour l'anonymisation
 	env-cli/bin/python3 -m spacy download fr_core_news_md
-	# Ajouter d'autres modèles si vous les utilisez, par exemple fr_core_news_sm
-	# env-cli/bin/python3 -m spacy download fr_core_news_sm
 
 cli:
 	env-cli/bin/anonyfiles-cli anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
@@ -60,15 +54,15 @@ cli:
 api:
 	env-api/bin/uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload
 
-# Génère les fichiers statiques de la GUI (build web)
 gui:
 	cd anonyfiles_gui && npm run build
 
 test-api:
-	curl -X POST http://83.228.198.65:8000/api/anonymize/ \
-	-F "file=@tests/sample.txt;type=text/plain" \
-	-F 'config_options={"anonymizePersons":true,"anonymizeLocations":true,"anonymizeOrgs":true,"anonymizeEmails":true,"anonymizeDates":true,"custom_replacement_rules":[]}' \
-	-F "file_type=txt"
+	@echo "🔗 Envoi du fichier vers $${API_URL:-http://localhost:8000}"
+	curl -X POST $${API_URL:-http://localhost:8000}/api/anonymize/ \
+		-F "file=@tests/sample.txt;type=text/plain" \
+		-F 'config_options={"anonymizePersons":true,"anonymizeLocations":true,"anonymizeOrgs":true,"anonymizeEmails":true,"anonymizeDates":true,"custom_replacement_rules":[]}' \
+		-F "file_type=txt"
 
 dev:
 	@echo "🚀 Lancement API + build GUI"
