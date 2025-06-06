@@ -1,0 +1,4 @@
+[paths]
+output_dir = "~/anonyfiles_outputs"
+mapping_dir = "~/anonyfiles_mappings"
+log_dir = "~/anonyfiles_logs"

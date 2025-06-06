@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 
 from ..exceptions import ConfigurationError
 from .validation_manager import ValidationManager
+from ..utils.default_paths import get_default_output_dir
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class ConfigManager:
         cls.DEFAULT_USER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         if not cls.DEFAULT_USER_CONFIG_FILE.exists():
             initial_user_config = {
-                "default_output_dir": str(Path.home() / "anonyfiles_outputs"),
+                "default_output_dir": str(get_default_output_dir()),
                 "backup_original": False,
                 "compression": False,
                 "spacy_model": "fr_core_news_md",

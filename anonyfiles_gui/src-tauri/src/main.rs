@@ -3,21 +3,29 @@
 use std::fs::{File, remove_file};
 use std::io::{Write, Read};
 use std::process::Command;
-use std::env::current_dir;
+use std::env::{current_dir, var};
 use std::path::{Path, PathBuf};
 use serde_json::Value as JsonValue;
 
 mod presets;
 use presets::list_presets; // ✅ import
 
+fn default_output_dir() -> PathBuf {
+    if let Ok(dir) = var("ANONYFILES_OUTPUT_DIR") {
+        PathBuf::from(dir)
+    } else {
+        PathBuf::from("anonyfiles_outputs")
+    }
+}
+
 // --- Pour la gestion de la configuration YAML ---
 #[tauri::command]
 fn load_config_command() -> Result<JsonValue, String> {
-    let config_path = "anonyfiles_outputs/generated_config.yaml";
-    if !Path::new(config_path).exists() {
+    let config_path = default_output_dir().join("generated_config.yaml");
+    if !config_path.exists() {
         return Ok(serde_json::json!({}));
     }
-    let file = File::open(config_path).map_err(|e| e.to_string())?;
+    let file = File::open(&config_path).map_err(|e| e.to_string())?;
     let yaml: serde_yaml::Value = serde_yaml::from_reader(file).map_err(|e| e.to_string())?;
     let json = serde_json::to_value(yaml).map_err(|e| e.to_string())?;
     Ok(json)
@@ -25,8 +33,9 @@ fn load_config_command() -> Result<JsonValue, String> {
 
 #[tauri::command]
 fn save_config_command(config: JsonValue) -> Result<(), String> {
-    let config_path = "anonyfiles_outputs/generated_config.yaml";
+    let config_path = default_output_dir().join("generated_config.yaml");
     let yaml = serde_yaml::to_string(&config).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(config_path.parent().unwrap()).map_err(|e| e.to_string())?;
     std::fs::write(config_path, yaml).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -67,7 +76,10 @@ async fn anonymize_text(
             .map(|p| p.join("anonyfiles_cli"))
             .ok_or("Impossible de déterminer le chemin du dossier anonyfiles_cli")?;
 
-        let temp_dir = gui_root.join("anonyfiles_outputs");
+        let mut temp_dir = default_output_dir();
+        if temp_dir.is_relative() {
+            temp_dir = gui_root.join(temp_dir);
+        }
         std::fs::create_dir_all(&temp_dir)
             .map_err(|e| format!("Erreur création dossier anonyfiles_outputs : {:?}", e))?;
 
