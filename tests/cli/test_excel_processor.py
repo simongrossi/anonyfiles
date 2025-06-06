@@ -2,6 +2,7 @@ import tempfile
 import pandas as pd
 from anonyfiles_cli.anonymizer.excel_processor import ExcelProcessor
 from pathlib import Path
+import pytest
 
 def test_extract_blocks_excel():
     tmp = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".xlsx")
@@ -23,3 +24,19 @@ def test_reconstruct_and_write_anonymized_file_excel():
     result = pd.read_excel(tmp_out.name)
     assert "NOM004" in result.values
     assert "VILLE_W" in result.values
+
+
+def test_reconstruct_and_write_anonymized_file_excel_mismatch():
+    tmp_in = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".xlsx")
+    tmp_out = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".xlsx")
+    df = pd.DataFrame({"A": ["Alice"], "B": ["Paris"]})
+    df.to_excel(tmp_in.name, index=False)
+    processor = ExcelProcessor()
+
+    # Liste de blocs vide pour déclencher l'erreur
+    with pytest.raises(ValueError):
+        processor.reconstruct_and_write_anonymized_file(
+            Path(tmp_out.name),
+            [],
+            Path(tmp_in.name),
+        )

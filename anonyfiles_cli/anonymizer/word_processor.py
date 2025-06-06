@@ -1,9 +1,12 @@
 # anonymizer/word_processor.py
 
 import os
+import logging
 from docx import Document
 from .base_processor import BaseProcessor
 from .utils import apply_positional_replacements
+
+logger = logging.getLogger(__name__)
 
 class DocxProcessor(BaseProcessor):
     """
@@ -78,6 +81,18 @@ class DocxProcessor(BaseProcessor):
         """Reconstruit un document DOCX à partir des blocs traités et l'enregistre."""
         doc = Document(original_input_path)
         paragraphs = doc.paragraphs
+
+        expected_count = len(paragraphs)
+        if expected_count != len(final_processed_blocks):
+            logger.warning(
+                "Mismatch entre %s paragraphes attendus et %s blocs fournis pour %s",
+                expected_count,
+                len(final_processed_blocks),
+                output_path,
+            )
+            raise ValueError(
+                f"Le nombre de paragraphes ({expected_count}) ne correspond pas au nombre de blocs finaux ({len(final_processed_blocks)})."
+            )
 
         for i, p in enumerate(paragraphs):
             new_text = ""
