@@ -1,3 +1,5 @@
+#anonyfiles/Makefile
+
 .PHONY: setup spacy-models cli api gui clean test-api dev systemd-install systemd-start systemd-stop systemd-status
 
 setup:
@@ -19,9 +21,9 @@ setup:
 	python3 -m venv env-gui
 
 	@echo "📦 Installation des dépendances pour anonyfiles_cli..."
-        env-cli/bin/pip install --upgrade pip setuptools wheel
-        env-cli/bin/pip install -r anonyfiles_cli/requirements.txt
-        env-cli/bin/pip install -e .
+	env-cli/bin/pip install --upgrade pip setuptools wheel
+	env-cli/bin/pip install -r anonyfiles_cli/requirements.txt
+	env-cli/bin/pip install -e .
 
 	@echo "📦 Installation des dépendances pour anonyfiles_api..."
 	env-api/bin/pip install --upgrade pip setuptools wheel
@@ -53,7 +55,7 @@ spacy-models:
 	# env-cli/bin/python3 -m spacy download fr_core_news_sm
 
 cli:
-        env-cli/bin/anonyfiles-cli anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
+	env-cli/bin/anonyfiles-cli anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
 
 api:
 	env-api/bin/uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload
