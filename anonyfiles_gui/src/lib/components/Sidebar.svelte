@@ -9,11 +9,11 @@
 
   const navItems = [
     { icon: "🕵️", label: "Anonymisation", key: "anonymizer" },
-    { icon: "🔓", label: "Désanonymisation", key: "deanonymizer" },
+    { icon: "🔓", label: "Désanonymisation", key: "deanonymizer", wip: true },
     { icon: "🧵", label: "Log", key: "log" },
     { icon: "⚙️", label: "Configuration", key: "config" },
     { icon: "🆕", label: "Nouveautés", key: "releases" },
-    { icon: "🧩", label: "Règles avancées", key: "replacementRules" },
+    { icon: "🧩", label: "Règles avancées", key: "replacementRules", wip: true },
     { icon: "ℹ️", label: "À Propos", key: "about" }
   ];
 
@@ -74,7 +74,10 @@
       >
         <span class="text-xl">{item.icon}</span>
         {#if !$sidebarState.isMobile}
-          <span class="whitespace-nowrap">{item.label}</span>
+          <span class="whitespace-nowrap flex items-center gap-1">
+            {item.label}
+            {#if item.wip} <span class="text-yellow-400">🚧</span> {/if}
+          </span>
         {/if}
       </button>
     {/each}
