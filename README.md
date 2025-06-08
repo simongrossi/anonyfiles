@@ -294,6 +294,15 @@ définir (par exemple dans `/etc/default/anonyfiles-api`) :
   pip install -r requirements-test.txt
   ```
 
+* Les dépendances principales sont définies dans `requirements.in`. Utilisez
+  [pip-tools](https://pypi.org/project/pip-tools/) pour générer un
+  `requirements.txt` figé :
+
+  ```bash
+  pip install pip-tools
+  pip-compile requirements.in
+  ```
+
 * Merci de créer une issue ou une PR avec un descriptif clair et un code lisible.
 
 ---
