@@ -5,6 +5,7 @@ from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPExce
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from typing import Optional, Any, Dict, List
+import asyncio
 from pathlib import Path
 import json
 import uuid
@@ -64,6 +65,25 @@ def _execute_engine_anonymization(
         input_path=input_path, output_path=output_path, entities=None,
         dry_run=False, log_entities_path=log_entities_path,
         mapping_output_path=mapping_output_path, **processor_kwargs)
+
+async def _execute_engine_anonymization_async(
+    engine: AnonyfilesEngine,
+    input_path: Path,
+    output_path: Path,
+    log_entities_path: Path,
+    mapping_output_path: Path,
+    processor_kwargs: dict,
+) -> Dict[str, Any]:
+    logger.info(f"Tâche {input_path.parent.name}: Exécution du moteur AnonyfilesEngine (async).")
+    return await engine.anonymize_async(
+        input_path=input_path,
+        output_path=output_path,
+        entities=None,
+        dry_run=False,
+        log_entities_path=log_entities_path,
+        mapping_output_path=mapping_output_path,
+        **processor_kwargs,
+    )
 
 def _process_engine_result(
     current_job: Job,
@@ -169,8 +189,16 @@ def run_anonymization_job_sync(
         mapping_output_path = default_mapping(input_path, current_job.job_dir)
 
         engine = AnonyfilesEngine(config=passed_base_config, **engine_opts)
-        engine_result = _execute_engine_anonymization(
-            engine, input_path, output_path, log_entities_path, mapping_output_path, processor_kwargs)
+        engine_result = asyncio.run(
+            _execute_engine_anonymization_async(
+                engine,
+                input_path,
+                output_path,
+                log_entities_path,
+                mapping_output_path,
+                processor_kwargs,
+            )
+        )
 
         _process_engine_result(
             current_job, engine_result, input_path, output_path, mapping_output_path, log_entities_path
