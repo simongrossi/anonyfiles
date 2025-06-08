@@ -1,12 +1,35 @@
-fastapi
+# ==============================================================================
+# == Outils de Test
+# ==============================================================================
 pytest
-python-docx
-pandas
-openpyxl
+httpx  # Client HTTP asynchrone, essentiel pour tester les endpoints FastAPI
+
+# ==============================================================================
+# == Dépendances de l'API FastAPI
+# ==============================================================================
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
 aiofiles
-typer
-httpx
-spacy
-pymupdf
-cerberus
-PyYAML
+
+# ==============================================================================
+# == Dépendances du Moteur CLI et des Processeurs de Fichiers
+# ==============================================================================
+# --- Core et NLP ---
+typer[all]>=0.3.0,<1.0.0  # [all] inclut 'rich' pour une meilleure console
+spacy==3.7.5
+numpy~=1.26.0            # Version compatible avec spacy 3.7
+thinc>=8.1.8,<8.3.0       # Dépendance de spacy, bon à fixer
+faker>=18.0.0            # Pour la génération de fausses données
+
+# --- Processeurs de Fichiers ---
+python-docx>=0.8.11      # Pour les fichiers .docx
+pandas>=1.5.0            # Pour les fichiers .csv et .xlsx
+openpyxl                 # Dépendance de pandas pour les .xlsx
+PyMuPDF                  # Pour les fichiers .pdf (le paquet pour 'import fitz')
+
+# --- Configuration et Validation ---
+PyYAML>=6.0              # Pour la gestion des fichiers .yaml
+cerberus                 # Pour la validation de schémas
+yamale                   # Alternative pour la validation de schémas YAML
+chardet                  # Pour la détection de l'encodage des fichiers
