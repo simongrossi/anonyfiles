@@ -246,6 +246,12 @@ définir (par exemple dans `/etc/default/anonyfiles-api`) :
 ## 🤝 Contribuer
 
 * Toute contribution est la bienvenue : bugfix, traduction, documentation, suggestion !
+* Avant de lancer les tests, installez les dépendances dédiées :
+
+  ```bash
+  pip install -r requirements-test.txt
+  ```
+
 * Merci de créer une issue ou une PR avec un descriptif clair et un code lisible.
 
 ---
