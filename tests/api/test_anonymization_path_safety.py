@@ -14,6 +14,15 @@ def test_anonymize_sanitizes_filenames(tmp_path):
     core_config.JOBS_DIR = tmp_path
     try:
         saved = {}
+        import importlib as _importlib
+        for mod in [
+            "anonyfiles_api.api",
+            "anonyfiles_api.routers.anonymization",
+            "anonyfiles_api.job_utils",
+        ]:
+            if mod in sys.modules:
+                del sys.modules[mod]
+        _importlib.invalidate_caches()
         sys.modules.setdefault(
             "spacy",
             importlib.util.module_from_spec(importlib.machinery.ModuleSpec("spacy", None)),
