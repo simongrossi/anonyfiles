@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 import fitz
 
-from anonyfiles_cli.anonymizer.pdf_processor import PdfProcessor
+from anonyfiles_core.anonymizer.pdf_processor import PdfProcessor
 
 
 def create_simple_pdf(path: Path, text: str) -> None:

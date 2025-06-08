@@ -2,7 +2,7 @@ import importlib
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from anonyfiles_cli.anonymizer import spacy_engine
+from anonyfiles_core.anonymizer import spacy_engine
 
 
 class DummyModel:

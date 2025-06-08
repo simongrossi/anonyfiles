@@ -6,9 +6,14 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 import typer # Importez typer si vous comptez l'utiliser pour les messages ou confirmations
 
-from ..anonymizer.engine import AnonyfilesEngine
-from ..anonymizer.run_logger import log_run_event
-from ..anonymizer.file_utils import timestamp, default_output, default_mapping, default_log
+from anonyfiles_core import AnonyfilesEngine
+from anonyfiles_core.anonymizer.run_logger import log_run_event
+from anonyfiles_core.anonymizer.file_utils import (
+    timestamp,
+    default_output,
+    default_mapping,
+    default_log,
+)
 from ..managers.path_manager import PathManager
 from ..managers.config_manager import ConfigManager
 from ..managers.validation_manager import ValidationManager

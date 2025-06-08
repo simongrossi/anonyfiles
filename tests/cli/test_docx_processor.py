@@ -1,4 +1,4 @@
-from anonyfiles_cli.anonymizer.word_processor import DocxProcessor
+from anonyfiles_core.anonymizer.word_processor import DocxProcessor
 from docx import Document
 from pathlib import Path
 import tempfile

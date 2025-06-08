@@ -14,10 +14,10 @@ import sys
 from ..core_config import logger
 from ..job_utils import Job, BASE_INPUT_STEM_FOR_JOB_FILES
 
-from anonyfiles_cli.anonymizer.run_logger import log_run_event
+from anonyfiles_core.anonymizer.run_logger import log_run_event
 from anonyfiles_cli.cli_logger import CLIUsageLogger
-from anonyfiles_cli.anonymizer.engine import AnonyfilesEngine
-from anonyfiles_cli.anonymizer.file_utils import (
+from anonyfiles_core import AnonyfilesEngine
+from anonyfiles_core.anonymizer.file_utils import (
     default_output,
     default_mapping,
     default_log,

@@ -1,5 +1,5 @@
 import tempfile
-from anonyfiles_cli.anonymizer.json_processor import JsonProcessor
+from anonyfiles_core.anonymizer.json_processor import JsonProcessor
 from pathlib import Path
 import json
 

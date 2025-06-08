@@ -1,4 +1,4 @@
-from anonyfiles_cli.anonymizer.replacer import ReplacementSession
+from anonyfiles_core.anonymizer.replacer import ReplacementSession
 
 
 def test_generate_code_defaults():

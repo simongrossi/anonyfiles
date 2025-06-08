@@ -20,12 +20,12 @@ from ..job_utils import Job
 # Pour l'instant, nous supposons que la désanonymisation n'a pas besoin de BASE_CONFIG.
 from ..core_config import logger
 
-from anonyfiles_cli.anonymizer.deanonymization_engine import DeanonymizationEngine
-from anonyfiles_cli.anonymizer.file_utils import (
+from anonyfiles_core import DeanonymizationEngine
+from anonyfiles_core.anonymizer.file_utils import (
     ensure_folder,
     timestamp,
 )
-from anonyfiles_cli.anonymizer.run_logger import log_run_event
+from anonyfiles_core.anonymizer.run_logger import log_run_event
 from anonyfiles_cli.cli_logger import CLIUsageLogger  # Utilisé pour log_run_event
 
 router = APIRouter()
