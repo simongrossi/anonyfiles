@@ -65,6 +65,7 @@ uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
 |---------|------------------------------|--------------------------------------------------|
 | POST    | `/anonymize`                 | Anonymise un fichier ou texte (asynchrone)       |
 | GET     | `/anonymize_status/{job_id}` | Vérifie le statut d’un job                       |
+| WS      | `/ws/{job_id}`               | Statut temps réel d'un job (WebSocket) |
 | POST    | `/deanonymize`               | Désanonymise un texte en utilisant un mapping    |
 | GET     | `/health`                    | Vérifie le bon fonctionnement de l’API           |
 
@@ -116,6 +117,10 @@ Retourne le statut du job :
   ]
 }
 ```
+### `WS /ws/{job_id}`
+
+Ouvre une connexion WebSocket pour suivre en temps réel le statut d'un job. La connexion se ferme lorsque le statut devient `finished` ou `error`.
+
 
 ---
 
