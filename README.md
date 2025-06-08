@@ -288,6 +288,11 @@ définir (par exemple dans `/etc/default/anonyfiles-api`) :
 - `ANONYFILES_PORT` : port d'écoute de l'API (ex. `8000`)
 - `ANONYFILES_JOBS_DIR` : répertoire des jobs (défaut `jobs`)
 
+Un fichier `railway.json.example` est fourni à la racine pour simplifier un
+déploiement via Railway. Copiez-le en `railway.json` puis ajustez les valeurs
+(nom du service, chemin de santé, variables d'environnement...) avant de
+lancer votre déploiement.
+
 ---
 
 ## 🤝 Contribuer
