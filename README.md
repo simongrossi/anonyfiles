@@ -16,11 +16,13 @@ Et comme je suis curieux et passionné, je me suis dit : autant en profiter pour
 
 ---
 
-## 🧩 Trois modules complémentaires
+## 🧩 Trois couches principales
 
-* **CLI (`anonyfiles_cli`)** : traitement en ligne de commande, configurable, robuste et multi-format.
-* **GUI (`anonyfiles_gui`)** : interface graphique moderne (Tauri + Svelte + Rust) pour une anonymisation intuitive, rapide et multiplateforme.
-* **API (`anonyfiles_api`)** : API REST (FastAPI) pour intégration dans des workflows automatisés ou systèmes tiers.
+* **`anonyfiles_core`** : bibliothèque Python contenant tout le moteur d’anonymisation et de désanonymisation.
+* **`anonyfiles_cli`** : outil en ligne de commande s’appuyant sur `anonyfiles_core` pour traiter les fichiers localement.
+* **`anonyfiles_api`** : API REST (FastAPI) qui utilise également `anonyfiles_core` afin d’exposer les mêmes fonctionnalités à distance.
+
+La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API pour offrir une interface graphique.
 
 ## 🚀 Fonctionnalités principales
 
@@ -42,14 +44,40 @@ Et comme je suis curieux et passionné, je me suis dit : autant en profiter pour
 anonyfiles/
 ꜜ
 ├── README.md                  # Présent fichier
+├── anonyfiles_core/           # Bibliothèque cœur
+│   └── README.md              # Documentation du moteur
 ├── anonyfiles_cli/            # Outil CLI (Python)
 │   └── README.md              # Documentation CLI détaillée
-├── anonyfiles_gui/            # Interface graphique (Tauri / Svelte)
-│   └── README.md              # Documentation GUI détaillée
 ├── anonyfiles_api/            # API FastAPI pour appel distant
 │   └── README.md              # Documentation API détaillée
+├── anonyfiles_gui/            # Interface graphique (Tauri / Svelte)
+│   └── README.md              # Documentation GUI détaillée
 └── ...
 ```
+
+### Utilisation commune du cœur
+
+La CLI et l’API invoquent toutes deux le même moteur situé dans `anonyfiles_core`.
+Par exemple, la CLI démarre ainsi :
+
+```python
+from anonyfiles_core import AnonyfilesEngine
+
+engine = AnonyfilesEngine(config_path)
+engine.anonymize_file("input.txt")
+```
+
+De son côté, l’API réutilise exactement cette classe pour traiter les requêtes :
+
+```python
+from anonyfiles_core import AnonyfilesEngine
+
+@router.post("/anonymize")
+async def anonymize(file: UploadFile):
+    engine = AnonyfilesEngine(config_path)
+    return await engine.anonymize_async(file)
+```
+
 
 ---
 
@@ -67,6 +95,19 @@ anonyfiles/
 ```bash
 git clone https://github.com/simongrossi/anonyfiles.git
 cd anonyfiles
+```
+
+Chaque dossier (`anonyfiles_core`, `anonyfiles_cli`, `anonyfiles_api`) possède son
+propre `requirements.txt`. Vous pouvez donc installer uniquement la partie qui
+vous intéresse :
+
+```bash
+# Installation du moteur seulement
+pip install -e anonyfiles_core
+# Installation de la CLI uniquement
+pip install -r anonyfiles_cli/requirements.txt
+# Installation de l'API uniquement
+pip install -r anonyfiles_api/requirements.txt
 ```
 
 ### Installation CLI
@@ -201,6 +242,7 @@ Environment=ANONYFILES_DEFAULTS_FILE=/etc/anonyfiles/paths.toml
 
 ## 📖 Documentation détaillée
 
+* **Core :** Voir [`anonyfiles_core/README.md`](anonyfiles_core/README.md)
 * **CLI :** Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
 * **GUI :** Voir [`anonyfiles_gui/README.md`](anonyfiles_gui/README.md)
 * **API :** Voir [`anonyfiles_api/README.md`](anonyfiles_api/README.md)

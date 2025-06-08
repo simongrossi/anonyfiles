@@ -3,6 +3,9 @@
 
 **Anonyfiles CLI** est l’outil en ligne de commande du projet [Anonyfiles](https://github.com/simongrossi/anonyfiles), conçu pour **anonymiser et désanonymiser des documents texte, tableurs et fichiers bureautiques**.
 
+Il repose sur la bibliothèque `anonyfiles_core`, laquelle contient tout le moteur d’anonymisation. La CLI n’est donc qu’une interface qui appelle ce cœur commun.
+Le projet est composé de trois couches : `anonyfiles_core` (moteur), `anonyfiles_cli` (interface en ligne) et `anonyfiles_api` (service REST).
+
 Il s’appuie sur le NLP (spaCy), une configuration flexible en YAML, et des règles personnalisables pour **garantir la confidentialité des données sensibles**.
 
 ## **🚀 Fonctionnalités principales**
@@ -43,7 +46,8 @@ Il s’appuie sur le NLP (spaCy), une configuration flexible en YAML, et des rè
 
 git clone https://github.com/simongrossi/anonyfiles.git
 cd anonyfiles/anonyfiles\_cli
-pip install -r requirements.txt
+# Installation indépendante de la CLI
+pip install -r requirements.txt  # installe aussi anonyfiles_core en dépendance
 # Installer le modèle spaCy séparément après les dépendances
 python3 -m spacy download fr\_core\_news\_md
 
@@ -109,6 +113,16 @@ Le projet anonyfiles\_cli est conçu de manière modulaire, avec une séparation
 python -m anonyfiles\_cli.main anonymize anonyfiles\_cli/input.txt
 
 Le résultat affichera un Job ID (un timestamp) et le chemin vers les fichiers générés dans un sous-dossier de anonyfiles\_outputs/runs/.
+
+En interne, cette commande instancie le moteur partagé :
+
+```python
+from anonyfiles_core import AnonyfilesEngine
+
+engine = AnonyfilesEngine(config_path)
+engine.anonymize_file("input.txt")
+```
+
 
 ### **▶️ Exemple avancé d'anonymisation**
 

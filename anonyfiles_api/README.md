@@ -2,6 +2,9 @@
 # 🧩 anonyfiles_api
 
 API [FastAPI](https://fastapi.tiangolo.com/) pour le projet [anonyfiles](https://github.com/simongrossi/anonyfiles)
+reposant sur le moteur commun `anonyfiles_core`. L’API expose ainsi les mêmes
+Ce projet est structuré en trois couches : `anonyfiles_core`, `anonyfiles_cli` et `anonyfiles_api`.
+fonctionnalités que la CLI mais via des endpoints REST.
 
 ---
 
@@ -33,10 +36,10 @@ cd anonyfiles_api
 pip install -r ../requirements.txt
 ```
 
-Ou en local :
+Ou installation indépendante :
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt  # installe également anonyfiles_core
 ```
 
 ---
@@ -128,6 +131,17 @@ anonyfiles_api/
     ├── deanonymization.py   # Endpoint /deanonymize
     ├── files.py             # Téléchargement des fichiers anonymisés
     └── jobs.py              # Suppression et gestion avancée des jobs
+```
+
+Extrait montrant l’utilisation du moteur partagé :
+
+```python
+from anonyfiles_core import AnonyfilesEngine
+
+@router.post("/anonymize")
+async def anonymize(file: UploadFile):
+    engine = AnonyfilesEngine(config_path)
+    return await engine.anonymize_async(file)
 ```
 
 ---
