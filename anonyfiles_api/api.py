@@ -8,7 +8,7 @@ import sys
 import yaml # Importer yaml ici
 from typing import Optional, Dict, Any # Pour load_config_for_api
 
-from .routers import anonymization, deanonymization, files, jobs, health
+from .routers import anonymization, deanonymization, files, jobs, health, websocket_status
 from .core_config import logger, CONFIG_TEMPLATE_PATH, JOBS_DIR
 
 # Plus besoin d'importer load_config_api_safe depuis anonyfiles_cli.main
@@ -83,6 +83,7 @@ app.include_router(deanonymization.router)
 app.include_router(files.router)
 app.include_router(jobs.router)
 app.include_router(health.router)
+app.include_router(websocket_status.router)
 
 @app.get("/", tags=["Racine"])
 async def read_root():
