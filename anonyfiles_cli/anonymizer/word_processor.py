@@ -78,7 +78,14 @@ class DocxProcessor(BaseProcessor):
         original_input_path,
         **kwargs
     ):
-        """Reconstruit un document DOCX à partir des blocs traités et l'enregistre."""
+        """
+        Reconstruit un document DOCX à partir des blocs traités et l'enregistre.
+
+        Chaque paragraphe du document d'origine est remplacé par son équivalent
+        anonymisé. Le texte anonymisé est réparti entre les runs déjà présents
+        dans chaque paragraphe afin de conserver au mieux le formatage initial
+        (gras, italique, etc.).
+        """
         doc = Document(original_input_path)
         paragraphs = doc.paragraphs
 
