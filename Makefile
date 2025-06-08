@@ -49,7 +49,7 @@ spacy-models:
 	env-cli/bin/python3 -m spacy download fr_core_news_md
 
 cli:
-	env-cli/bin/anonyfiles-cli anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_cli/config.yaml
+env-cli/bin/anonyfiles-cli anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_core/config/config.yaml
 
 api:
 	env-api/bin/uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload

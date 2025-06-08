@@ -13,7 +13,12 @@ logging.basicConfig(
 logger = logging.getLogger("anonyfiles_api")
 
 # Chemin vers le template de configuration
-CONFIG_TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "anonyfiles_cli" / "config.yaml"
+CONFIG_TEMPLATE_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "anonyfiles_core"
+    / "config"
+    / "config.yaml"
+)
 
 # Répertoire des tâches (Jobs)
 JOBS_DIR = Path("jobs")

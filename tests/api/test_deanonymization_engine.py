@@ -1,14 +1,20 @@
 import shutil
 from unittest.mock import patch
 from pathlib import Path
+import sys
 
+import importlib
 import anonyfiles_api.core_config as core_config
-from anonyfiles_api.job_utils import Job
 
 
 def test_run_deanonymization_job_sync_uses_engine(tmp_path):
     original_jobs_dir = core_config.JOBS_DIR
     core_config.JOBS_DIR = tmp_path
+    for mod in ["anonyfiles_api.job_utils", "anonyfiles_api.routers.deanonymization"]:
+        if mod in sys.modules:
+            del sys.modules[mod]
+    importlib.invalidate_caches()
+    from anonyfiles_api.job_utils import Job
     try:
         input_file = tmp_path / "sample.txt"
         input_file.write_text("{{NAME}}", encoding="utf-8")

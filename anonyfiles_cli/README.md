@@ -114,7 +114,7 @@ Le résultat affichera un Job ID (un timestamp) et le chemin vers les fichiers g
 
 python -m anonyfiles\_cli.main anonymize anonyfiles\_cli/input.txt \
  --output-dir anonyfiles\_cli/output\_test \
- --config anonyfiles\_cli/config.yaml \
+ --config anonyfiles\_core/config/config.yaml \
  --custom-replacements-json '[{"pattern": "ProjetX", "replacement": "[SECRET\_PROJET]", "isRegex": false}]' \
  --log-entities anonyfiles\_cli/log/log.csv \
  --mapping-output anonyfiles\_cli/mappings/mapping.csv

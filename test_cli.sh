@@ -10,7 +10,7 @@ EOF
 echo "🚀 Lancement de l’anonymisation..."
 anonyfiles-cli anonymize tests/sample.txt \
   --output tests/result.txt \
-  --config anonyfiles_cli/config.yaml
+  --config anonyfiles_core/config/config.yaml
 
 echo ""
 echo "📄 Résultat anonymisé :"
