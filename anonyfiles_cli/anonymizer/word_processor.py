@@ -99,11 +99,24 @@ class DocxProcessor(BaseProcessor):
             if i < len(final_processed_blocks):
                 new_text = final_processed_blocks[i]
 
-            for run_element in p._element.xpath('./w:r'):
-                run_element.getparent().remove(run_element)
+            runs = list(p.runs)
 
-            if new_text.strip():
-                p.add_run(new_text)
+            if not runs:
+                if new_text:
+                    p.add_run(new_text)
+                continue
+
+            pointer = 0
+            for r in runs:
+                orig_len = len(r.text)
+                if pointer >= len(new_text):
+                    r.text = ""
+                else:
+                    r.text = new_text[pointer: pointer + orig_len]
+                pointer += orig_len
+
+            if pointer < len(new_text):
+                runs[-1].text += new_text[pointer:]
 
         output_dir = os.path.dirname(output_path)
         if output_dir and not os.path.exists(output_dir):
