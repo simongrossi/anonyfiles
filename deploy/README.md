@@ -46,3 +46,21 @@ nixpacks run .
 
 Ces commandes créent une image contenant l'API puis la démarrent avec le même ordre que défini dans le `Procfile`.
 
+## 🚄 Déploiement continu via Railway
+
+Le fichier [`nixpacks.toml`](../nixpacks.toml) est utilisé comme configuration de build
+pour le service d'hébergement [Railway](https://railway.app/).
+Pour mettre en place un déploiement automatisé :
+
+1. Installer l'outil en ligne de commande Railway :
+   ```bash
+   npm install -g @railway/cli
+   ```
+2. Lier le dépôt local au projet Railway existant :
+   ```bash
+   railway link
+   ```
+3. Définir les variables d'environnement nécessaires depuis le tableau de bord Railway.
+4. Le workflow [`railway.yml`](../.github/workflows/railway.yml) déclenche automatiquement le déploiement à chaque push sur la branche principale.
+
+
