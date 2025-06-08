@@ -5,3 +5,7 @@ pandas
 openpyxl
 aiofiles
 typer
+httpx
+spacy
+pymupdf
+cerberus
