@@ -6,7 +6,5 @@ spacy==3.7.5
 python-docx
 pandas>=1.5.0
 numpy>=1.23.5
-typer>=0.3.0,<1.0.0
 aiofiles
-rich
 PyMuPDF
