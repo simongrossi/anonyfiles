@@ -16,6 +16,7 @@ fonctionnalités que la CLI mais via des endpoints REST.
 - Traitement **asynchrone** avec suivi par `job_id`
 - Nettoyage automatique des fichiers temporaires
 - CORS activé pour utilisation avec le frontend GUI
+- Limitation de débit intégrée pour prévenir les abus (slowapi)
 
 ---
 

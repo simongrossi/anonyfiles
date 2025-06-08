@@ -7,9 +7,13 @@ from pathlib import Path
 import sys
 import yaml # Importer yaml ici
 from typing import Optional, Dict, Any # Pour load_config_for_api
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from .routers import anonymization, deanonymization, files, jobs, health, websocket_status
-from .core_config import logger, CONFIG_TEMPLATE_PATH, JOBS_DIR
+from .core_config import logger, CONFIG_TEMPLATE_PATH, JOBS_DIR, DEFAULT_RATE_LIMIT
 
 # Plus besoin d'importer load_config_api_safe depuis anonyfiles_cli.main
 # CLI_MODULE_PATH = Path(__file__).resolve().parent.parent / "anonyfiles_cli"
@@ -17,7 +21,11 @@ from .core_config import logger, CONFIG_TEMPLATE_PATH, JOBS_DIR
 #     sys.path.append(str(CLI_MODULE_PATH))
 # from anonyfiles_cli.main import load_config_api_safe # Supprimer cet import
 
+limiter = Limiter(key_func=get_remote_address, default_limits=[DEFAULT_RATE_LIMIT])
 app = FastAPI(root_path="/api")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 JOBS_DIR.mkdir(exist_ok=True)
 

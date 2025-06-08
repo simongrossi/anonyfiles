@@ -25,3 +25,6 @@ JOBS_DIR = Path("jobs")
 
 # Racine pour les noms de fichiers d'entrée d'une tâche
 BASE_INPUT_STEM_FOR_JOB_FILES = "input"
+
+# Rate limit applied to all API endpoints
+DEFAULT_RATE_LIMIT = "100/minute"
