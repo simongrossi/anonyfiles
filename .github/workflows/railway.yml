@@ -1,0 +1,23 @@
+name: Deploy API to Railway
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-full.txt
+          pip install -e .
+      - name: Deploy to Railway
+        uses: railwayapp/railway@v1
+        with:
+          apiToken: ${{ secrets.RAILWAY_API_TOKEN }}
