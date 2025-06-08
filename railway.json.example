@@ -1,0 +1,9 @@
+{
+  "service": "anonyfiles-api",
+  "healthcheckPath": "/health",
+  "envs": {
+    "ANONYFILES_HOST": "0.0.0.0",
+    "ANONYFILES_PORT": "8000",
+    "ANONYFILES_JOBS_DIR": "jobs"
+  }
+}
