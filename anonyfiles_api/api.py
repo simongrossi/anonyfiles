@@ -1,7 +1,7 @@
 # anonyfiles_api/api.py
 
 import fastapi
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import sys
@@ -13,7 +13,15 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from .routers import anonymization, deanonymization, files, jobs, health, websocket_status
-from .core_config import logger, CONFIG_TEMPLATE_PATH, JOBS_DIR, DEFAULT_RATE_LIMIT
+from .core_config import (
+    logger,
+    CONFIG_TEMPLATE_PATH,
+    JOBS_DIR,
+    DEFAULT_RATE_LIMIT,
+    set_request_context,
+    clear_request_context,
+    set_job_id,
+)
 
 # Plus besoin d'importer load_config_api_safe depuis anonyfiles_cli.main
 # CLI_MODULE_PATH = Path(__file__).resolve().parent.parent / "anonyfiles_cli"
@@ -26,6 +34,16 @@ app = FastAPI(root_path="/api")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+# Middleware pour renseigner le contexte de logging
+@app.middleware("http")
+async def add_logging_context(request: Request, call_next):
+    set_request_context(request.url.path, request.client.host if request.client else "unknown")
+    try:
+        response = await call_next(request)
+    finally:
+        clear_request_context()
+    return response
 
 JOBS_DIR.mkdir(exist_ok=True)
 

@@ -213,6 +213,7 @@ wrapt==1.17.2
     #   smart-open
 yamale==6.0.0
     # via -r requirements.in
+python-json-logger==3.3.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

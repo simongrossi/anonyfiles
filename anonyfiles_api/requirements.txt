@@ -9,3 +9,4 @@ numpy>=1.23.5
 aiofiles
 PyMuPDF
 slowapi>=0.1.9
+python-json-logger

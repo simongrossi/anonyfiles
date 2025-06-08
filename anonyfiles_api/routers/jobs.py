@@ -7,7 +7,7 @@ import uuid
 
 from ..job_utils import Job
 # Importer depuis le nouveau module de configuration central
-from ..core_config import logger # Importer logger
+from ..core_config import logger, set_job_id # Importer logger et context
 
 router = APIRouter()
 # 'logger' est maintenant importé de core_config et utilisé directement
@@ -15,6 +15,7 @@ router = APIRouter()
 @router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Tâches"])
 async def delete_job_endpoint(job_id: uuid.UUID): # job_id peut être str aussi
     job_id_str = str(job_id)
+    set_job_id(job_id_str)
     current_job = Job(job_id_str)
     logger.info(f"Requête de suppression pour l'ID de tâche: {job_id_str}")
 

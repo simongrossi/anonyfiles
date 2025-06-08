@@ -18,7 +18,7 @@ from ..job_utils import Job
 # Si la logique de désanonymisation avait besoin de BASE_CONFIG, il faudrait le passer en argument
 # aux fonctions concernées, récupéré depuis request.app.state.BASE_CONFIG dans l'endpoint.
 # Pour l'instant, nous supposons que la désanonymisation n'a pas besoin de BASE_CONFIG.
-from ..core_config import logger
+from ..core_config import logger, set_job_id
 
 from anonyfiles_core import DeanonymizationEngine
 from anonyfiles_core.anonymizer.file_utils import (
@@ -49,6 +49,7 @@ def run_deanonymization_job_sync(
     # Si BASE_CONFIG était nécessaire, il faudrait l'ajouter ici :
     # passed_base_config: Optional[Dict[str, Any]] = None
 ):
+    set_job_id(job_id)
     current_job = Job(job_id)
     run_dir = current_job.job_dir
     original_input_name_for_status = input_path.name # Pour le fichier status.json
@@ -142,7 +143,7 @@ def run_deanonymization_job_sync(
         log_run_event(
             logger=CLIUsageLogger,
             run_id=job_id,
-            input_file=str(input_path) if input_path and input_path.exists() else "Non défini/Non trouvé", 
+            input_file=str(input_path) if input_path and input_path.exists() else "Non défini/Non trouvé",
             output_file="",
             mapping_file=str(mapping_path) if mapping_path and mapping_path.exists() else "Non défini/Non trouvé",
             log_entities_file="",
@@ -152,6 +153,8 @@ def run_deanonymization_job_sync(
             status="error",
             error=error_msg
         )
+    finally:
+        set_job_id(None)
 
 @router.post("/deanonymize/", tags=["Désanonymisation"])
 async def deanonymize_file_endpoint(
@@ -160,8 +163,9 @@ async def deanonymize_file_endpoint(
     file: UploadFile = File(...),
     mapping: UploadFile = File(...),
     permissive: bool = Form(False)
-):
+): 
     job_id = str(uuid.uuid4())
+    set_job_id(job_id)
     current_job = Job(job_id)
     job_dir = current_job.job_dir
 
@@ -227,6 +231,7 @@ async def deanonymize_file_endpoint(
 
 @router.get("/deanonymize_status/{job_id}", tags=["Désanonymisation"])
 async def get_deanonymize_status(job_id: str):
+    set_job_id(job_id)
     current_job = Job(job_id)
 
     if not await current_job.check_exists_async(check_status_file=True):
