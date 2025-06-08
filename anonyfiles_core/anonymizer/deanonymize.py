@@ -4,6 +4,7 @@ import csv
 from collections import defaultdict
 from typing import Dict, Set, Tuple, List, Optional
 import re
+from .format_utils import ANY_PLACEHOLDER_REGEX, parse_placeholder
 
 class Deanonymizer:
     def __init__(self, mapping_path: str, strict: bool = True):
@@ -81,16 +82,16 @@ class Deanonymizer:
         self.warnings = list(self.map_loading_warnings)
         self.unknown_codes_in_text = set()
 
-        # Le motif pour les codes anonymisés (par exemple {{NOM_XXX}} ou [CUSTOM_REDACTED])
-        # doit être suffisamment générique pour capturer tous les remplacements générés.
-        # Ici, j'utilise un motif qui capture ce qui ressemble à {{...}} ou [...]
-        code_pattern = re.compile(r'(\{\{[^{}]+\}\}|\[[^\[\]]+\])')
+        # Motif pour repérer les codes anonymisés (ex: {{NOM_XXX}} ou [CUSTOM_REDACTED])
+        # Centralisé dans ``format_utils`` pour éviter la duplication.
+        code_pattern = ANY_PLACEHOLDER_REGEX
 
         all_distinct_codes_found_in_text = set()
         attempted_replacements_info = {"successful": 0, "ambiguous_kept": 0, "unknown_kept": 0}
 
         def replacement_function(match_obj):
             code_from_text = match_obj.group(0)
+            parse_placeholder(code_from_text)  # Validate format centrally
             all_distinct_codes_found_in_text.add(code_from_text)
 
             if code_from_text in self.code_to_originals:

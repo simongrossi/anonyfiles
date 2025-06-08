@@ -2,7 +2,9 @@
 
 import random
 import string
-import logging #
+import logging
+
+from .format_utils import create_placeholder
 
 logger = logging.getLogger(__name__) #
 # Importer Faker si vous prévoyez de l'utiliser réellement pour le type "faker"
@@ -45,10 +47,10 @@ class ReplacementSession:
         
         padding = options.get("padding", 3)
         if not isinstance(padding, int) or padding < 0:
-            padding = 3 
+            padding = 3
 
         # Nouveau format : {{INNERTAG_XXX}}
-        return f"{{{{{inner_tag}_{str(index+1).zfill(padding)}}}}}"
+        return create_placeholder(inner_tag, index, padding)
 
     def generate_replacements(self, unique_spacy_entities, replacement_rules=None):
         """
