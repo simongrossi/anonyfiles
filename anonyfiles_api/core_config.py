@@ -1,6 +1,7 @@
 # anonyfiles_api/core_config.py
 import logging
 import sys
+import os
 from pathlib import Path
 # from typing import Optional, Dict, Any # Plus nécessaire ici
 
@@ -21,7 +22,7 @@ CONFIG_TEMPLATE_PATH = (
 )
 
 # Répertoire des tâches (Jobs)
-JOBS_DIR = Path("jobs")
+JOBS_DIR = Path(os.environ.get("ANONYFILES_JOBS_DIR", "jobs"))
 
 # Racine pour les noms de fichiers d'entrée d'une tâche
 BASE_INPUT_STEM_FOR_JOB_FILES = "input"

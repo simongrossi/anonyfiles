@@ -33,6 +33,7 @@ Les variables d'environnement à définir (dans `/etc/default/anonyfiles-api` pa
 - `ANONYFILES_HOME` : chemin du projet
 - `ANONYFILES_HOST` : adresse d'écoute (ex. `127.0.0.1`)
 - `ANONYFILES_PORT` : port d'écoute (ex. `8000`)
+- `ANONYFILES_JOBS_DIR` : répertoire des jobs (défaut `jobs`)
 
 ## 📦 Déploiement via Nixpacks
 
