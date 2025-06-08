@@ -26,6 +26,7 @@ Il s’appuie sur le NLP (spaCy), une configuration flexible en YAML, et des rè
   + Fichiers de logs CSV pour audit
 * **Mode batch** :
   + Traitement d’un dossier complet de fichiers (en cours de développement)
+  + Barre de progression visuelle lors du traitement
 * **Désanonymisation réversible** :
   + Restauration des fichiers à partir du mapping
 * **Robustesse et performance** :
