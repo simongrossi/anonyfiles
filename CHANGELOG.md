@@ -6,6 +6,11 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [1.2.1] – 2025-06-08
+
+### Corrigé
+- La reconstruction des paragraphes dans les documents Word préserve désormais la mise en forme des runs
+
 ## [1.2.0] – 2025-06-03
 
 ### Ajouté
