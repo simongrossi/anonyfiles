@@ -1,6 +1,7 @@
 # anonymizer/base_processor.py
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
+import asyncio
 
 class BaseProcessor:
     def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
@@ -33,3 +34,23 @@ class BaseProcessor:
     # Exemple :
     # def replace_entities(self, *args, **kwargs):
     #     raise DeprecationWarning(f"{self.__class__.__name__}.replace_entities est obsolète. Utiliser reconstruct_and_write_anonymized_file.")
+
+    async def extract_blocks_async(self, input_path: Path, **kwargs) -> List[str]:
+        """Asynchronous wrapper calling :meth:`extract_blocks` in a thread."""
+        return await asyncio.to_thread(self.extract_blocks, input_path, **kwargs)
+
+    async def reconstruct_and_write_anonymized_file_async(
+        self,
+        output_path: Path,
+        final_processed_blocks: List[str],
+        original_input_path: Path,
+        **kwargs,
+    ) -> None:
+        """Asynchronous wrapper calling :meth:`reconstruct_and_write_anonymized_file` in a thread."""
+        await asyncio.to_thread(
+            self.reconstruct_and_write_anonymized_file,
+            output_path,
+            final_processed_blocks,
+            original_input_path,
+            **kwargs,
+        )

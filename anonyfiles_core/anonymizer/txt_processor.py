@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import logging
+import aiofiles
 
 from .base_processor import BaseProcessor
 # from .utils import apply_positional_replacements # Probablement plus nécessaire ici directement
@@ -53,3 +54,28 @@ class TxtProcessor(BaseProcessor):
 
         with open(output_path, 'w', encoding='utf-8') as fout:
             fout.write(content_to_write)
+
+    async def extract_blocks_async(self, input_path: Path, **kwargs) -> List[str]:
+        try:
+            async with aiofiles.open(input_path, 'r', encoding='utf-8') as f:
+                content = await f.read()
+            return [content]
+        except FileNotFoundError:
+            raise
+        except Exception as e:
+            logger.error("Erreur lors de la lecture de %s: %s", input_path, e)
+            return [""]
+
+    async def reconstruct_and_write_anonymized_file_async(
+        self,
+        output_path: Path,
+        final_processed_blocks: List[str],
+        original_input_path: Path,
+        **kwargs,
+    ) -> None:
+        content_to_write = final_processed_blocks[0] if final_processed_blocks else ""
+        output_dir = output_path.parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
+        async with aiofiles.open(output_path, 'w', encoding='utf-8') as fout:
+            await fout.write(content_to_write)
