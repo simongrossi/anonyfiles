@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 import json
 import aiofiles
+import aiofiles.os as aio_os
 from fastapi.concurrency import run_in_threadpool
 from typing import Optional, Any, Dict
 
@@ -74,11 +75,33 @@ class Job:
             logger.error(f"Tâche {self.job_id}: Impossible d'écrire le statut initial: {e}", exc_info=True)
             return False
 
+    async def set_initial_status_async(self) -> bool:
+        try:
+            await aio_os.makedirs(self.job_dir, exist_ok=True)
+            async with aiofiles.open(self.status_file_path, "w", encoding="utf-8") as f:
+                await f.write(json.dumps({"status": "pending", "error": None}))
+            logger.info(f"Tâche {self.job_id}: Statut initial 'pending' écrit.")
+            return True
+        except Exception as e:
+            logger.error(f"Tâche {self.job_id}: Impossible d'écrire le statut initial: {e}", exc_info=True)
+            return False
+
     def set_status_as_error_sync(self, error_message: str) -> bool:
         try:
             self.job_dir.mkdir(parents=True, exist_ok=True)
             with open(self.status_file_path, "w", encoding="utf-8") as f:
                 json.dump({"status": "error", "error": error_message}, f)
+            logger.info(f"Tâche {self.job_id}: Statut d'erreur écrit: {error_message}")
+            return True
+        except Exception as e:
+            logger.error(f"Tâche {self.job_id}: Impossible d'écrire le statut d'erreur '{error_message}': {e}", exc_info=True)
+            return False
+
+    async def set_status_as_error_async(self, error_message: str) -> bool:
+        try:
+            await aio_os.makedirs(self.job_dir, exist_ok=True)
+            async with aiofiles.open(self.status_file_path, "w", encoding="utf-8") as f:
+                await f.write(json.dumps({"status": "error", "error": error_message}))
             logger.info(f"Tâche {self.job_id}: Statut d'erreur écrit: {error_message}")
             return True
         except Exception as e:
@@ -100,6 +123,26 @@ class Job:
             self.set_status_as_error_sync(f"Erreur critique: Échec de l'écriture du statut 'finished'/journal d'audit après l'exécution réussie du moteur: {str(e)}")
             return False
 
+    async def set_status_as_finished_async(self, engine_result: Dict[str, Any]) -> bool:
+        status_payload = {"status": "finished", "error": None}
+        try:
+            await aio_os.makedirs(self.job_dir, exist_ok=True)
+            async with aiofiles.open(self.status_file_path, "w", encoding="utf-8") as f:
+                await f.write(json.dumps(status_payload))
+            async with aiofiles.open(self.audit_log_file_path, "w", encoding="utf-8") as f:
+                await f.write(json.dumps(engine_result.get("audit_log", [])))
+            logger.info(f"Tâche {self.job_id}: Statut 'finished' et journal d'audit écrits.")
+            return True
+        except Exception as e:
+            logger.error(
+                f"Tâche {self.job_id}: Impossible d'écrire le statut 'finished'/journal d'audit: {e}",
+                exc_info=True,
+            )
+            await self.set_status_as_error_async(
+                f"Erreur critique: Échec de l'écriture du statut 'finished'/journal d'audit après l'exécution réussie du moteur: {str(e)}"
+            )
+            return False
+
     def delete_job_directory_sync(self) -> bool:
         if not self.job_dir.exists():
             logger.warning(f"Tâche {self.job_id}: Tentative de suppression d'un répertoire de tâche inexistant: {self.job_dir}")
@@ -110,4 +153,29 @@ class Job:
             return True
         except OSError as e:
             logger.error(f"Tâche {self.job_id}: Erreur lors de la suppression du répertoire {self.job_dir}: {e}", exc_info=True)
+            return False
+
+    async def delete_job_directory_async(self) -> bool:
+        if not await run_in_threadpool(self.job_dir.exists):
+            logger.warning(
+                f"Tâche {self.job_id}: Tentative de suppression d'un répertoire de tâche inexistant: {self.job_dir}"
+            )
+            return False
+        try:
+            paths = await run_in_threadpool(
+                lambda: sorted(self.job_dir.rglob("*"), key=lambda p: len(str(p)), reverse=True)
+            )
+            for p in paths:
+                if await run_in_threadpool(p.is_file):
+                    await aio_os.remove(p)
+                else:
+                    await aio_os.rmdir(p)
+            await aio_os.rmdir(self.job_dir)
+            logger.info(f"Tâche {self.job_id}: Répertoire {self.job_dir} supprimé avec succès.")
+            return True
+        except OSError as e:
+            logger.error(
+                f"Tâche {self.job_id}: Erreur lors de la suppression du répertoire {self.job_dir}: {e}",
+                exc_info=True,
+            )
             return False

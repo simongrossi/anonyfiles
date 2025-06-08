@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status, Response
 from fastapi.concurrency import run_in_threadpool # Ajouté
+import aiofiles.os as aio_os
 import uuid
 # import logging # Logger est maintenant importé depuis core_config
 
@@ -19,15 +20,14 @@ async def delete_job_endpoint(job_id: uuid.UUID): # job_id peut être str aussi
     current_job = Job(job_id_str)
     logger.info(f"Requête de suppression pour l'ID de tâche: {job_id_str}")
 
-    # Utiliser run_in_threadpool pour les opérations disque synchrones
-    if not await run_in_threadpool(current_job.job_dir.exists):
+    if not await aio_os.path.exists(current_job.job_dir):
         logger.warning(f"Tâche {job_id_str} non trouvée pour suppression. Répertoire: {current_job.job_dir}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tâche non trouvée")
 
-    deleted_successfully = await run_in_threadpool(current_job.delete_job_directory_sync)
+    deleted_successfully = await current_job.delete_job_directory_async()
 
     if not deleted_successfully:
-        if await run_in_threadpool(current_job.job_dir.exists): # Vérifier à nouveau si le dossier existe
+        if await aio_os.path.exists(current_job.job_dir):
              raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Impossible de supprimer le répertoire de la tâche")
         else:
             logger.info(f"Tâche {job_id_str}: Répertoire non trouvé après tentative de suppression ou déjà supprimé. Opération considérée comme réussie.")
