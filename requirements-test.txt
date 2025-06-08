@@ -11,6 +11,7 @@ fastapi==0.111.0
 uvicorn[standard]==0.29.0
 python-multipart==0.0.9
 aiofiles
+slowapi>=0.1.9
 
 # ==============================================================================
 # == Dépendances du Moteur CLI et des Processeurs de Fichiers
