@@ -1,4 +1,6 @@
-import pytest; pytest.skip("unstable in CI", allow_module_level=True)
+import pytest
+pytest.skip("unstable in CI", allow_module_level=True)
+pytest.importorskip("httpx")
 import shutil
 import importlib
 import sys

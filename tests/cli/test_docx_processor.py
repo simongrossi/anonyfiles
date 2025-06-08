@@ -1,8 +1,8 @@
+import pytest
+Document = pytest.importorskip("docx").Document
 from anonyfiles_core.anonymizer.word_processor import DocxProcessor
-from docx import Document
 from pathlib import Path
 import tempfile
-import pytest
 
 def test_extract_blocks_docx():
     tmp = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")

@@ -1,6 +1,7 @@
+import pytest
+fitz = pytest.importorskip("fitz")
 import tempfile
 from pathlib import Path
-import fitz
 
 from anonyfiles_core.anonymizer.pdf_processor import PdfProcessor
 

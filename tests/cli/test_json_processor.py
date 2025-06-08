@@ -1,3 +1,5 @@
+import pytest
+pytest.importorskip("spacy")
 import tempfile
 from anonyfiles_core.anonymizer.json_processor import JsonProcessor
 from pathlib import Path

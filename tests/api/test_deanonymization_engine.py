@@ -1,3 +1,5 @@
+import pytest
+pytest.importorskip("aiofiles")
 import shutil
 from unittest.mock import patch
 from pathlib import Path

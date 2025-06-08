@@ -1,3 +1,5 @@
+import pytest
+pytest.importorskip("spacy")
 import importlib
 from types import SimpleNamespace
 from unittest.mock import patch

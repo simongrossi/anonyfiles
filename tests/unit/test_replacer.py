@@ -1,3 +1,5 @@
+import pytest
+pytest.importorskip("spacy")
 from anonyfiles_core.anonymizer.replacer import ReplacementSession
 
 

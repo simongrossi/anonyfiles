@@ -1,3 +1,5 @@
+import pytest
+pytest.importorskip("typer")
 from typer.testing import CliRunner
 from pathlib import Path
 from types import SimpleNamespace

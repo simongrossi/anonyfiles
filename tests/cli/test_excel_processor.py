@@ -1,8 +1,8 @@
+import pytest
+pd = pytest.importorskip("pandas")
 import tempfile
-import pandas as pd
 from anonyfiles_core.anonymizer.excel_processor import ExcelProcessor
 from pathlib import Path
-import pytest
 
 def test_extract_blocks_excel():
     tmp = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".xlsx")

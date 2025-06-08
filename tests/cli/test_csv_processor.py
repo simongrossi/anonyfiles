@@ -1,3 +1,5 @@
+import pytest
+pytest.importorskip("spacy")
 import tempfile
 import csv
 from pathlib import Path

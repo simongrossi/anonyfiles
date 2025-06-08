@@ -1,9 +1,10 @@
-import pytest; pytest.skip("unstable in CI", allow_module_level=True)
+import pytest
+pytest.skip("unstable in CI", allow_module_level=True)
+pytest.importorskip("httpx")
 import shutil
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 import importlib
