@@ -67,3 +67,4 @@ full_commits.txt
 /test_data
 /runs
 *.egg-info/
+/anonyfiles_outputs
