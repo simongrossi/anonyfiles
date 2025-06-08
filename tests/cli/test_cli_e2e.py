@@ -75,3 +75,35 @@ def test_cli_config_reset_dry_run(tmp_path):
         assert result.exit_code == 0
         assert cfg_file.exists()
         assert "dry-run" in result.output.lower()
+
+
+def test_cli_deanonymize_uses_engine(tmp_path):
+    sample = tmp_path / "sample.txt"
+    sample.write_text("{{NAME}}", encoding="utf-8")
+    mapping = tmp_path / "map.csv"
+    mapping.write_text("anonymized,original\n{{NAME}},Jean", encoding="utf-8")
+
+    with patch("typer.rich_utils.make_panel", lambda *a, **k: "panel", create=True), \
+         patch("anonyfiles_cli.handlers.deanonymize_handler.DeanonymizationEngine") as Engine:
+        engine_inst = Engine.return_value
+        engine_inst.deanonymize.return_value = {
+            "status": "success",
+            "restored_text": "Jean",
+            "report": {"warnings_generated_during_deanonymization": []},
+            "warnings": [],
+        }
+
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            [
+                "deanonymize",
+                "process",
+                str(sample),
+                "--mapping-csv",
+                str(mapping),
+                "--dry-run",
+            ],
+        )
+        assert result.exit_code == 0
+        engine_inst.deanonymize.assert_called_once()

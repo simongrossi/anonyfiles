@@ -20,7 +20,7 @@ from ..job_utils import Job
 # Pour l'instant, nous supposons que la désanonymisation n'a pas besoin de BASE_CONFIG.
 from ..core_config import logger
 
-from anonyfiles_cli.anonymizer.deanonymize import Deanonymizer
+from anonyfiles_cli.anonymizer.deanonymization_engine import DeanonymizationEngine
 from anonyfiles_cli.anonymizer.file_utils import (
     ensure_folder,
     timestamp,
@@ -61,27 +61,33 @@ def run_deanonymization_job_sync(
 
     try:
         logger.info(f"[{job_id}] Démarrage de la désanonymisation pour {input_path.name}")
-        deanonymizer = Deanonymizer(str(mapping_path), strict=not permissive)
+        engine = DeanonymizationEngine()
+        engine_result = engine.deanonymize(
+            input_path=input_path,
+            mapping_path=mapping_path,
+            permissive=permissive,
+            dry_run=False,
+        )
 
-        if deanonymizer.map_loading_warnings and not deanonymizer.code_to_originals:
-            warning_message = f"Échec critique du chargement du fichier mapping '{mapping_path}'. Avertissements: {deanonymizer.map_loading_warnings}"
+        if engine_result.get("status") == "error":
+            warning_message = engine_result.get("error", "Erreur inconnue")
             logger.error(f"[{job_id}] {warning_message}")
-            # Mettre original_input_name dans le statut d'erreur
-            error_payload_for_status = {"status": "error", "error": warning_message, "original_input_name": original_input_name_for_status}
+            error_payload_for_status = {
+                "status": "error",
+                "error": warning_message,
+                "original_input_name": original_input_name_for_status,
+            }
             with open(current_job.status_file_path, "w", encoding="utf-8") as f_status:
-                 json.dump(error_payload_for_status, f_status)
+                json.dump(error_payload_for_status, f_status)
             return
 
-        with open(input_path, "r", encoding="utf-8") as f:
-            content = f.read()
+        result_text = engine_result.get("restored_text", "")
+        report_data_serializable = dict(engine_result.get("report", {}))
 
         output_filename = input_path.stem + "_deanonymise_" + timestamp() + input_path.suffix
         output_path = run_dir / output_filename
         report_file_path = run_dir / "report.json"
 
-        result_text, report_data_from_deanonymizer = deanonymizer.deanonymize_text(content, dry_run=False)
-        
-        report_data_serializable = dict(report_data_from_deanonymizer)
         if "map_collisions_details" in report_data_serializable and report_data_serializable["map_collisions_details"]:
             report_data_serializable["map_collisions_details"] = {
                 code: list(originals) 

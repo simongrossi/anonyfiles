@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 import typer # Importez typer si vous comptez l'utiliser pour les messages ou confirmations
 
-from ..anonymizer.deanonymize import Deanonymizer
+from ..anonymizer.deanonymization_engine import DeanonymizationEngine
 from ..anonymizer.file_utils import timestamp
 from ..anonymizer.run_logger import log_run_event
 from ..ui.console_display import ConsoleDisplay
@@ -48,16 +48,17 @@ class DeanonymizeHandler:
                 if output_path.exists() and not typer.confirm(f"⚠️ Le fichier de sortie '{output_path}' existe déjà. L'écraser ?"):
                     return False # Indique l'échec (annulation par l'utilisateur)
 
-            with open(input_file, encoding="utf-8") as f:
-                content = f.read()
+            engine = DeanonymizationEngine()
+            result = engine.deanonymize(
+                input_path=input_file,
+                mapping_path=mapping_csv,
+                permissive=permissive,
+                dry_run=dry_run,
+            )
 
-            deanonymizer = Deanonymizer(str(mapping_csv), strict=not permissive)
-
-            # Si le chargement du mapping a des erreurs critiques qui empêchent la désanonymisation
-            if deanonymizer.map_loading_warnings and not deanonymizer.code_to_originals:
-                warning_message = f"Échec critique du chargement du fichier mapping '{mapping_csv}'. Avertissements: {deanonymizer.map_loading_warnings}"
+            if result.get("status") == "error":
+                warning_message = result.get("error", "Erreur inconnue")
                 self.console.console.print(f"❌ {warning_message}", style="red")
-                # Log l'événement d'erreur ici si le processus ne peut pas continuer
                 log_run_event(
                     logger=CLIUsageLogger,
                     run_id=run_id,
@@ -69,11 +70,12 @@ class DeanonymizeHandler:
                     total_replacements=0,
                     audit_log=[warning_message],
                     status="error",
-                    error=warning_message
+                    error=warning_message,
                 )
                 return False
 
-            restored_text, report_data = deanonymizer.deanonymize_text(content, dry_run=dry_run)
+            restored_text = result.get("restored_text", "")
+            report_data = result.get("report", {})
 
             if not dry_run:
                 if output_path:
