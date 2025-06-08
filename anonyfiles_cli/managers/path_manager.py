@@ -4,7 +4,14 @@ from pathlib import Path
 from typing import Dict, Optional
 # C'EST LA LIGNE CLÉ À VÉRIFIER : DOIT ÊTRE UN IMPORT RELATIF AVEC DEUX POINTS (..)
 from ..exceptions import FileIOError
-from ..anonymizer.file_utils import timestamp, ensure_folder, make_run_dir, default_output, default_mapping, default_log
+from anonyfiles_core.anonymizer.file_utils import (
+    timestamp,
+    ensure_folder,
+    make_run_dir,
+    default_output,
+    default_mapping,
+    default_log,
+)
 
 
 class PathManager:

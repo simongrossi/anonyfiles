@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 import typer # Importez typer si vous comptez l'utiliser pour les messages ou confirmations
 
-from ..anonymizer.deanonymization_engine import DeanonymizationEngine
-from ..anonymizer.file_utils import timestamp
-from ..anonymizer.run_logger import log_run_event
+from anonyfiles_core import DeanonymizationEngine
+from anonyfiles_core.anonymizer.file_utils import timestamp
+from anonyfiles_core.anonymizer.run_logger import log_run_event
 from ..ui.console_display import ConsoleDisplay
 from ..cli_logger import CLIUsageLogger
 from ..exceptions import AnonyfilesError

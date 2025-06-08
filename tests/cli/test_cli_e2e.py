@@ -11,7 +11,7 @@ sys.modules.setdefault(
 )
 
 from anonyfiles_cli.main import app
-from anonyfiles_cli.anonymizer import spacy_engine
+from anonyfiles_core.anonymizer import spacy_engine
 from anonyfiles_cli.managers.config_manager import ConfigManager
 
 

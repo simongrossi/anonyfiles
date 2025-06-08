@@ -1,5 +1,5 @@
 import tempfile
-from anonyfiles_cli.anonymizer.txt_processor import TxtProcessor
+from anonyfiles_core.anonymizer.txt_processor import TxtProcessor
 from pathlib import Path
 
 def test_extract_blocks_simple():

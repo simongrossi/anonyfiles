@@ -2,7 +2,7 @@ import tempfile
 import csv
 from pathlib import Path
 
-from anonyfiles_cli.anonymizer.csv_processor import CsvProcessor
+from anonyfiles_core.anonymizer.csv_processor import CsvProcessor
 
 def test_extract_blocks_csv():
     with tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8", newline='') as tmp:

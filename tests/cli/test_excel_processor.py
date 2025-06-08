@@ -1,6 +1,6 @@
 import tempfile
 import pandas as pd
-from anonyfiles_cli.anonymizer.excel_processor import ExcelProcessor
+from anonyfiles_core.anonymizer.excel_processor import ExcelProcessor
 from pathlib import Path
 import pytest
 
