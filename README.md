@@ -282,6 +282,7 @@ définir (par exemple dans `/etc/default/anonyfiles-api`) :
 - `ANONYFILES_HOME` : répertoire racine du projet
 - `ANONYFILES_HOST` : adresse d'écoute d'uvicorn (ex. `127.0.0.1`)
 - `ANONYFILES_PORT` : port d'écoute de l'API (ex. `8000`)
+- `ANONYFILES_JOBS_DIR` : répertoire des jobs (défaut `jobs`)
 
 ---
 
