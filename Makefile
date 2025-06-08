@@ -1,5 +1,3 @@
-#anonyfiles/Makefile
-
 .PHONY: setup spacy-models cli api gui clean test-api dev systemd-install systemd-start systemd-stop systemd-status
 
 setup:
@@ -49,7 +47,7 @@ spacy-models:
 	env-cli/bin/python3 -m spacy download fr_core_news_md
 
 cli:
-env-cli/bin/anonyfiles-cli anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_core/config/config.yaml
+	env-cli/bin/anonyfiles-cli anonymize tests/sample.txt --output tests/result.txt --config anonyfiles_core/config/config.yaml
 
 api:
 	env-api/bin/uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000 --reload
@@ -61,7 +59,7 @@ test-api:
 	@echo "🔗 Envoi du fichier vers $${API_URL:-http://localhost:8000}"
 	curl -X POST $${API_URL:-http://localhost:8000}/api/anonymize/ \
 		-F "file=@tests/sample.txt;type=text/plain" \
-		-F 'config_options={"anonymizePersons":true,"anonymizeLocations":true,"anonymizeOrgs":true,"anonymizeEmails":true,"anonymizeDates":true,"custom_replacement_rules":[]}' \
+		-F 'config_options={"anonymizePersons":true,"anonymizeLocations":true,"anonyfilesOrgs":true,"anonymizeEmails":true,"anonymizeDates":true,"custom_replacement_rules":[]}' \
 		-F "file_type=txt"
 
 dev:
