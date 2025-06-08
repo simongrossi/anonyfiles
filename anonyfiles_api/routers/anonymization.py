@@ -10,6 +10,7 @@ from pathlib import Path
 import json
 import uuid
 import aiofiles
+import aiofiles.os as aio_os
 import sys
 
 from ..core_config import logger, set_job_id
@@ -232,7 +233,7 @@ async def anonymize_file_endpoint(
 
     logger.info(f"Requête d'anonymisation tâche: {job_id}, fichier: {file.filename}, type: {file_type}, header: {has_header}")
 
-    await run_in_threadpool(current_job.job_dir.mkdir, parents=True, exist_ok=True)
+    await aio_os.makedirs(current_job.job_dir, exist_ok=True)
 
     file_extension = Path(file.filename).suffix if file.filename else ".tmp"
     input_filename_for_job = f"{BASE_INPUT_STEM_FOR_JOB_FILES}{file_extension}"
@@ -245,12 +246,12 @@ async def anonymize_file_endpoint(
         logger.info(f"Tâche {job_id}: Fichier '{input_filename_for_job}' (orig: {file.filename}) téléversé.")
     except Exception as e_upload:
         logger.error(f"Tâche {job_id}: Erreur de téléversement '{input_filename_for_job}': {e_upload}", exc_info=True)
-        await run_in_threadpool(current_job.set_status_as_error_sync, f"Échec de la sauvegarde du fichier téléversé: {str(e_upload)}")
+        await current_job.set_status_as_error_async(f"Échec de la sauvegarde du fichier téléversé: {str(e_upload)}")
         raise HTTPException(status_code=500, detail=f"Impossible de sauvegarder le fichier téléversé pour la tâche {job_id}.")
     finally:
         await file.close()
 
-    if not await run_in_threadpool(current_job.set_initial_status_sync):
+    if not await current_job.set_initial_status_async():
         logger.error(f"Tâche {job_id}: Échec de l'écriture du statut initial 'pending'.")
 
     try:
@@ -258,7 +259,7 @@ async def anonymize_file_endpoint(
     except json.JSONDecodeError as e_json_conf:
         error_msg = f"JSON invalide pour config_options: {str(e_json_conf)}"
         logger.error(f"Tâche {job_id}: {error_msg}", exc_info=True)
-        await run_in_threadpool(current_job.set_status_as_error_sync, error_msg + " Échec du parsing des options de configuration.")
+        await current_job.set_status_as_error_async(error_msg + " Échec du parsing des options de configuration.")
         raise HTTPException(status_code=400, detail=error_msg)
 
     custom_rules_list = [] # Initialiser à une liste vide par défaut, pas None
@@ -288,7 +289,7 @@ async def anonymize_file_endpoint(
     if current_base_config_for_task is None or not current_base_config_for_task:
         error_msg = "Erreur critique: La configuration de base du serveur (app.state.BASE_CONFIG) n'est pas chargée ou est vide."
         logger.error(f"Tâche {job_id}: {error_msg}")
-        await run_in_threadpool(current_job.set_status_as_error_sync, error_msg)
+        await current_job.set_status_as_error_async(error_msg)
         raise HTTPException(status_code=500, detail="Erreur serveur: Configuration de base non disponible pour traiter la requête.")
 
     background_tasks.add_task(
