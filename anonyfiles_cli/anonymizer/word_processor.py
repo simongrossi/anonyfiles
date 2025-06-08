@@ -81,10 +81,13 @@ class DocxProcessor(BaseProcessor):
         """
         Reconstruit un document DOCX à partir des blocs traités et l'enregistre.
 
-        Chaque paragraphe du document d'origine est remplacé par son équivalent
-        anonymisé. Le texte anonymisé est réparti entre les runs déjà présents
-        dans chaque paragraphe afin de conserver au mieux le formatage initial
-        (gras, italique, etc.).
+        Le fichier original est relu pour retrouver la structure et le nombre
+        de paragraphes. Après vérification que chaque bloc traité correspond à un
+        paragraphe, son contenu anonymisé remplace le texte présent. Les runs
+        existants sont conservés afin de préserver la mise en forme – le texte
+        anonymisé est donc réparti entre eux (les caractères restant sont ajoutés
+        au dernier run). Cette stratégie permet de garder les styles tels que
+        le gras ou l'italique tout en mettant à jour le contenu.
         """
         doc = Document(original_input_path)
         paragraphs = doc.paragraphs
