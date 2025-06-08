@@ -66,3 +66,4 @@ full_commits.txt
 /venv_anonyfiles
 /test_data
 /runs
+*.egg-info/
