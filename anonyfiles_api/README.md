@@ -147,8 +147,12 @@ from anonyfiles_core import AnonyfilesEngine
 @router.post("/anonymize")
 async def anonymize(file: UploadFile):
     engine = AnonyfilesEngine(config_path)
+    # temporary async wrapper around `anonymize`
+
     return await engine.anonymize_async(file)
 ```
+Cet appel asynchrone utilise simplement ``asyncio.to_thread`` pour exécuter la
+méthode de base de façon non bloquante.
 
 ---
 

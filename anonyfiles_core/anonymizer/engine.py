@@ -4,6 +4,7 @@ import csv
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
 import logging
+import asyncio
 
 from .spacy_engine import SpaCyEngine
 from .replacer import ReplacementSession
@@ -225,3 +226,12 @@ class AnonyfilesEngine:
             "audit_log": self.audit_logger.summary(),
             "total_replacements": total_replacements_logged,
         }
+
+    async def anonymize_async(self, *args, **kwargs) -> Dict[str, Any]:
+        """Asynchronous wrapper around :meth:`anonymize`.
+
+        This helper uses ``asyncio.to_thread`` to run the synchronous
+        ``anonymize`` method in a thread until a full asynchronous
+        refactor is completed.
+        """
+        return await asyncio.to_thread(self.anonymize, *args, **kwargs)
