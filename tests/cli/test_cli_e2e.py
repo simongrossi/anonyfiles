@@ -32,7 +32,7 @@ def test_cli_anonymize_dry_run(tmp_path):
                 "process",
                 str(sample),
                 "--config",
-                "anonyfiles_cli/config.yaml",
+                "anonyfiles_core/config/config.yaml",
                 "--dry-run",
             ],
         )

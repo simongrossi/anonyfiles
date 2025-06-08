@@ -19,7 +19,12 @@ class ConfigManager:
     """
     DEFAULT_USER_CONFIG_DIR = Path.home() / ".anonyfiles"
     DEFAULT_USER_CONFIG_FILE = DEFAULT_USER_CONFIG_DIR / "config.yaml"
-    DEFAULT_APP_CONFIG_TEMPLATE = Path(__file__).parent.parent / "config_default.yaml"
+    DEFAULT_APP_CONFIG_TEMPLATE = (
+        Path(__file__).resolve().parent.parent.parent
+        / "anonyfiles_core"
+        / "config"
+        / "config_default.yaml"
+    )
 
 
     @classmethod
