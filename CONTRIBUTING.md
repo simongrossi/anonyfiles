@@ -5,7 +5,13 @@ Merci de votre intérêt pour contribuer à Anonyfiles !
 ## Comment proposer une contribution ?
 1. Forkez ce dépôt et clonez-le en local.
 2. Créez une nouvelle branche pour votre feature ou correction.
-3. Assurez-vous que le code passe les tests (`pytest` pour Python, `npm run build` pour le front…).
+3. Installez les dépendances de test :
+
+   ```bash
+   pip install -r requirements-test.txt
+   ```
+
+   puis assurez-vous que le code passe les tests (`pytest` pour Python, `npm run build` pour le front…).
    Un workflow GitHub Actions exécutera automatiquement `pytest` sur votre Pull Request.
 4. Soumettez une Pull Request en expliquant clairement votre contribution.
 
