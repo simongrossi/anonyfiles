@@ -301,6 +301,7 @@ définir (par exemple dans `/etc/default/anonyfiles-api`) :
   ```bash
   pip install pip-tools
   pip-compile requirements.in
+  pip-compile requirements-test.in  # fige aussi les dépendances de test
   ```
 
 * Merci de créer une issue ou une PR avec un descriptif clair et un code lisible.
