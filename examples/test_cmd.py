@@ -1,4 +1,6 @@
 # test_cmd.py
+import pytest
+pytest.importorskip("typer")
 import typer
 
 app_test = typer.Typer()

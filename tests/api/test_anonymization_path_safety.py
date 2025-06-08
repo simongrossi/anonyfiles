@@ -1,3 +1,5 @@
+import pytest
+pytest.importorskip("httpx")
 import shutil
 import importlib
 import sys

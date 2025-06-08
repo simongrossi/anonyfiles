@@ -5,6 +5,7 @@ import sys
 from unittest.mock import patch
 
 import pytest
+pytest.importorskip("httpx")
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 

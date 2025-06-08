@@ -1,3 +1,5 @@
+import pytest
+pytest.importorskip("spacy")
 import tempfile
 from anonyfiles_core.anonymizer.txt_processor import TxtProcessor
 from pathlib import Path
