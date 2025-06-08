@@ -23,5 +23,21 @@ Merci de votre intérêt pour contribuer à Anonyfiles !
 - Toute nouvelle fonctionnalité doit inclure un ou plusieurs tests unitaires.
 - Les tests sont lancés automatiquement via GitHub Actions (workflow `ci.yml`).
 
+### Lancer les tests localement
+
+1. Installez les dépendances de test :
+
+   ```bash
+   pip install -r requirements-test.txt
+   ```
+
+2. Exécutez la suite de tests :
+
+   ```bash
+   pytest
+   ```
+
+   Les composants graphiques (`anonyfiles_gui`) ne sont pas concernés et peuvent être ignorés pendant ces tests.
+
 ## Signaler un bug
 Ouvrez un ticket GitHub avec un titre explicite et un maximum de détails !
