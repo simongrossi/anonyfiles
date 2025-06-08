@@ -11,7 +11,7 @@ import uuid
 import aiofiles
 import sys
 
-from ..core_config import logger
+from ..core_config import logger, set_job_id
 from ..job_utils import Job, BASE_INPUT_STEM_FOR_JOB_FILES
 
 from anonyfiles_core.anonymizer.run_logger import log_run_event
@@ -145,6 +145,7 @@ def run_anonymization_job_sync(
     custom_rules: Optional[list],
     passed_base_config: Dict[str, Any]
 ):
+    set_job_id(job_id)
     current_job = Job(job_id)
     output_path: Optional[Path] = None
     mapping_output_path: Optional[Path] = None
@@ -182,6 +183,7 @@ def run_anonymization_job_sync(
         _handle_job_error(current_job, e, "Erreur inattendue pendant l'exécution de la tâche", input_path, output_path, mapping_output_path, log_entities_path)
     finally:
         logger.info(f"Tâche {job_id}: Traitement de run_anonymization_job_sync terminé.")
+        set_job_id(None)
 
 
 @router.post("/anonymize/", tags=["Anonymisation"])
@@ -195,8 +197,9 @@ async def anonymize_file_endpoint(
     custom_replacement_rules: Optional[str] = Form(None),
     file_type: Optional[str] = Form(None),
     has_header: Optional[str] = Form(None)
-):
+): 
     job_id = str(uuid.uuid4())
+    set_job_id(job_id)
     current_job = Job(job_id)
 
     logger.info(f"Requête d'anonymisation tâche: {job_id}, fichier: {file.filename}, type: {file_type}, header: {has_header}")
@@ -276,6 +279,7 @@ async def anonymize_file_endpoint(
 @router.get("/anonymize_status/{job_id}", tags=["Anonymisation"])
 async def anonymize_status_endpoint(job_id: uuid.UUID):
     job_id_str = str(job_id)
+    set_job_id(job_id_str)
     current_job = Job(job_id_str)
     logger.info(f"Demande de statut pour la tâche: {job_id_str}")
 

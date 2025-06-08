@@ -11,7 +11,7 @@ from typing import Optional
 
 from ..job_utils import Job
 # Importer depuis le nouveau module de configuration central
-from ..core_config import logger # Importer logger
+from ..core_config import logger, set_job_id # Importer logger et set_job_id
 
 router = APIRouter()
 # 'logger' est maintenant importé de core_config et utilisé directement
@@ -19,6 +19,7 @@ router = APIRouter()
 @router.get("/files/{job_id}/{file_key}", tags=["Fichiers"])
 async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: bool = False):
     job_id_str = str(job_id)
+    set_job_id(job_id_str)
     current_job = Job(job_id_str)
     logger.info(f"Demande fichier clé '{file_key}' pour tâche {job_id_str}, en pièce jointe={as_attachment}")
 

@@ -13,6 +13,7 @@ PyYAML>=6.0
 pymupdf
 typer
 yamale
+python-json-logger
 slowapi>=0.1.9
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0.tar.gz#egg=fr_core_news_sm
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.7.0/fr_core_news_md-3.7.0.tar.gz#egg=fr_core_news_md

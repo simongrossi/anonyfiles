@@ -156,6 +156,20 @@ méthode de base de façon non bloquante.
 
 ---
 
+## 🗒️ Format des logs
+
+Les journaux sont désormais structurés en JSON. Chaque entrée inclut les champs
+`endpoint`, `client_ip` et `job_id` permettant de tracer le contexte de la
+requête.
+
+Exemple :
+
+```json
+{"level": "INFO", "message": "Exemple", "endpoint": "/anonymize", "client_ip": "127.0.0.1", "job_id": "1234"}
+```
+
+---
+
 ## 💡 Conseils
 
 - Toujours lancer depuis la racine du projet pour éviter les erreurs d’import.
