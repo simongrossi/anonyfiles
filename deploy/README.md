@@ -14,8 +14,10 @@ docker run -p 8000:8000 anonyfiles
 Pour certains hébergeurs (Heroku, Scalingo...), le `Procfile` fournit la commande de démarrage :
 
 ```procfile
-web: uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port $PORT
+web: bash -c 'uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port ${PORT:-8000}'
 ```
+
+Cette commande nécessite que la variable d'environnement `PORT` soit définie par la plateforme (Railway le fait automatiquement). À défaut, Uvicorn démarrera sur le port `8000`.
 
 ## 🛠️ Service systemd
 
@@ -44,7 +46,7 @@ nixpacks build . --name anonyfiles
 nixpacks run .
 ```
 
-Ces commandes créent une image contenant l'API puis la démarrent avec le même ordre que défini dans le `Procfile`.
+Ces commandes créent une image contenant l'API puis la démarrent avec le même ordre que défini dans le `Procfile`. Assurez-vous que la variable `PORT` est disponible dans l'environnement pour que Uvicorn écoute sur le bon port.
 
 ## 🚄 Déploiement continu via Railway
 
