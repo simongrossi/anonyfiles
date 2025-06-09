@@ -13,4 +13,4 @@ commands = [
 commands = []
 
 [phases.start]
-command = "bash -c 'uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port ${PORT:-8000}'"
+command = "uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port ${PORT:-8000}"
