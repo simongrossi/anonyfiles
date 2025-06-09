@@ -134,6 +134,17 @@ python -m anonyfiles\_cli.main anonymize anonyfiles\_cli/input.txt \
  --log-entities anonyfiles\_cli/log/log.csv \
  --mapping-output anonyfiles\_cli/mappings/mapping.csv
 
+### **▶️ Utilisation du mode interactif**
+
+Pour choisir dynamiquement les entités à anonymiser, utilisez `--interactive` :
+
+```bash
+python -m anonyfiles_cli.main anonymize anonyfiles_cli/input.txt --interactive
+```
+
+La CLI affichera la liste des labels (PER, ORG, LOC, EMAIL, DATE, ...) et générera automatiquement l'argument `--exclude-entities` selon vos choix.
+
+
 ## **🧹 Gestion des jobs (nettoyage et listage)**
 
 La CLI d'Anonyfiles permet de gérer les fichiers générés par chaque opération (anonymisation, désanonymisation) en utilisant un Job ID unique (basé sur un timestamp). Ceci est essentiel pour la confidentialité des données et le nettoyage des fichiers temporaires.
@@ -175,6 +186,7 @@ python -m anonyfiles\_cli.main job delete 20250605-122744 --output-dir /home/deb
 | --output-dir | Dossier où écrire les fichiers de sortie par défaut (incluant les sous-dossiers runs/) |
 | --force | Écrase les fichiers de sortie existants (pour anonymize) ou supprime sans confirmation (pour job delete) |
 | --exclude-entities | Types d'entités spaCy à exclure (ex: PER,LOC) |
+| --interactive / -i | Sélection interactive des entités à anonymiser |
 | --log-entities | Export CSV des entités détectées et leurs labels |
 | --mapping-output | Fichier CSV de mapping (original\_text -> anonymized\_code) |
 | --has-header-opt | true ou false pour les fichiers CSV/XLSX (prioritaire sur --csv-no-header) |
