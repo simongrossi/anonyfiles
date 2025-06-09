@@ -7,6 +7,7 @@ from typing import Optional, List, Dict, Any
 from ..handlers.anonymize_handler import AnonymizeHandler
 from ..handlers.validation_handler import ValidationHandler
 from ..ui.console_display import ConsoleDisplay
+from ..ui.interactive_mode import prompt_entities_to_exclude
 from ..exceptions import AnonyfilesError # Assurez-vous d'importer les exceptions nécessaires
 
 app = typer.Typer(help="Commandes pour anonymiser les fichiers.")
@@ -33,6 +34,7 @@ def process_anonymize(
     csv_no_header: bool = typer.Option(False, "--csv-no-header", help="Indique que le fichier CSV d'entrée N'A PAS d'en-tête (utilisé si --has-header-opt n'est pas fourni)."),
     has_header_opt: Optional[str] = typer.Option(None, "--has-header-opt", help="Spécifie explicitement si le fichier CSV d'entrée a une en-tête ('true'/'false'). Prioritaire sur --csv-no-header."),
     exclude_entities: Optional[List[str]] = typer.Option(None, "--exclude-entities", help="Types d'entités à exclure, séparés par des virgules (ex: PER,LOC)."),
+    interactive: bool = typer.Option(False, "--interactive", "-i", help="Sélection interactive des entités à anonymiser."),
     custom_replacements_json: Optional[str] = typer.Option(None, "--custom-replacements-json", help="Chaîne JSON des règles de remplacement personnalisées (ex: '[{\"pattern\": \"Confidentiel\", \"replacement\": \"[SECRET]\"}]')."),
     append_timestamp: bool = typer.Option(True, help="Ajoute un timestamp aux noms des fichiers de sortie par défaut."),
     force: bool = typer.Option(False, "--force", "-f", help="Force l’écrasement des fichiers de sortie existants.")
@@ -50,7 +52,13 @@ def process_anonymize(
             has_header_opt=has_header_opt
         )
         
-        # 2. Instanciation et appel du handler métier
+        # 2. Sélection interactive des entités le cas échéant
+        if interactive and not exclude_entities:
+            exclude_entities = prompt_entities_to_exclude(console)
+        elif interactive and exclude_entities:
+            console.console.print("[yellow]--interactive ignoré car --exclude-entities est déjà fourni.[/yellow]")
+
+        # 3. Instanciation et appel du handler métier
         handler = AnonymizeHandler(console)
         success = handler.process(
             input_file=input_file,
