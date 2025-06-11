@@ -10,7 +10,12 @@ router = APIRouter()
 
 @router.websocket("/ws/{job_id}")
 async def websocket_job_status(websocket: WebSocket, job_id: str) -> None:
-    """Envoie en temps réel le statut d'un job via WebSocket."""
+    """Send real-time job status updates over a WebSocket connection.
+
+    Args:
+        websocket: Active WebSocket connection to the client.
+        job_id: Identifier of the job to monitor.
+    """
     await websocket.accept()
     job = Job(job_id)
     if not await job.check_exists_async():

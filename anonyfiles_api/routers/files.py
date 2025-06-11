@@ -18,6 +18,16 @@ router = APIRouter()
 
 @router.get("/files/{job_id}/{file_key}", tags=["Fichiers"])
 async def get_file_endpoint(job_id: uuid.UUID, file_key: str, as_attachment: bool = False):
+    """Serve a result file for a given job.
+
+    Args:
+        job_id: Identifier of the job directory.
+        file_key: Type of file to retrieve (output, mapping, log_entities, audit_log).
+        as_attachment: If ``True``, force download rather than inline display.
+
+    Returns:
+        A :class:`FileResponse` with the requested file.
+    """
     job_id_str = str(job_id)
     set_job_id(job_id_str)
     current_job = Job(job_id_str)
