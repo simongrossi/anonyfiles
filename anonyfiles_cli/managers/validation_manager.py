@@ -33,7 +33,10 @@ SCHEMA = {
             'type': 'string'
         },
         'default': []
-    }
+    },
+    'default_output_dir': {'type': 'string', 'required': False},
+    'backup_original': {'type': 'boolean', 'required': False},
+    'compression': {'type': 'boolean', 'required': False}
 }
 
 
