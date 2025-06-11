@@ -19,6 +19,23 @@ Merci de votre intérêt pour contribuer à Anonyfiles !
 - Utilisez Black pour formater le code Python.
 - Suivez la structure de fichiers du projet.
 
+### Docstrings
+Les docstrings doivent suivre le format **Google**. Ce style simplifie
+l'automatisation de la documentation et assure une présentation cohérente.
+
+```python
+def saluer(nom: str) -> str:
+    """Retourne un message de salutation.
+
+    Args:
+        nom: Nom de la personne à saluer.
+
+    Returns:
+        La chaîne de caractères du message.
+    """
+    return f"Bonjour {nom}!"
+```
+
 ## Tests
 - Toute nouvelle fonctionnalité doit inclure un ou plusieurs tests unitaires.
 - Les tests sont lancés automatiquement via GitHub Actions (workflow `ci.yml`).
