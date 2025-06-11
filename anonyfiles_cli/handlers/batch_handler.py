@@ -14,7 +14,12 @@ from rich.progress import (
 from ..handlers.anonymize_handler import AnonymizeHandler
 from ..managers.config_manager import ConfigManager
 from ..ui.console_display import ConsoleDisplay
-from ..exceptions import AnonyfilesError, ProcessingError
+from ..exceptions import (
+    AnonyfilesError,
+    ConfigurationError,
+    FileIOError,
+    ProcessingError,
+)
 
 
 class BatchHandler:
@@ -139,6 +144,12 @@ class BatchHandler:
                         error_count += 1
                         progress.log(f"❌ {file_path.name}", style="red")
 
+                except (ConfigurationError, FileIOError, ProcessingError) as e:
+                    error_count += 1
+                    progress.log(f"❌ {file_path.name} - {e}", style="red")
+                except AnonyfilesError as e:
+                    error_count += 1
+                    progress.log(f"❌ {file_path.name} - {e}", style="red")
                 except Exception as e:
                     error_count += 1
                     progress.log(f"❌ {file_path.name} - {e}", style="red")

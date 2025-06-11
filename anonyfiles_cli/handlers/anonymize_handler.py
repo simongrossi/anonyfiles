@@ -19,7 +19,12 @@ from ..managers.config_manager import ConfigManager
 from ..managers.validation_manager import ValidationManager
 from ..ui.console_display import ConsoleDisplay
 from ..cli_logger import CLIUsageLogger
-from ..exceptions import AnonyfilesError, ProcessingError
+from ..exceptions import (
+    AnonyfilesError,
+    ConfigurationError,
+    FileIOError,
+    ProcessingError,
+)
 
 
 class AnonymizeHandler:
@@ -142,9 +147,12 @@ class AnonymizeHandler:
                 self.console.console.print(f"\n✨ Job ID : [bold green]{run_id}[/bold green] (utilisez 'anonyfiles_cli job delete {run_id} --output-dir {full_output_base_path}' pour supprimer les fichiers)")
             return True # Indique le succès
 
+        except (ConfigurationError, FileIOError, ProcessingError) as e:
+            self.console.handle_error(e, "anonymization_process")
+            return False  # Indique l'échec
         except AnonyfilesError as e:
             self.console.handle_error(e, "anonymization_process")
-            return False # Indique l'échec
+            return False  # Indique l'échec
         except Exception as e:
             self.console.handle_error(e, "anonymization_process_unexpected")
-            return False # Indique l'échec
+            return False  # Indique l'échec

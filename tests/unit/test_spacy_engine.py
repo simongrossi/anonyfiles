@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from anonyfiles_core.anonymizer import spacy_engine
+from anonyfiles_cli.exceptions import ConfigurationError
 
 
 class DummyModel:
@@ -23,3 +24,12 @@ def test_detect_entities_with_regex():
     assert ("Jean", "PER") in entities
     assert ("test@example.com", "EMAIL") in entities
     assert ("01/01/2020", "DATE") in entities
+
+
+def test_load_model_failure_raises_configuration_error():
+    def fail_load(name):
+        raise OSError("model missing")
+
+    with patch.object(spacy_engine, "spacy", SimpleNamespace(load=fail_load)):
+        with pytest.raises(ConfigurationError):
+            spacy_engine.SpaCyEngine(model="missing")

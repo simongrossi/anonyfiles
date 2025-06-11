@@ -9,7 +9,12 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from ..exceptions import AnonyfilesError
+from ..exceptions import (
+    AnonyfilesError,
+    ConfigurationError,
+    FileIOError,
+    ProcessingError,
+)
 
 
 class ConsoleDisplay:
@@ -82,7 +87,16 @@ class ConsoleDisplay:
         """
         from ..cli_logger import CLIUsageLogger
 
-        if isinstance(error, AnonyfilesError):
+        if isinstance(error, ConfigurationError):
+            self.console.print(f"⚙️  [yellow]Erreur de configuration:[/yellow] {error}")
+            CLIUsageLogger.log_error(context, error)
+        elif isinstance(error, FileIOError):
+            self.console.print(f"📂 [red]Erreur fichier:[/red] {error}")
+            CLIUsageLogger.log_error(context, error)
+        elif isinstance(error, ProcessingError):
+            self.console.print(f"⚠️  [red]Erreur de traitement:[/red] {error}")
+            CLIUsageLogger.log_error(context, error)
+        elif isinstance(error, AnonyfilesError):
             self.console.print(f"❌ [red]Erreur :[/red] {error}")
             CLIUsageLogger.log_error(context, error)
         else:
