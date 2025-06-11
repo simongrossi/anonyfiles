@@ -3,11 +3,13 @@
 #
 # Entrée du programme CLI
 import typer
+import logging
 
 # Importe les applications Typer des modules de commandes séparés
 from anonyfiles_cli.commands import anonymize, deanonymize, config, batch, utils, clean_job # <--- AJOUTEZ clean_job ici
 from anonyfiles_cli.managers.config_manager import ConfigManager
 from anonyfiles_cli.ui.console_display import ConsoleDisplay
+from anonyfiles_cli.cli_logger import CLIUsageLogger
 
 app = typer.Typer(pretty_exceptions_show_locals=False, help="Anonyfiles CLI - Outil d'anonymisation de documents.")
 console = ConsoleDisplay()
@@ -22,12 +24,22 @@ app.add_typer(clean_job.app, name="job", help="Gère et nettoie les répertoires
 
 
 @app.callback()
-def main_callback():
+def main_callback(
+    ctx: typer.Context,
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Affiche les messages de debug"
+    ),
+):
     """
     Fonction de rappel principale.
     S'assure qu'un fichier de configuration utilisateur par défaut existe au démarrage de l'application
     s'il n'est pas déjà présent.
     """
+    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
+    if verbose:
+        logging.debug("Verbose mode enabled")
+    CLIUsageLogger.VERBOSE = verbose
+
     user_config_path = ConfigManager.DEFAULT_USER_CONFIG_FILE
     if not user_config_path.exists():
         console.console.print(f"[dim]ℹ️ Fichier de configuration utilisateur non trouvé. Création d'une configuration par défaut à : {user_config_path}[/dim]")

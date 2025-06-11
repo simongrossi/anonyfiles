@@ -4,6 +4,8 @@ import datetime
 import json
 import os
 import logging
+from typing import Any, Dict
+import typer
 from pathlib import Path
 import traceback
 
@@ -11,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class CLIUsageLogger:
     LOG_BASE_DIR = Path(__file__).parent / "logs"
+    VERBOSE: bool = False
 
     @classmethod
     def get_log_path(cls):
@@ -34,12 +37,19 @@ class CLIUsageLogger:
 
     @classmethod
     def log_error(cls, context: str, exc: Exception):
-        entry = {
+        entry: Dict[str, Any] = {
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "error": str(exc),
             "traceback": traceback.format_exc(),
-            "context": context
+            "context": context,
         }
+        if cls.VERBOSE:
+            try:
+                ctx = typer.get_current_context()
+                entry["command"] = ctx.command_path
+                entry["arguments"] = ctx.params
+            except Exception:
+                pass
         log_path = cls.get_log_path()
         try:
             with open(log_path, "a", encoding="utf-8") as f:
