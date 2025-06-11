@@ -25,7 +25,10 @@ SCHEMA = {
             'schema': {'type': 'string'}
         },
         'default': []
-    }
+    },
+    'default_output_dir': {'type': 'string', 'required': False},
+    'backup_original': {'type': 'boolean', 'required': False},
+    'compression': {'type': 'boolean', 'required': False}
 }
 
 def validate_config(config_path: Path):
