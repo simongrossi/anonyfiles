@@ -12,6 +12,7 @@ uvicorn[standard]
 python-multipart
 aiofiles
 slowapi>=0.1.9
+python-json-logger
 
 # ==============================================================================
 # == Dépendances du Moteur CLI et des Processeurs de Fichiers
