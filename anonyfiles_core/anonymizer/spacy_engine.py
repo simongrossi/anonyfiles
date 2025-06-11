@@ -3,7 +3,8 @@
 import spacy
 import re
 import logging
-from functools import lru_cache 
+from functools import lru_cache
+from anonyfiles_cli.exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,11 @@ def _load_spacy_model_cached(model_name: str):
     try:
         return spacy.load(model_name)
     except Exception as e:
-        raise ValueError(f"Could not load spaCy model '{model_name}': {e}. "
-                         "Please ensure it's installed (e.g., python -m spacy download fr_core_news_md)")
+        raise ConfigurationError(
+            f"Could not load spaCy model '{model_name}'. "
+            f"Please install it with 'python -m spacy download {model_name}'. "
+            f"Original error: {e}"
+        )
 
 
 class SpaCyEngine:
