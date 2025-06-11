@@ -48,8 +48,26 @@ class AnonymizeHandler:
         append_timestamp: bool,
         force: bool,
     ):
-        """
-        Traite l'anonymisation d'un fichier en orchestrant les différentes étapes.
+        """Launch anonymization for ``input_file``.
+
+        Args:
+            input_file (Path): File to anonymize.
+            config_path (Optional[Path]): Path to a configuration file.
+            output (Optional[Path]): Destination for anonymized output.
+            log_entities (Optional[Path]): CSV file for detected entities.
+            mapping_output (Optional[Path]): CSV mapping between originals and replacements.
+            bundle_output (Optional[Path]): Path for the bundle archive.
+            output_dir (Path): Base output directory for generated files.
+            dry_run (bool): If ``True`` run without writing files.
+            csv_no_header (bool): Indicates CSV input has no header row.
+            has_header_opt (Optional[str]): Explicit CSV header flag ("true"/"false").
+            exclude_entities (Optional[List[str]]): Entities to exclude from anonymization.
+            custom_replacements_json (Optional[str]): JSON with custom replacement rules.
+            append_timestamp (bool): Append run timestamp to file names.
+            force (bool): Overwrite existing files without confirmation.
+
+        Returns:
+            bool: ``True`` on success, ``False`` otherwise.
         """
         run_id = timestamp()
         self.console.console.print(f"📂 Anonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]")
