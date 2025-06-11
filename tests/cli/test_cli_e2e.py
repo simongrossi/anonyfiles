@@ -77,7 +77,7 @@ def test_cli_anonymize_bundle(tmp_path):
         names = zf.namelist()
         assert out_file.name in names
         assert map_file.name in names
-        assert log_file.name in names
+        assert log_file.name not in names
         assert "audit.json" in names
 
 
@@ -156,3 +156,28 @@ def test_cli_verbose_outputs_debug():
     result = runner.invoke(app, ["--verbose", "config", "validate-config", str(cfg)])
     assert result.exit_code == 0
     assert "DEBUG:root:Verbose mode enabled" in result.output
+
+
+def test_cli_missing_spacy_model(tmp_path):
+    sample = tmp_path / "sample.txt"
+    sample.write_text("data", encoding="utf-8")
+
+    def fail_load(name):
+        raise OSError("model missing")
+
+    spacy_engine._load_spacy_model_cached.cache_clear()
+    with patch.object(spacy_engine, "spacy", SimpleNamespace(load=fail_load)):
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            [
+                "anonymize",
+                "process",
+                str(sample),
+                "--config",
+                "anonyfiles_core/config/config.yaml",
+                "--dry-run",
+            ],
+        )
+    assert result.exit_code == 2
+    assert "python -m spacy download" in result.output

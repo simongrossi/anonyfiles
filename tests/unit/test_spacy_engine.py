@@ -31,5 +31,7 @@ def test_load_model_failure_raises_configuration_error():
         raise OSError("model missing")
 
     with patch.object(spacy_engine, "spacy", SimpleNamespace(load=fail_load)):
-        with pytest.raises(ConfigurationError):
+        with pytest.raises(ConfigurationError) as exc:
             spacy_engine.SpaCyEngine(model="missing")
+    msg = str(exc.value)
+    assert "python -m spacy download missing" in msg
