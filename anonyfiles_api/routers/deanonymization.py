@@ -48,7 +48,15 @@ def run_deanonymization_job_sync(
     permissive: bool,
     # Si BASE_CONFIG était nécessaire, il faudrait l'ajouter ici :
     # passed_base_config: Optional[Dict[str, Any]] = None
-):
+) -> None:
+    """Execute the deanonymization process for a given job.
+
+    Args:
+        job_id: Identifier for the job directory.
+        input_path: Path to the anonymized file to restore.
+        mapping_path: Path to the mapping CSV used for restoration.
+        permissive: Whether to continue when encountering mapping issues.
+    """
     set_job_id(job_id)
     current_job = Job(job_id)
     run_dir = current_job.job_dir
@@ -163,7 +171,19 @@ async def deanonymize_file_endpoint(
     file: UploadFile = File(...),
     mapping: UploadFile = File(...),
     permissive: bool = Form(False)
-): 
+):
+    """Upload files and trigger a deanonymization job.
+
+    Args:
+        request: Incoming request to access application state if needed.
+        background_tasks: FastAPI background task manager.
+        file: The anonymized file to restore.
+        mapping: Mapping CSV file.
+        permissive: Whether the engine should ignore missing mapping entries.
+
+    Returns:
+        A dictionary containing the created job ID and its initial status.
+    """
     job_id = str(uuid.uuid4())
     set_job_id(job_id)
     current_job = Job(job_id)
@@ -231,6 +251,15 @@ async def deanonymize_file_endpoint(
 
 @router.get("/deanonymize_status/{job_id}", tags=["Désanonymisation"])
 async def get_deanonymize_status(job_id: str):
+    """Return the status and results for a deanonymization job.
+
+    Args:
+        job_id: Identifier of the job to inspect.
+
+    Returns:
+        A JSON payload describing the job state and, if available, the restored
+        text and report.
+    """
     set_job_id(job_id)
     current_job = Job(job_id)
 

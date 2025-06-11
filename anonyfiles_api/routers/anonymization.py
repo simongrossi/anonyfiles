@@ -37,6 +37,18 @@ async def _iter_uploadfile_chunks(upload_file: UploadFile, chunk_size: int = 102
 
 
 def _prepare_engine_options(config_options: dict, custom_rules: Optional[list]) -> Dict[str, Any]:
+    """Create options for :class:`AnonyfilesEngine` from the request payload.
+
+    Args:
+        config_options: Dictionary of anonymization options coming from the
+            client.
+        custom_rules: Optional list of custom replacement rules.
+
+    Returns:
+        A dictionary with keys ``exclude_entities_cli`` and
+        ``custom_replacement_rules`` ready to be passed to the engine.
+    """
+
     exclude_entities = []
     if not config_options.get("anonymizePersons", True): exclude_entities.append("PER")
     if not config_options.get("anonymizeLocations", True): exclude_entities.append("LOC")
@@ -51,20 +63,39 @@ def _prepare_engine_options(config_options: dict, custom_rules: Optional[list]) 
 
 
 def _prepare_processor_kwargs(input_path: Path, has_header: Optional[bool]) -> Dict[str, Any]:
+    """Build keyword arguments for the engine processor.
+
+    Args:
+        input_path: Path to the uploaded file.
+        has_header: Optional flag specifying whether a CSV file contains a
+            header row.
+
+    Returns:
+        Dictionary of parameters to forward to the engine processing function.
+    """
+
     processor_kwargs = {}
     if input_path.suffix.lower() == ".csv" and has_header is not None:
-        processor_kwargs['has_header'] = has_header
+        processor_kwargs["has_header"] = has_header
     return processor_kwargs
 
 def _execute_engine_anonymization(
     engine: AnonyfilesEngine, input_path: Path, output_path: Path,
     log_entities_path: Path, mapping_output_path: Path, processor_kwargs: dict
 ) -> Dict[str, Any]:
-    logger.info(f"Tâche {input_path.parent.name}: Exécution du moteur AnonyfilesEngine.")
+    """Run the anonymization engine synchronously."""
+    logger.info(
+        f"Tâche {input_path.parent.name}: Exécution du moteur AnonyfilesEngine."
+    )
     return engine.anonymize(
-        input_path=input_path, output_path=output_path, entities=None,
-        dry_run=False, log_entities_path=log_entities_path,
-        mapping_output_path=mapping_output_path, **processor_kwargs)
+        input_path=input_path,
+        output_path=output_path,
+        entities=None,
+        dry_run=False,
+        log_entities_path=log_entities_path,
+        mapping_output_path=mapping_output_path,
+        **processor_kwargs,
+    )
 
 async def _execute_engine_anonymization_async(
     engine: AnonyfilesEngine,
@@ -74,7 +105,10 @@ async def _execute_engine_anonymization_async(
     mapping_output_path: Path,
     processor_kwargs: dict,
 ) -> Dict[str, Any]:
-    logger.info(f"Tâche {input_path.parent.name}: Exécution du moteur AnonyfilesEngine (async).")
+    """Run the anonymization engine asynchronously."""
+    logger.info(
+        f"Tâche {input_path.parent.name}: Exécution du moteur AnonyfilesEngine (async)."
+    )
     return await engine.anonymize_async(
         input_path=input_path,
         output_path=output_path,
@@ -93,6 +127,18 @@ def _process_engine_result(
     mapping_output_path: Path,
     log_entities_path: Path
 ) -> None:
+    """Persist engine results and log the final status.
+
+    Args:
+        current_job: Job instance being processed.
+        engine_result: Result dictionary returned by the engine.
+        input_path: Path of the original uploaded file.
+        output_path: Path to the anonymized output file.
+        mapping_output_path: Path to the mapping CSV file.
+        log_entities_path: Path to the entity log file.
+    """
+
+    engine_status_reported = engine_result.get("status")
     engine_status_reported = engine_result.get("status")
     engine_error_message = engine_result.get("error")
 
@@ -135,7 +181,21 @@ def _handle_job_error(
     mapping_output_path: Optional[Path] = None,
     log_entities_path: Optional[Path] = None
 ) -> None:
-    logger.error(f"Tâche {current_job.job_id}: {error_context} - {e}", exc_info=True)
+    """Log an error and update the job status accordingly.
+
+    Args:
+        current_job: Job instance concerned by the error.
+        e: The exception that was raised.
+        error_context: Contextual information about where the error happened.
+        input_path: Path to the original input file.
+        output_path: Optional path to the produced output file.
+        mapping_output_path: Optional path to the mapping CSV.
+        log_entities_path: Optional path to the entity log file.
+    """
+
+    logger.error(
+        f"Tâche {current_job.job_id}: {error_context} - {e}", exc_info=True
+    )
 
     if isinstance(e, FileNotFoundError): error_message = f"Fichier non trouvé: {getattr(e, 'filename', 'N/A')}"
     elif isinstance(e, PermissionError): error_message = f"Erreur de permission: {getattr(e, 'strerror', 'N/A')} sur {getattr(e, 'filename', 'N/A')}"
@@ -165,6 +225,17 @@ def run_anonymization_job_sync(
     custom_rules: Optional[list],
     passed_base_config: Dict[str, Any]
 ):
+    """Execute an anonymization job in a background thread.
+
+    Args:
+        job_id: Identifier for the job directory.
+        input_path: Path to the uploaded file.
+        config_options: Parsed anonymization options.
+        has_header: Optional CSV header flag.
+        custom_rules: Optional list of user provided replacement rules.
+        passed_base_config: Base configuration copied from application state.
+    """
+
     set_job_id(job_id)
     current_job = Job(job_id)
     output_path: Optional[Path] = None
@@ -223,7 +294,22 @@ async def anonymize_file_endpoint(
     custom_replacement_rules: Optional[str] = Form(None),
     file_type: Optional[str] = Form(None),
     has_header: Optional[str] = Form(None)
-): 
+):
+    """Handle file upload and start an anonymization job.
+
+    Args:
+        request: Current request object used to access application state.
+        background_tasks: FastAPI background task manager.
+        file: Uploaded file to anonymize.
+        config_options: JSON string with anonymization options.
+        custom_replacement_rules: Optional JSON list of replacement rules.
+        file_type: Optional hint about the uploaded file type.
+        has_header: Optional flag indicating if a CSV has a header row.
+
+    Returns:
+        A dictionary containing the job ID and its initial status.
+    """
+
     job_id = str(uuid.uuid4())
     set_job_id(job_id)
     current_job = Job(job_id)
@@ -304,6 +390,15 @@ async def anonymize_file_endpoint(
 
 @router.get("/anonymize_status/{job_id}", tags=["Anonymisation"])
 async def anonymize_status_endpoint(job_id: uuid.UUID):
+    """Return the status and, when finished, the result files for a job.
+
+    Args:
+        job_id: Identifier of the job to query.
+
+    Returns:
+        A JSON payload describing the current status and optionally the
+        anonymization results.
+    """
     job_id_str = str(job_id)
     set_job_id(job_id_str)
     current_job = Job(job_id_str)

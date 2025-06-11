@@ -15,6 +15,14 @@ router = APIRouter()
 
 @router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Tâches"])
 async def delete_job_endpoint(job_id: uuid.UUID): # job_id peut être str aussi
+    """Delete all files related to a job.
+
+    Args:
+        job_id: Identifier of the job directory to remove.
+
+    Returns:
+        An empty ``204 NO CONTENT`` response when successful.
+    """
     job_id_str = str(job_id)
     set_job_id(job_id_str)
     current_job = Job(job_id_str)
