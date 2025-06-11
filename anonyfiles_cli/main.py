@@ -35,7 +35,7 @@ def main_callback(
     S'assure qu'un fichier de configuration utilisateur par défaut existe au démarrage de l'application
     s'il n'est pas déjà présent.
     """
-    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, force=True)
     if verbose:
         logging.debug("Verbose mode enabled")
     CLIUsageLogger.VERBOSE = verbose
