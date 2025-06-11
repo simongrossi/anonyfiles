@@ -155,4 +155,4 @@ def test_cli_verbose_outputs_debug():
     runner = CliRunner()
     result = runner.invoke(app, ["--verbose", "config", "validate-config", str(cfg)])
     assert result.exit_code == 0
-    assert "Verbose mode enabled" in result.output
+    assert "DEBUG:root:Verbose mode enabled" in result.output
