@@ -148,3 +148,11 @@ def test_cli_deanonymize_uses_engine(tmp_path):
         )
         assert result.exit_code == 0
         engine_inst.deanonymize.assert_called_once()
+
+
+def test_cli_verbose_outputs_debug():
+    cfg = Path("anonyfiles_core/config/config.yaml")
+    runner = CliRunner()
+    result = runner.invoke(app, ["--verbose", "config", "validate-config", str(cfg)])
+    assert result.exit_code == 0
+    assert "Verbose mode enabled" in result.output

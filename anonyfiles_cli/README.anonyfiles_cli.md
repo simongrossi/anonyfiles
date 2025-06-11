@@ -167,6 +167,7 @@ python -m anonyfiles\_cli.main job delete 20250605-122744 --output-dir /home/deb
 | --csv-no-header | Indique que le fichier CSV d'entrée N'A PAS d'en-tête |
 | --append-timestamp | Ajoute un horodatage aux noms des fichiers de sortie par défaut |
 | --dry-run | Mode simulation : affiche les actions sans modifier les fichiers (fonctionne aussi pour `config create` et `config reset`) |
+| --verbose / -v | Affiche les messages de debug dans la console |
 | job delete <JOB\_ID> | Supprime un job spécifique et son répertoire. Nécessite --output-dir si non par défaut. |
 | job list | Liste les IDs de tous les jobs. Nécessite --output-dir si non par défaut. |
 
