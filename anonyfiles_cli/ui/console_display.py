@@ -51,6 +51,8 @@ class ConsoleDisplay:
                 table.add_row("Mapping CSV", str(paths["mapping_file"]))
             if paths.get("log_entities_file") and paths["log_entities_file"].exists():
                 table.add_row("Log des entités", str(paths["log_entities_file"]))
+            if paths.get("bundle_file") and paths["bundle_file"].exists():
+                table.add_row("Bundle", str(paths["bundle_file"]))
 
         self.console.print(table)
 
