@@ -19,9 +19,10 @@ Merci de votre intérêt pour contribuer à Anonyfiles !
 - Utilisez Black pour formater le code Python.
 - Suivez la structure de fichiers du projet.
 
-### Docstrings
-Les docstrings doivent suivre le format **Google**. Ce style simplifie
-l'automatisation de la documentation et assure une présentation cohérente.
+### Format des docstrings (style Google)
+Nous utilisons le **style Google** pour toutes les docstrings. Ce format facilite
+la génération automatique de la documentation et assure une présentation
+cohérente dans l'ensemble du projet. Voici un exemple minimal :
 
 ```python
 def saluer(nom: str) -> str:
@@ -31,7 +32,7 @@ def saluer(nom: str) -> str:
         nom: Nom de la personne à saluer.
 
     Returns:
-        La chaîne de caractères du message.
+        str: Le message final.
     """
     return f"Bonjour {nom}!"
 ```
