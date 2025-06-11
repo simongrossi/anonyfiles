@@ -309,6 +309,13 @@ Ou dans un service Systemd :
 Environment=ANONYFILES_DEFAULTS_FILE=/etc/anonyfiles/paths.toml
 ```
 
+## 📝 Format des logs CLI
+
+Chaque entrée du fichier `cli_audit_log.jsonl` est une ligne JSON.
+En plus des champs existants (`timestamp`, `success`, `error`, etc.),
+les erreurs enregistrent désormais le `command` exécuté et les `arguments`
+passés à la CLI lorsque ces informations sont disponibles.
+
 ## 📖 Documentation détaillée
 
 * **Core :** Voir [`anonyfiles_core/README.md`](anonyfiles_core/README.md)
