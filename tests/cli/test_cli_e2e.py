@@ -4,6 +4,7 @@ from typer.testing import CliRunner
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+import zipfile
 import importlib
 import sys
 
@@ -40,6 +41,44 @@ def test_cli_anonymize_dry_run(tmp_path):
         )
     assert result.exit_code == 0
     assert "Anonymisation du fichier" in result.output
+
+
+def test_cli_anonymize_bundle(tmp_path):
+    sample = tmp_path / "sample.txt"
+    sample.write_text("Jean Dupont à Paris", encoding="utf-8")
+    out_file = tmp_path / "out.txt"
+    map_file = tmp_path / "map.csv"
+    log_file = tmp_path / "log.csv"
+    bundle = tmp_path / "bundle.zip"
+    with patch.object(spacy_engine, "spacy", SimpleNamespace(load=lambda name: DummyModel())):
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            [
+                "anonymize",
+                "process",
+                str(sample),
+                "--config",
+                "anonyfiles_core/config/config.yaml",
+                "--output",
+                str(out_file),
+                "--mapping-output",
+                str(map_file),
+                "--log-entities",
+                str(log_file),
+                "--bundle",
+                str(bundle),
+                "--force",
+            ],
+        )
+    assert result.exit_code == 0
+    assert bundle.exists()
+    with zipfile.ZipFile(bundle) as zf:
+        names = zf.namelist()
+        assert out_file.name in names
+        assert map_file.name in names
+        assert log_file.name in names
+        assert "audit.json" in names
 
 
 def test_cli_validate_config(tmp_path):

@@ -44,7 +44,8 @@ class PathManager:
         output_override: Optional[Path],
         mapping_override: Optional[Path],
         log_entities_override: Optional[Path],
-        dry_run: bool
+        dry_run: bool,
+        bundle_override: Optional[Path] = None
     ) -> Dict[str, Path]:
         """
         Résout tous les chemins de fichiers de sortie.
@@ -101,6 +102,20 @@ class PathManager:
                 paths["log_entities_file"] = default_log(self.input_file, self.run_dir)
             else:
                 paths["log_entities_file"] = self.base_output_dir / "dry_run_log.tmp"
+
+        # Chemin du bundle zip
+        if bundle_override:
+            paths["bundle_file"] = bundle_override
+            if not dry_run:
+                try:
+                    ensure_folder(bundle_override.parent)
+                except Exception as e:
+                    raise FileIOError(f"Impossible de créer le répertoire parent pour le bundle '{bundle_override}': {e}")
+        else:
+            if not dry_run:
+                paths["bundle_file"] = self.run_dir / f"{self.input_file.stem}_bundle.zip"
+            else:
+                paths["bundle_file"] = self.base_output_dir / "dry_run_bundle.tmp"
 
         # Le répertoire de run lui-même (s'il n'est pas déjà créé par les chemins spécifiés par l'utilisateur)
         if not dry_run:

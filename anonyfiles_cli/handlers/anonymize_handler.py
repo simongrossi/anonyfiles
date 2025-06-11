@@ -32,6 +32,7 @@ class AnonymizeHandler:
                 output: Optional[Path],
                 log_entities: Optional[Path],
                 mapping_output: Optional[Path],
+                bundle_output: Optional[Path],
                 output_dir: Path,
                 dry_run: bool,
                 csv_no_header: bool, # Reçoit l'option directe
@@ -59,14 +60,24 @@ class AnonymizeHandler:
 
             # 2. Résolution des chemins
             path_manager = PathManager(input_file, output_dir, run_id, append_timestamp)
-            paths = path_manager.resolve_paths(output, mapping_output, log_entities, dry_run)
+            paths = path_manager.resolve_paths(output, mapping_output, log_entities, dry_run, bundle_output)
             self.console.console.print("➡️  Chemins de sortie résolus.")
 
             # 3. Vérifications pré-traitement (écrasement de fichiers)
             if not dry_run:
                 ValidationManager.check_overwrite(
-                    [p for p in paths.values() if p.name not in ["dry_run_output.tmp", "dry_run_mapping.tmp", "dry_run_log.tmp"]],
-                    force
+                    [
+                        p
+                        for p in paths.values()
+                        if p.name
+                        not in [
+                            "dry_run_output.tmp",
+                            "dry_run_mapping.tmp",
+                            "dry_run_log.tmp",
+                            "dry_run_bundle.tmp",
+                        ]
+                    ],
+                    force,
                 )
             
             self.console.console.print("⚙️  Démarrage du traitement d'anonymisation...")
@@ -113,6 +124,18 @@ class AnonymizeHandler:
                 status=result.get("status", "unknown"),
                 error=result.get("error")
             )
+            if not dry_run and bundle_output:
+                from anonyfiles_core.anonymizer.bundle_handler import create_bundle
+                create_bundle(
+                    paths.get("bundle_file"),
+                    paths.get("output_file"),
+                    paths.get("mapping_file"),
+                    result.get("audit_log", []),
+                    paths.get("log_entities_file"),
+                )
+                self.console.console.print(
+                    f"🎁 Bundle créé : [bold green]{paths.get('bundle_file')}[/bold green]"
+                )
             # AJOUTEZ CETTE LIGNE POUR AFFICHER L'ID DU JOB
             if not dry_run and paths.get("output_file"):
                 full_output_base_path = path_manager.base_output_dir.resolve()
