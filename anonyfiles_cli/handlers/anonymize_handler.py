@@ -116,15 +116,19 @@ class AnonymizeHandler:
             if input_file.suffix.lower() == ".csv" and csv_has_header_bool is not None:
                 processor_kwargs["has_header"] = csv_has_header_bool
 
-            result = engine.anonymize(
-                input_path=input_file,
-                output_path=paths.get("output_file"),
-                entities=None,  # La gestion des entités exclues est dans AnonyfilesEngine
-                dry_run=dry_run,
-                log_entities_path=paths.get("log_entities_file"),
-                mapping_output_path=paths.get("mapping_file"),
-                **processor_kwargs,
-            )
+            with self.console.console.status(
+                "[bold green]🔄 Anonymisation en cours...[/bold green]",
+                spinner="dots",
+            ):
+                result = engine.anonymize(
+                    input_path=input_file,
+                    output_path=paths.get("output_file"),
+                    entities=None,  # La gestion des entités exclues est dans AnonyfilesEngine
+                    dry_run=dry_run,
+                    log_entities_path=paths.get("log_entities_file"),
+                    mapping_output_path=paths.get("mapping_file"),
+                    **processor_kwargs,
+                )
 
             if result.get("status") == "error":
                 raise ProcessingError(result.get("error", "Le moteur d'anonymisation a signalé une erreur."))

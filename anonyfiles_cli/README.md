@@ -32,6 +32,7 @@ Il s’appuie sur le NLP (spaCy), une configuration flexible en YAML, et des rè
 * **Robustesse et performance** :
   + Chargement paresseux de spaCy, gestion fine des erreurs, cache en mémoire
   + Interface console enrichie (Rich)
+  + Indicateur de progression lors de l'anonymisation
 * **Gestion des jobs** :
   + Nettoyage et listage des fichiers de sortie des jobs pour une meilleure gestion de la confidentialité.
 
