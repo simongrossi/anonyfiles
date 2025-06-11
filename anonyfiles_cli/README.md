@@ -145,6 +145,22 @@ python -m anonyfiles_cli.main anonymize anonyfiles_cli/input.txt --interactive
 
 La CLI affichera la liste des labels (PER, ORG, LOC, EMAIL, DATE, ...) et générera automatiquement l'argument `--exclude-entities` selon vos choix.
 
+### **⚙️ Installation des complétions**
+
+Pour activer l'autocomplétion de la CLI, exécutez :
+
+```bash
+anonyfiles_cli --install-completion bash   # pour Bash
+anonyfiles_cli --install-completion zsh    # pour Zsh
+anonyfiles_cli --install-completion fish   # pour Fish
+```
+
+Vous pouvez aussi obtenir le script directement :
+
+```bash
+anonyfiles_cli completion bash
+```
+
 
 ## **🧹 Gestion des jobs (nettoyage et listage)**
 

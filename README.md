@@ -184,6 +184,12 @@ pip install -r anonyfiles_api/requirements.txt
 
 ➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
 
+Pour activer l'autocomplétion Bash, Zsh ou Fish :
+
+```bash
+anonyfiles_cli --install-completion bash   # ou zsh/fish
+```
+
 ![Aperçu de la CLI](https://i.imgur.com/GJksQfm.jpeg)
 
 ### Installation GUI

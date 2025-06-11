@@ -154,3 +154,18 @@ def run_benchmark(
         console.console.print(f"⏱️ Temps moyen : [cyan]{avg_time:.2f}s[/cyan]")
         console.console.print(f"🚀 Plus rapide : [green]{min_time:.2f}s[/green]")
         console.console.print(f"🐌 Plus lent : [red]{max_time:.2f}s[/red]")
+
+
+@app.command(name="completion", help="Affiche le script d'autocompl\xe9tion pour un shell.")
+def generate_completion(
+    shell: str = typer.Argument(..., help="Type de shell : bash, zsh ou fish")
+):
+    """Imprime le script d'autocompl\xe9tion pour le shell donn\xe9."""
+    from typer._completion_shared import get_completion_script
+
+    script = get_completion_script(
+        prog_name="anonyfiles_cli",
+        complete_var="_ANONYFILES_CLI_COMPLETE",
+        shell=shell,
+    )
+    typer.echo(script)
