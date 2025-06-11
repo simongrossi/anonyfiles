@@ -18,7 +18,9 @@ def log_run_event(
     total_replacements: int,
     audit_log: Optional[list],
     status: str,
-    error: Optional[str] = None
+    error: Optional[str] = None,
+    command: Optional[str] = None,
+    args: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Log une session (run) d'anonymisation/désanonymisation de façon centralisée et cohérente.
@@ -45,5 +47,7 @@ def log_run_event(
         "total_replacements": total_replacements,
         "rules_applied": audit_log or [],
         "success": status == "success",
-        "error": error
+        "error": error,
+        "command": command,
+        "arguments": args or {},
     })

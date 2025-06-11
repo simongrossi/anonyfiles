@@ -4,7 +4,7 @@ import datetime
 import json
 import os
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import typer
 from pathlib import Path
 import traceback
@@ -36,14 +36,25 @@ class CLIUsageLogger:
             logger.error("[CLIUsageLogger] Erreur d’écriture log: %s", e)
 
     @classmethod
-    def log_error(cls, context: str, exc: Exception):
+    def log_error(
+        cls,
+        context: str,
+        exc: Exception,
+        *,
+        command: Optional[str] = None,
+        args: Optional[Dict[str, Any]] = None,
+    ):
         entry: Dict[str, Any] = {
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "error": str(exc),
             "traceback": traceback.format_exc(),
             "context": context,
         }
-        if cls.VERBOSE:
+        if command is not None:
+            entry["command"] = command
+        if args is not None:
+            entry["arguments"] = args
+        elif cls.VERBOSE:
             try:
                 ctx = typer.get_current_context()
                 entry["command"] = ctx.command_path

@@ -3,6 +3,7 @@
 import traceback
 from pathlib import Path
 from typing import Dict, Any, Optional
+import typer
 
 from rich.console import Console
 from rich.panel import Panel
@@ -86,22 +87,35 @@ class ConsoleDisplay:
         :param context: Contexte de l'erreur (où elle s'est produite).
         """
         from ..cli_logger import CLIUsageLogger
+        command_name = None
+        params = None
+        try:
+            ctx = typer.get_current_context()
+            command_name = ctx.command_path
+            params = ctx.params
+        except Exception:
+            pass
 
         if isinstance(error, ConfigurationError):
             self.console.print(f"⚙️  [yellow]Erreur de configuration:[/yellow] {error}")
-            CLIUsageLogger.log_error(context, error)
+            CLIUsageLogger.log_error(context, error, command=command_name, args=params)
         elif isinstance(error, FileIOError):
             self.console.print(f"📂 [red]Erreur fichier:[/red] {error}")
-            CLIUsageLogger.log_error(context, error)
+            CLIUsageLogger.log_error(context, error, command=command_name, args=params)
         elif isinstance(error, ProcessingError):
             self.console.print(f"⚠️  [red]Erreur de traitement:[/red] {error}")
-            CLIUsageLogger.log_error(context, error)
+            CLIUsageLogger.log_error(context, error, command=command_name, args=params)
         elif isinstance(error, AnonyfilesError):
             self.console.print(f"❌ [red]Erreur :[/red] {error}")
-            CLIUsageLogger.log_error(context, error)
+            CLIUsageLogger.log_error(context, error, command=command_name, args=params)
         else:
             self.console.print(f"❌ [red]Erreur inattendue:[/red] {error}")
             self.console.print(f"[red]Contexte de l'erreur: {context}[/red]")
-            CLIUsageLogger.log_error(f"{context}_unexpected_error", error)
+            CLIUsageLogger.log_error(
+                f"{context}_unexpected_error",
+                error,
+                command=command_name,
+                args=params,
+            )
             self.console.print("[red]Veuillez signaler ce bug si cela persiste.[/red]")
             self.console.print(traceback.format_exc(), style="dim red")

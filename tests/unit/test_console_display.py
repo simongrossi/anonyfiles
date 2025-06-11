@@ -6,7 +6,7 @@ from anonyfiles_cli.exceptions import ConfigurationError, FileIOError, Processin
 
 class DummyLogger:
     @staticmethod
-    def log_error(context, exc):
+    def log_error(context, exc, *, command=None, args=None):
         pass
 
 
