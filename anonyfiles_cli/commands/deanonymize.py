@@ -59,6 +59,9 @@ def process_deanonymize(
         console.handle_error(e, "deanonymize_command_validation_or_setup")
         raise typer.Exit(code=ExitCodes.CONFIG_ERROR)
 
+    except typer.Exit:
+        raise
+
     except Exception as e:
         console.handle_error(e, "deanonymize_command_unexpected")
         raise typer.Exit(code=ExitCodes.GENERAL_ERROR)

@@ -80,6 +80,8 @@ def file_info(
         except Exception as e:
             console.console.print(f"❌ Erreur de lecture du contenu : {e}", style="red")
 
+    except typer.Exit:
+        raise
     except Exception as e:
         console.handle_error(e, "file_info_command")
         raise typer.Exit(code=ExitCodes.GENERAL_ERROR)
@@ -142,6 +144,8 @@ def run_benchmark(
             else:
                 console.console.print(f"  ❌ Erreur pendant l'itération, temps mesuré : {duration:.2f}s", style="red")
             
+        except typer.Exit:
+            raise
         except Exception as e:
             console.console.print(f"  ❌ Erreur inattendue lors du benchmark : [red]{e}[/red]", style="red")
     
