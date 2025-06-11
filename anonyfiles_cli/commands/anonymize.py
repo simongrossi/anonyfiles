@@ -85,6 +85,9 @@ def process_anonymize(
         console.handle_error(e, "anonymize_command_validation_or_setup")
         raise typer.Exit(code=ExitCodes.CONFIG_ERROR) # ou l'exit code approprié à l'erreur
 
+    except typer.Exit:
+        raise
+
     except Exception as e:
         console.handle_error(e, "anonymize_command_unexpected")
         raise typer.Exit(code=ExitCodes.GENERAL_ERROR)

@@ -44,6 +44,9 @@ def show_config(
                 console.console.print(f"\n[dim]Fichier de configuration utilisateur : {user_config_path}[/dim]")
             else:
                 console.console.print(f"\n[dim]Aucun fichier de configuration utilisateur trouvé. La configuration par défaut est utilisée.[/dim]")
+    except typer.Exit:
+        raise
+
     except Exception as e:
         console.handle_error(e, "config_show_command")
         raise typer.Exit(ExitCodes.GENERAL_ERROR)
@@ -64,6 +67,9 @@ def create_config(
     try:
         ConfigManager.create_default_user_config()
         console.console.print(f"✅ Configuration par défaut créée dans : [green]{user_config_path}[/green]")
+    except typer.Exit:
+        raise
+
     except Exception as e:
         console.handle_error(e, "config_create_command")
         raise typer.Exit(ExitCodes.CONFIG_ERROR)
@@ -87,6 +93,9 @@ def reset_config(
                 os.remove(user_config_path)
                 ConfigManager.create_default_user_config()  # Recrée une version par défaut
                 console.console.print("✅ Configuration utilisateur réinitialisée.")
+            except typer.Exit:
+                raise
+
             except Exception as e:
                 console.handle_error(e, "config_reset_command")
                 raise typer.Exit(ExitCodes.CONFIG_ERROR)
@@ -98,6 +107,9 @@ def reset_config(
         try:
             ConfigManager.create_default_user_config()
             console.console.print(f"✅ Configuration par défaut créée dans : [green]{user_config_path}[/green]")
+        except typer.Exit:
+            raise
+
         except Exception as e:
             console.handle_error(e, "config_reset_command")
             raise typer.Exit(ExitCodes.CONFIG_ERROR)
@@ -111,6 +123,9 @@ def edit_config():
         try:
             ConfigManager.create_default_user_config()
             console.console.print(f"✅ Fichier de configuration par défaut créé : [green]{user_config_path}[/green]", style="green")
+        except typer.Exit:
+            raise
+
         except Exception as e:
             console.handle_error(e, "config_edit_command")
             raise typer.Exit(ExitCodes.CONFIG_ERROR)
@@ -130,6 +145,8 @@ def validate_config_cmd(
     except ConfigurationError as e:
         console.console.print(f"❌ {e}", style="red")
         raise typer.Exit(ExitCodes.CONFIG_ERROR)
+    except typer.Exit:
+        raise
     except Exception as e:
         console.handle_error(e, "config_validate_command")
         raise typer.Exit(ExitCodes.GENERAL_ERROR)

@@ -60,6 +60,9 @@ def process_batch(
         console.handle_error(e, "batch_command_setup")
         raise typer.Exit(code=e.exit_code) # Utilise l'exit_code défini dans AnonyfilesError
 
+    except typer.Exit:
+        raise
+
     except Exception as e:
         console.handle_error(e, "batch_command_unexpected")
         raise typer.Exit(code=ExitCodes.GENERAL_ERROR)

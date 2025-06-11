@@ -62,6 +62,8 @@ def delete_job(
     except AnonyfilesError as e:
         console.handle_error(e, "delete_job_command")
         raise typer.Exit(e.exit_code)
+    except typer.Exit:
+        raise
     except Exception as e:
         console.handle_error(e, "delete_job_command_unexpected")
         raise typer.Exit(1)
@@ -107,6 +109,8 @@ def list_jobs(
     except AnonyfilesError as e:
         console.handle_error(e, "list_jobs_command")
         raise typer.Exit(e.exit_code)
+    except typer.Exit:
+        raise
     except Exception as e:
         console.handle_error(e, "list_jobs_command_unexpected")
         raise typer.Exit(1)
