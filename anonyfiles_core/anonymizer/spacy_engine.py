@@ -35,11 +35,10 @@ def _load_spacy_model_cached(model_name: str):
     try:
         return spacy.load(model_name)
     except Exception as e:
+        install_cmd = f"python -m spacy download {model_name}"
         raise ConfigurationError(
-            f"Could not load spaCy model '{model_name}'. "
-            f"Please install it with 'python -m spacy download {model_name}'. "
-            f"Original error: {e}"
-        )
+            f"Could not load spaCy model '{model_name}'. Install it using: {install_cmd}. Original error: {e}"
+        ) from e
 
 
 class SpaCyEngine:
