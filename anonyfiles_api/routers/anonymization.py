@@ -5,7 +5,6 @@ from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPExce
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from typing import Optional, Any, Dict, List
-import asyncio
 from pathlib import Path
 import json
 import uuid
@@ -190,15 +189,13 @@ def run_anonymization_job_sync(
         mapping_output_path = default_mapping(input_path, current_job.job_dir)
 
         engine = AnonyfilesEngine(config=passed_base_config, **engine_opts)
-        engine_result = asyncio.run(
-            _execute_engine_anonymization_async(
-                engine,
-                input_path,
-                output_path,
-                log_entities_path,
-                mapping_output_path,
-                processor_kwargs,
-            )
+        engine_result = _execute_engine_anonymization(
+            engine,
+            input_path,
+            output_path,
+            log_entities_path,
+            mapping_output_path,
+            processor_kwargs,
         )
 
         _process_engine_result(
