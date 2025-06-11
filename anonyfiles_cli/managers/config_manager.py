@@ -77,6 +77,12 @@ class ConfigManager:
             cli_config = ValidationManager.load_and_validate_config(cli_provided_config_path)
             merged_config.update(cli_config)
 
+        # Validation finale de la configuration fusionnée
+        try:
+            ValidationManager.validate_config_dict(merged_config)
+        except ConfigurationError as e:
+            raise ConfigurationError(f"Configuration finale invalide: {e}") from e
+
         return merged_config
 
     @classmethod

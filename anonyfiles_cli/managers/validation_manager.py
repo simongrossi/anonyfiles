@@ -118,3 +118,20 @@ class ValidationManager:
             logger.info("Continuant avec l'écrasement des fichiers existants.") # Modifié pour utiliser logger.info
         elif existing_files and force:
             logger.warning("⚠️  Les fichiers de sortie existants seront écrasés (mode --force).") # Modifié pour utiliser logger.warning
+
+    @staticmethod
+    def validate_config_dict(config: Dict[str, Any]) -> None:
+        """Valide un dictionnaire de configuration selon ``SCHEMA``."""
+        v = Validator(SCHEMA)
+        if not v.validate(config):
+            raise ConfigurationError(f"Configuration YAML invalide : {v.errors}")
+
+    @staticmethod
+    def ensure_spacy_model(model_name: str) -> None:
+        """Vérifie que le modèle spaCy demandé est installé."""
+        import importlib
+        if importlib.util.find_spec(model_name) is None:
+            raise ConfigurationError(
+                f"Le modèle spaCy '{model_name}' est introuvable. "
+                f"Installez-le avec 'python -m spacy download {model_name}'."
+            )
