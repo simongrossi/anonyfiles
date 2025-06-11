@@ -76,6 +76,7 @@ class AnonymizeHandler:
 
             # 1. Configuration
             effective_config = ConfigManager.get_effective_config(config_path)
+            ValidationManager.ensure_spacy_model(effective_config.get("spacy_model", "fr_core_news_md"))
             self.console.console.print("🔧 Configuration chargée et validée.")
 
             # 2. Résolution des chemins

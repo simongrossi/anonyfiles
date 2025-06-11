@@ -35,6 +35,7 @@ La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API p
 * Prise en charge du français (et autres langues via spaCy)
 * **Asynchrone via l’API REST** (suivi via `job_id`)
 * **Portable** : aucun chemin codé en dur, multiplateforme (Windows, macOS, Linux)
+* **Validation rapide** : les chemins, la configuration et la présence du modèle spaCy sont vérifiés avant de lancer le traitement
 
 ---
 
