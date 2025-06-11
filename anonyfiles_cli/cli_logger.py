@@ -17,6 +17,15 @@ class CLIUsageLogger:
 
     @classmethod
     def get_log_path(cls):
+        """Return the path to today's audit log file.
+
+        The method creates the directory structure for the current date if
+        it does not already exist and returns the full path to the JSON Lines
+        log file used to store CLI audit entries.
+
+        Returns:
+            Path: Path object pointing to ``cli_audit_log.jsonl`` for today.
+        """
         now = datetime.datetime.now()
         log_dir = cls.LOG_BASE_DIR / str(now.year) / f"{now.month:02d}" / f"{now.day:02d}"
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -24,6 +33,14 @@ class CLIUsageLogger:
 
     @classmethod
     def log_run(cls, info: dict):
+        """Append a run entry to today's audit log.
+
+        Args:
+            info (dict): Arbitrary metadata describing the executed command.
+
+        This method automatically adds a UTC timestamp to ``info`` and writes
+        it as a JSON object to the log file.
+        """
         entry = {
             "timestamp": datetime.datetime.utcnow().isoformat(),
             **info
@@ -44,6 +61,20 @@ class CLIUsageLogger:
         command: Optional[str] = None,
         args: Optional[Dict[str, Any]] = None,
     ):
+        """Record an error entry in the audit log.
+
+        Args:
+            context (str): Text explaining in which context the error occurred.
+            exc (Exception): The raised exception instance.
+            command (Optional[str], optional): Command name to associate with
+                the error. Defaults to ``None``.
+            args (Optional[Dict[str, Any]], optional): Parameters passed to the
+                command. If ``None`` and ``VERBOSE`` is ``True``, the current
+                Typer context is used when available.
+
+        The entry contains the exception message and stack trace in addition to
+        the provided context.
+        """
         entry: Dict[str, Any] = {
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "error": str(exc),
@@ -70,7 +101,17 @@ class CLIUsageLogger:
 
     @classmethod
     def get_last_runs(cls, n=10):
-        # Va chercher dans le dossier du jour uniquement (sinon, il faut parcourir tous les sous-dossiers)
+        """Return the last ``n`` recorded runs from today's log.
+
+        Only the log file for the current day is inspected; older log files are
+        ignored.
+
+        Args:
+            n (int): Number of recent entries to retrieve. Defaults to ``10``.
+
+        Returns:
+            List[dict]: Parsed log entries ordered from oldest to newest.
+        """
         log_path = cls.get_log_path()
         if not log_path.exists():
             return []
