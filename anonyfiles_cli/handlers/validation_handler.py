@@ -17,9 +17,17 @@ class ValidationHandler:
                                   custom_replacements_json: Optional[str],
                                   csv_no_header: bool,
                                   has_header_opt: Optional[str]):
-        """
-        Valide les entrées communes à la commande d'anonymisation.
-        Lève ConfigurationError en cas de problème.
+        """Validate inputs for anonymization.
+
+        Args:
+            input_file (Path): File provided to the command.
+            output (Optional[Path]): Optional destination file for anonymized output.
+            custom_replacements_json (Optional[str]): JSON string containing custom replacement rules.
+            csv_no_header (bool): Indicates CSV input has no header row.
+            has_header_opt (Optional[str]): Explicit CSV header flag ("true"/"false").
+
+        Raises:
+            ConfigurationError: If an option is invalid or files are missing.
         """
         cls._validate_file_extension(input_file)
         cls._validate_csv_options(input_file, csv_no_header, has_header_opt)
@@ -29,8 +37,14 @@ class ValidationHandler:
     def validate_deanonymize_inputs(cls,
                                     input_file: Path,
                                     mapping_csv: Path):
-        """
-        Valide les entrées communes à la commande de désanonymisation.
+        """Validate inputs for deanonymization.
+
+        Args:
+            input_file (Path): Anonymized file to restore.
+            mapping_csv (Path): Mapping file generated during anonymization.
+
+        Raises:
+            ConfigurationError: If the files are missing or invalid.
         """
         if not input_file.exists() or not input_file.is_file():
             raise ConfigurationError(f"Le fichier d'entrée '{input_file}' est introuvable ou n'est pas un fichier.")

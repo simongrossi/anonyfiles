@@ -22,15 +22,27 @@ class DeanonymizeHandler:
     def __init__(self, console: ConsoleDisplay):
         self.console = console
 
-    def process(self,
-                input_file: Path,
-                mapping_csv: Path,
-                output: Optional[Path],
-                report: Optional[Path],
-                dry_run: bool,
-                permissive: bool):
-        """
-        Traite la désanonymisation d'un fichier en orchestrant les différentes étapes.
+    def process(
+        self,
+        input_file: Path,
+        mapping_csv: Path,
+        output: Optional[Path],
+        report: Optional[Path],
+        dry_run: bool,
+        permissive: bool,
+    ):
+        """Restore anonymized text using ``mapping_csv``.
+
+        Args:
+            input_file (Path): Text file containing anonymized data.
+            mapping_csv (Path): CSV mapping produced during anonymization.
+            output (Optional[Path]): Destination file for restored text.
+            report (Optional[Path]): JSON report output path.
+            dry_run (bool): If ``True`` simulate the process without writing files.
+            permissive (bool): Disable strict validation of mapping coverage.
+
+        Returns:
+            bool: ``True`` on success, ``False`` otherwise.
         """
         run_id = timestamp() # Générez le run_id ici pour la désanonymisation aussi
         self.console.console.print(f"🔁 Désanonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]")

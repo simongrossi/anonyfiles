@@ -35,12 +35,23 @@ class BatchHandler:
         config: Optional[Path],
         dry_run: bool,
         recursive: bool,
-        # Passer les options CSV si le batch doit les gérer uniformément
-        csv_no_header: bool,
+        csv_no_header: bool,  # Passer les options CSV si le batch doit les gérer uniformément
         has_header_opt: Optional[str],
     ):
-        """
-        Traite un répertoire de fichiers en lot.
+        """Run anonymization on all files within ``input_dir``.
+
+        Args:
+            input_dir (Path): Directory containing files to anonymize.
+            pattern (str): Glob pattern used to select files.
+            output_dir (Optional[Path]): Directory for anonymized files.
+            config (Optional[Path]): Configuration file applied to all files.
+            dry_run (bool): If ``True`` simulate anonymization without writing files.
+            recursive (bool): Search ``input_dir`` recursively.
+            csv_no_header (bool): Indicates CSV inputs have no header row.
+            has_header_opt (Optional[str]): Explicit CSV header flag ("true"/"false").
+
+        Returns:
+            None
         """
         if not input_dir.exists() or not input_dir.is_dir():
             self.console.console.print(
