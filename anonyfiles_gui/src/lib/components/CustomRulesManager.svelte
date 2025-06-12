@@ -62,7 +62,7 @@
     const formData = new FormData();
     formData.append('file', yourFileBlob, yourFileName);
     formData.append('config_options', JSON.stringify(yourConfigOptions)); // N'oubliez pas de stringifier les objets config
-    formData.append('custom_replacement_rules', rulesJsonString); // <--- C'EST LA LIGNE CRUCIALE
+    formData.append('custom_replacement_rules', rulesJsonString);
     formData.append('file_type', yourFileType);
     if (yourHasHeader !== null) {
       formData.append('has_header', String(yourHasHeader)); // Convertir en chaîne
