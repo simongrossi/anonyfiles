@@ -7,6 +7,9 @@ from typing import List
 from .base_processor import BaseProcessor
 import aiofiles
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 # apply_positional_replacements n'est plus nécessaire ici car le traitement se fait dans anonyfiles_core
 
 class CsvProcessor(BaseProcessor):
@@ -35,7 +38,11 @@ class CsvProcessor(BaseProcessor):
         except FileNotFoundError:
             raise
         except Exception as e:
-            print(f"Erreur lors de l'extraction des blocs du CSV {input_path}: {e}")
+            logger.error(
+                "Erreur lors de l'extraction des blocs du CSV %s: %s",
+                input_path,
+                e,
+            )
             return []
         return cell_texts
 
@@ -53,7 +60,11 @@ class CsvProcessor(BaseProcessor):
         except FileNotFoundError:
             raise
         except Exception as e:
-            print(f"Erreur lors de l'extraction des blocs du CSV {input_path}: {e}")
+            logger.error(
+                "Erreur lors de l'extraction des blocs du CSV %s: %s",
+                input_path,
+                e,
+            )
             return []
         return cell_texts
 
@@ -86,13 +97,20 @@ class CsvProcessor(BaseProcessor):
                 for row_orig in reader_orig:
                     original_row_structures.append(len(row_orig))
         except FileNotFoundError:
-            print(f"Erreur critique : Fichier original {original_input_path} non trouvé lors de la reconstruction.")
+            logger.error(
+                "Erreur critique : Fichier original %s non trouvé lors de la reconstruction.",
+                original_input_path,
+            )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, mode='w', encoding='utf-8', newline='') as fout:
                 pass
             return
         except Exception as e:
-            print(f"Erreur lors de la lecture du fichier CSV original {original_input_path} pour reconstruction : {e}")
+            logger.error(
+                "Erreur lors de la lecture du fichier CSV original %s pour reconstruction : %s",
+                original_input_path,
+                e,
+            )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, mode='w', encoding='utf-8', newline='') as fout:
                 if header_row:
@@ -103,7 +121,12 @@ class CsvProcessor(BaseProcessor):
         current_block_index = 0
         for num_cols_in_original_row in original_row_structures:
             if current_block_index + num_cols_in_original_row > len(final_processed_blocks):
-                print(f"Avertissement : Pas assez de blocs traités pour reconstruire la ligne avec {num_cols_in_original_row} colonnes. Index actuel: {current_block_index}, Blocs restants: {len(final_processed_blocks) - current_block_index}")
+                logger.warning(
+                    "Pas assez de blocs traités pour reconstruire la ligne avec %s colonnes. Index actuel: %s, Blocs restants: %s",
+                    num_cols_in_original_row,
+                    current_block_index,
+                    len(final_processed_blocks) - current_block_index,
+                )
                 actual_cols_to_take = min(num_cols_in_original_row, len(final_processed_blocks) - current_block_index)
                 new_row = final_processed_blocks[current_block_index : current_block_index + actual_cols_to_take]
                 new_row.extend([""] * (num_cols_in_original_row - actual_cols_to_take))
@@ -114,7 +137,10 @@ class CsvProcessor(BaseProcessor):
             current_block_index += num_cols_in_original_row
 
         if current_block_index < len(final_processed_blocks):
-            print(f"Avertissement : {len(final_processed_blocks) - current_block_index} blocs traités n'ont pas été utilisés dans la reconstruction du CSV.")
+            logger.warning(
+                "%s blocs traités n'ont pas été utilisés dans la reconstruction du CSV.",
+                len(final_processed_blocks) - current_block_index,
+            )
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -122,7 +148,11 @@ class CsvProcessor(BaseProcessor):
                 writer = csv.writer(fout)
                 writer.writerows(anonymized_rows)
         except Exception as e:
-            print(f"Erreur lors de l'écriture du fichier CSV anonymisé {output_path}: {e}")
+            logger.error(
+                "Erreur lors de l'écriture du fichier CSV anonymisé %s: %s",
+                output_path,
+                e,
+            )
 
     async def reconstruct_and_write_anonymized_file_async(
         self,
@@ -150,13 +180,20 @@ class CsvProcessor(BaseProcessor):
             for row_orig in reader_orig:
                 original_row_structures.append(len(row_orig))
         except FileNotFoundError:
-            print(f"Erreur critique : Fichier original {original_input_path} non trouvé lors de la reconstruction.")
+            logger.error(
+                "Erreur critique : Fichier original %s non trouvé lors de la reconstruction.",
+                original_input_path,
+            )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             async with aiofiles.open(output_path, mode='w', encoding='utf-8', newline='') as fout:
                 pass
             return
         except Exception as e:
-            print(f"Erreur lors de la lecture du fichier CSV original {original_input_path} pour reconstruction : {e}")
+            logger.error(
+                "Erreur lors de la lecture du fichier CSV original %s pour reconstruction : %s",
+                original_input_path,
+                e,
+            )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             async with aiofiles.open(output_path, mode='w', encoding='utf-8', newline='') as fout:
                 if header_row:
@@ -169,7 +206,12 @@ class CsvProcessor(BaseProcessor):
         current_block_index = 0
         for num_cols_in_original_row in original_row_structures:
             if current_block_index + num_cols_in_original_row > len(final_processed_blocks):
-                print(f"Avertissement : Pas assez de blocs traités pour reconstruire la ligne avec {num_cols_in_original_row} colonnes. Index actuel: {current_block_index}, Blocs restants: {len(final_processed_blocks) - current_block_index}")
+                logger.warning(
+                    "Pas assez de blocs traités pour reconstruire la ligne avec %s colonnes. Index actuel: %s, Blocs restants: %s",
+                    num_cols_in_original_row,
+                    current_block_index,
+                    len(final_processed_blocks) - current_block_index,
+                )
                 actual_cols_to_take = min(num_cols_in_original_row, len(final_processed_blocks) - current_block_index)
                 new_row = final_processed_blocks[current_block_index : current_block_index + actual_cols_to_take]
                 new_row.extend([""] * (num_cols_in_original_row - actual_cols_to_take))
@@ -180,7 +222,10 @@ class CsvProcessor(BaseProcessor):
             current_block_index += num_cols_in_original_row
 
         if current_block_index < len(final_processed_blocks):
-            print(f"Avertissement : {len(final_processed_blocks) - current_block_index} blocs traités n'ont pas été utilisés dans la reconstruction du CSV.")
+            logger.warning(
+                "%s blocs traités n'ont pas été utilisés dans la reconstruction du CSV.",
+                len(final_processed_blocks) - current_block_index,
+            )
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -190,4 +235,8 @@ class CsvProcessor(BaseProcessor):
             async with aiofiles.open(output_path, mode='w', encoding='utf-8', newline='') as fout:
                 await fout.write(csv_buffer.getvalue())
         except Exception as e:
-            print(f"Erreur lors de l'écriture du fichier CSV anonymisé {output_path}: {e}")
+            logger.error(
+                "Erreur lors de l'écriture du fichier CSV anonymisé %s: %s",
+                output_path,
+                e,
+            )
