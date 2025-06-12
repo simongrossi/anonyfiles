@@ -33,14 +33,8 @@ output_files/
 *.swp
 anonyfiles_gui/anonyfiles_outputs/mappings/anonyfiles_input_mapping_20250519-133245.csv
 anonyfiles_gui/package-lock.json
-anonyfiles_gui/package-lock.json
 *.csv
-anonyfiles_gui/package-lock.json
 anonyfiles_gui/src-tauri/Cargo.lock
-anonyfiles_gui/package-lock.json
-anonyfiles_gui/src-tauri/Cargo.lock
-anonyfiles_gui/src-tauri/Cargo.lock
-anonyfiles_gui/package-lock.json
 /jobs
 /env-api
 /env-cli/bin
@@ -68,3 +62,4 @@ full_commits.txt
 /runs
 *.egg-info/
 /anonyfiles_outputs
+sync.ffs_db
