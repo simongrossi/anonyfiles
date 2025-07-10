@@ -13,3 +13,4 @@ docx
 cerberus
 rich
 chardet
+aiofiles

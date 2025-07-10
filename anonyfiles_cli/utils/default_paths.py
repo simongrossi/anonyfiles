@@ -1,6 +1,11 @@
 import os
 from pathlib import Path
-import tomllib
+
+# Fallback tomli si tomllib n'est pas dispo (Python < 3.11)
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 
 DEFAULTS_FILE = Path(__file__).resolve().parent.parent.parent / "default_paths.toml"
 ENV_VAR = "ANONYFILES_DEFAULTS_FILE"
