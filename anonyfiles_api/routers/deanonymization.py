@@ -4,6 +4,7 @@ from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPExce
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from pathlib import Path
+import glob
 import aiofiles
 import uuid
 import json
@@ -18,7 +19,7 @@ from ..job_utils import Job
 # Si la logique de désanonymisation avait besoin de BASE_CONFIG, il faudrait le passer en argument
 # aux fonctions concernées, récupéré depuis request.app.state.BASE_CONFIG dans l'endpoint.
 # Pour l'instant, nous supposons que la désanonymisation n'a pas besoin de BASE_CONFIG.
-from ..core_config import logger, set_job_id
+from ..core_config import logger, set_job_id, BASE_INPUT_STEM_FOR_JOB_FILES
 
 from anonyfiles_core import DeanonymizationEngine
 from anonyfiles_core.anonymizer.file_utils import (
@@ -273,10 +274,43 @@ async def get_deanonymize_status(job_id: str):
 
     if status_data.get("status") == "finished":
         try:
-            original_input_name = status_data.get("original_input_name", "input_unknown_suffix")
-            original_suffix = Path(original_input_name).suffix if original_input_name and Path(original_input_name).name == original_input_name else ".txt"
-            
-            output_file_path = await run_in_threadpool(current_job._find_latest_file_sync, f"_deanonymise_*{original_suffix}")
+            raw_original_input_name = status_data.get("original_input_name")
+            sanitized_original_name = None
+            if isinstance(raw_original_input_name, str):
+                stripped_original_name = raw_original_input_name.strip()
+                if stripped_original_name:
+                    candidate_name = Path(stripped_original_name).name
+                    if candidate_name not in {"", ".", ".."}:
+                        sanitized_original_name = candidate_name
+
+            if sanitized_original_name:
+                sanitized_original_path = Path(sanitized_original_name)
+                original_suffix = sanitized_original_path.suffix or ".txt"
+                original_stem = sanitized_original_path.stem or BASE_INPUT_STEM_FOR_JOB_FILES
+            else:
+                original_suffix = ".txt"
+                original_stem = BASE_INPUT_STEM_FOR_JOB_FILES
+
+            # Les fichiers générés conservent le préfixe du fichier d'entrée d'origine,
+            # contrairement au moteur d'anonymisation qui force "input" comme base.
+            # Rechercher directement via le préfixe d'origine évite de tronquer les résultats
+            # lorsque le nom ne commence pas par "input".
+            escaped_original_stem = glob.escape(original_stem)
+            escaped_original_suffix = glob.escape(original_suffix)
+
+            def _find_latest_with_original_prefix() -> Optional[Path]:
+                pattern = f"{escaped_original_stem}_deanonymise_*{escaped_original_suffix}"
+                candidates = sorted(
+                    (p for p in current_job.job_dir.glob(pattern) if p.is_file()),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True,
+                )
+                if candidates:
+                    return candidates[0]
+                # Fallback sur l'ancien comportement basé sur BASE_INPUT_STEM_FOR_JOB_FILES
+                return current_job._find_latest_file_sync(f"_deanonymise_*{escaped_original_suffix}")
+
+            output_file_path = await run_in_threadpool(_find_latest_with_original_prefix)
             report_file_path = current_job.job_dir / "report.json"
             # Le journal d'audit pour la désanonymisation est stocké dans audit_log.json par la classe Job,
             # mais run_deanonymization_job_sync l'écrit aussi dans report.json (sous warnings...).
