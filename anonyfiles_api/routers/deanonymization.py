@@ -18,7 +18,7 @@ from ..job_utils import Job
 # Si la logique de désanonymisation avait besoin de BASE_CONFIG, il faudrait le passer en argument
 # aux fonctions concernées, récupéré depuis request.app.state.BASE_CONFIG dans l'endpoint.
 # Pour l'instant, nous supposons que la désanonymisation n'a pas besoin de BASE_CONFIG.
-from ..core_config import logger, set_job_id
+from ..core_config import logger, set_job_id, BASE_INPUT_STEM_FOR_JOB_FILES
 
 from anonyfiles_core import DeanonymizationEngine
 from anonyfiles_core.anonymizer.file_utils import (
@@ -275,8 +275,26 @@ async def get_deanonymize_status(job_id: str):
         try:
             original_input_name = status_data.get("original_input_name", "input_unknown_suffix")
             original_suffix = Path(original_input_name).suffix if original_input_name and Path(original_input_name).name == original_input_name else ".txt"
-            
-            output_file_path = await run_in_threadpool(current_job._find_latest_file_sync, f"_deanonymise_*{original_suffix}")
+
+            # Les fichiers générés conservent le préfixe du fichier d'entrée d'origine,
+            # contrairement au moteur d'anonymisation qui force "input" comme base.
+            # Rechercher directement via le préfixe d'origine évite de tronquer les résultats
+            # lorsque le nom ne commence pas par "input".
+            original_stem = Path(original_input_name).stem or BASE_INPUT_STEM_FOR_JOB_FILES
+
+            def _find_latest_with_original_prefix() -> Optional[Path]:
+                pattern = f"{original_stem}_deanonymise_*{original_suffix}"
+                candidates = sorted(
+                    (p for p in current_job.job_dir.glob(pattern) if p.is_file()),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True,
+                )
+                if candidates:
+                    return candidates[0]
+                # Fallback sur l'ancien comportement basé sur BASE_INPUT_STEM_FOR_JOB_FILES
+                return current_job._find_latest_file_sync(f"_deanonymise_*{original_suffix}")
+
+            output_file_path = await run_in_threadpool(_find_latest_with_original_prefix)
             report_file_path = current_job.job_dir / "report.json"
             # Le journal d'audit pour la désanonymisation est stocké dans audit_log.json par la classe Job,
             # mais run_deanonymization_job_sync l'écrit aussi dans report.json (sous warnings...).
