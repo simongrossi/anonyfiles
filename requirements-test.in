@@ -35,3 +35,14 @@ PyYAML>=6.0              # Pour la gestion des fichiers .yaml
 cerberus                 # Pour la validation de schémas
 yamale                   # Alternative pour la validation de schémas YAML
 chardet                  # Pour la détection de l'encodage des fichiers
+
+# ==============================================================================
+# == Documentation
+# ==============================================================================
+sphinx<8.0  # Sphinx 8+ requiert Python 3.12+
+furo        # Thème pour Sphinx
+
+# ==============================================================================
+# == Interface Utilisateur Textuelle (TUI)
+# ==============================================================================
+textual     # Pour l'application TUI interactive

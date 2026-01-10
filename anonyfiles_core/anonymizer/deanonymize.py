@@ -81,6 +81,7 @@ class Deanonymizer:
     def deanonymize_text(self, text: str, dry_run: bool = False) -> Tuple[str, dict]:
         self.warnings = list(self.map_loading_warnings)
         self.unknown_codes_in_text = set()
+        _seen_warnings = set(self.warnings)
 
         # Motif pour repérer les codes anonymisés (ex: {{NOM_XXX}} ou [CUSTOM_REDACTED])
         # Centralisé dans ``format_utils`` pour éviter la duplication.
@@ -103,14 +104,18 @@ class Deanonymizer:
                 else:
                     attempted_replacements_info["ambiguous_kept"] += 1
                     warning_msg = f"Collision: Le code '{code_from_text}' dans le texte correspond à plusieurs originaux ({list(originals_set)}). Placeholder inséré."
-                    if warning_msg not in self.warnings: self.warnings.append(warning_msg)
+                    if warning_msg not in _seen_warnings:
+                        self.warnings.append(warning_msg)
+                        _seen_warnings.add(warning_msg)
                     return f"[AMBIGUOUS_CODE:{code_from_text}]"
 
             else:
                 self.unknown_codes_in_text.add(code_from_text)
                 attempted_replacements_info["unknown_kept"] += 1
                 warning_msg = f"Code inconnu: Le code '{code_from_text}' trouvé dans le texte n'a pas de correspondance dans le mapping. Placeholder inséré."
-                if warning_msg not in self.warnings: self.warnings.append(warning_msg)
+                if warning_msg not in _seen_warnings:
+                    self.warnings.append(warning_msg)
+                    _seen_warnings.add(warning_msg)
                 return f"[UNKNOWN_MAPPING:{code_from_text}]"
 
         result_text = text

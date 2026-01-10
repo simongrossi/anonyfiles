@@ -59,20 +59,18 @@ class CustomRulesProcessor:
 
             try:
                 if is_regex and compiled_pattern is not None:
-                    # Capture all occurrences to log each replacement
-                    # Utilise une copie temporaire pour itérer afin d'éviter les problèmes
-                    # si `modified_text` est altéré pendant l'itération.
-                    temp_modified_text_for_re_finditer = modified_text 
-                    for match in compiled_pattern.finditer(temp_modified_text_for_re_finditer):
-                        matched_text = re.escape(match.group(0)) # Escape pour le sub pour ne pas interpréter comme regex
-                        
-                        # Remplacer une occurrence à la fois pour ne pas créer de chevauchements
-                        # qui seraient complexes à tracer.
-                        modified_text, num_replacements_made = re.subn(matched_text, replacement, modified_text, 1)
-                        if num_replacements_made > 0:
-                            self.audit_logger.log(matched_text, replacement, "custom_regex", 1, original_text=match.group(0))
-                            self.custom_replacements_count += 1
-                            self.custom_replacements_mapping[match.group(0)] = replacement
+                    def replacer_func(match: re.Match) -> str:
+                        """Fonction de remplacement pour re.sub qui gère aussi le logging."""
+                        original_text = match.group(0)
+                        # match.expand() résout correctement les références de groupe (ex: \1, \2)
+                        final_replacement = match.expand(replacement)
+
+                        self.audit_logger.log(original_text, final_replacement, "custom_regex", 1, original_text=original_text)
+                        self.custom_replacements_count += 1
+                        self.custom_replacements_mapping[original_text] = final_replacement
+                        return final_replacement
+
+                    modified_text = compiled_pattern.sub(replacer_func, modified_text)
                 else:
                     # Simple text replacement
                     count = modified_text.count(pattern_str)

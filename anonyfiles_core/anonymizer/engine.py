@@ -27,7 +27,8 @@ class AnonyfilesEngine:
     """
     def __init__(self, config: Dict[str, Any],
                  exclude_entities_cli: Optional[List[str]] = None,
-                 custom_replacement_rules: Optional[List[Dict[str, str]]] = None):
+                 custom_replacement_rules: Optional[List[Dict[str, str]]] = None,
+                 shared_mapping_proxy: Optional[Dict] = None):
         
         self.config = config or {}
         
@@ -67,7 +68,9 @@ class AnonyfilesEngine:
         self.ner_processor = NERProcessor(self.spacy_engine, self.enabled_labels, self.entities_exclude)
         
         # Initialisation du ReplacementGenerator
-        self.replacement_generator = ReplacementGenerator(self.config, self.audit_logger)
+        self.replacement_generator = ReplacementGenerator(
+            self.config, self.audit_logger
+        )
 
         # Initialisation du Writer (dépend de dry_run, sera initialisé dans anonymize())
         self.writer: Optional[AnonymizedFileWriter] = None
@@ -76,6 +79,15 @@ class AnonyfilesEngine:
             "DEBUG (AnonyfilesEngine Init): Entités à exclure (config + CLI) : %s",
             self.entities_exclude,
         )
+
+    def reset_state(self):
+        """Réinitialise l'état interne du moteur pour un nouveau lot."""
+        self.audit_logger.reset()
+        self.custom_rules_processor.reset()
+        # La réinitialisation de la session de remplacement est cruciale pour la cohérence.
+        if hasattr(self.replacement_generator, 'reset_session'):
+            self.replacement_generator.reset_session()
+        logger.debug("DEBUG (AnonyfilesEngine): L'état a été réinitialisé.")
 
 
     def anonymize(self, input_path: Path, output_path: Optional[Path],
@@ -372,3 +384,69 @@ class AnonyfilesEngine:
             "audit_log": self.audit_logger.summary(),
             "total_replacements": total_replacements_logged,
         }
+
+    def anonymize_text(self, text: str) -> Tuple[str, Dict[str, Any]]:
+        """
+        Anonymizes a single string of text.
+
+        This is a simplified, synchronous version of the anonymization process for in-memory text.
+        It uses the configuration and custom rules provided when the engine was instantiated.
+        Note: This method is not optimized for high-throughput streaming. Each call resets parts of the state.
+
+        Args:
+            text (str): The text to anonymize.
+
+        Returns:
+            A tuple containing:
+            - The anonymized text (str).
+            - A report dictionary with summary and mapping info (Dict[str, Any]).
+        """
+        # NOTE: For stateful batch processing, the state is NOT reset here.
+        # The caller is responsible for managing the session's lifecycle by calling
+        # a method like `reset_state()` before starting a new batch. This also
+        # implies that the underlying ReplacementGenerator should be stateful.
+        # 1. Application des règles personnalisées
+        block_after_custom_rules = self.custom_rules_processor.apply_to_block(text)
+
+        if not block_after_custom_rules.strip():
+            return block_after_custom_rules, {
+                "status": "success", "message": "Input is empty.",
+                "audit_log": self.audit_logger.summary(),
+                "total_replacements": self.audit_logger.total(),
+                "mapping": {}
+            }
+
+        # 2. Détection des entités spaCy et regex
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks([block_after_custom_rules])
+
+        if not unique_spacy_entities and self.custom_rules_processor.get_custom_replacements_count() == 0:
+            return block_after_custom_rules, {
+                "status": "success", "message": "No entities found to anonymize.",
+                "audit_log": self.audit_logger.summary(),
+                "total_replacements": self.audit_logger.total(),
+                "mapping": {}
+            }
+
+        # 3. Génération des remplacements spaCy et journalisation
+        replacements_map_spacy, mapping_dict_spacy = self.replacement_generator.generate_spacy_replacements(
+            unique_spacy_entities, spacy_entities_per_block_with_offsets
+        )
+
+        # 4. Application des remplacements spaCy positionnels
+        final_text = apply_positional_replacements(
+            block_after_custom_rules,
+            replacements_map_spacy,
+            spacy_entities_per_block_with_offsets[0]  # There is only one block
+        )
+
+        # 5. Préparation du rapport
+        full_mapping = {**self.custom_rules_processor.get_custom_replacements_mapping(), **mapping_dict_spacy}
+
+        report = {
+            "status": "success",
+            "audit_log": self.audit_logger.summary(),
+            "total_replacements": self.audit_logger.total(),
+            "mapping": full_mapping,
+        }
+
+        return final_text, report

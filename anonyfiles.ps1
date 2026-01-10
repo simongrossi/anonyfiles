@@ -9,6 +9,7 @@ Write-Host "  clean  : Supprimer les environnements virtuels"
 Write-Host ""
 
 param (
+    [ValidateSet("setup", "api", "cli", "gui", "clean")]
     [string]$action
 )
 
@@ -19,13 +20,12 @@ switch ($action) {
     }
     "api" {
         Write-Host "🚀 Lancement de l'API..."
-        .\env-api\Scripts\Activate.ps1
-        uvicorn anonyfiles_api.api:app --host 127.0.0.1 --port 8000 --reload
+        & ".\env-api\Scripts\uvicorn.exe" anonyfiles_api.api:app --host 127.0.0.1 --port 8000 --reload
     }
     "cli" {
         Write-Host "▶️ Lancement du CLI..."
-        .\env-cli\Scripts\Activate.ps1
-        anonyfiles-cli
+        # Transfère les arguments supplémentaires ($args) à la commande anonyfiles-cli
+        & ".\env-cli\Scripts\anonyfiles-cli.exe" $args
     }
     "gui" {
         Write-Host "🖥️ Lancement de la GUI (Tauri)..."

@@ -9,7 +9,22 @@ from ..handlers.validation_handler import ValidationHandler
 from ..ui.console_display import ConsoleDisplay
 from ..exceptions import AnonyfilesError # Assurez-vous d'importer les exceptions nécessaires
 
-app = typer.Typer(help="Commandes pour désanonymiser les fichiers.")
+app = typer.Typer(
+    help="Commandes pour désanonymiser les fichiers.",
+    rich_markup_mode="rich",
+    epilog="""
+:sparkles: [bold]Exemples d'utilisation[/bold] :sparkles:
+
+- [bold]Désanonymiser un fichier avec son mapping[/bold]:
+  [cyan]$ anonyfiles-cli deanonymize process fichier_anonyme.txt --mapping-csv mapping.csv -o fichier_restaure.txt[/cyan]
+
+- [bold]Lancer une simulation (dry-run) sans écrire de fichier[/bold]:
+  [cyan]$ anonyfiles-cli deanonymize process doc.txt --mapping-csv map.csv --dry-run[/cyan]
+
+- [bold]Générer un rapport de désanonymisation[/bold]:
+  [cyan]$ anonyfiles-cli deanonymize process doc.txt --mapping-csv map.csv --report rapport.json[/cyan]
+"""
+)
 console = ConsoleDisplay()
 
 # Définition des codes de sortie pour Typer

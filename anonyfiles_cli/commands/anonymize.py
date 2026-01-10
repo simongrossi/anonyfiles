@@ -10,7 +10,25 @@ from ..ui.console_display import ConsoleDisplay
 from ..ui.interactive_mode import prompt_entities_to_exclude
 from ..exceptions import AnonyfilesError # Assurez-vous d'importer les exceptions nécessaires
 
-app = typer.Typer(help="Commandes pour anonymiser les fichiers.")
+app = typer.Typer(
+    help="Commandes pour anonymiser les fichiers.",
+    rich_markup_mode="rich",
+    epilog="""
+:sparkles: [bold]Exemples d'utilisation[/bold] :sparkles:
+
+- [bold]Anonymiser un fichier simple avec la configuration par défaut[/bold]:
+  [cyan]$ anonyfiles-cli anonymize process mon_fichier.txt[/cyan]
+
+- [bold]Spécifier un fichier de sortie et un mapping[/bold]:
+  [cyan]$ anonyfiles-cli anonymize process document.docx -o doc_anon.docx --mapping-output mapping.csv[/cyan]
+
+- [bold]Utiliser un fichier de configuration et exclure des entités[/bold]:
+  [cyan]$ anonyfiles-cli anonymize process rapport.pdf -c ma_config.yaml --exclude-entities PER,LOC[/cyan]
+
+- [bold]Lancer en mode interactif pour choisir les entités[/bold]:
+  [cyan]$ anonyfiles-cli anonymize process mon_fichier.txt -i[/cyan]
+"""
+)
 console = ConsoleDisplay()
 
 # Définition des codes de sortie pour Typer

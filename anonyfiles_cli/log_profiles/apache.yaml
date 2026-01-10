@@ -1,0 +1,27 @@
+# Profil de configuration spécifique pour les logs d'accès Apache.
+# Ce profil se concentre uniquement sur le masquage des adresses IP
+# et désactive l'analyse spaCy pour une performance maximale
+# et une utilisation minimale de la RAM.
+description: "Optimisé pour logs d'accès Apache. Masque seulement les IPs en début de ligne. spaCy désactivé."
+
+# On utilise le plus petit modèle possible, mais comme on exclut toutes
+# les entités, l'impact sur la performance sera minime.
+spacy_model: "xx_ent_wiki_sm"
+
+# Nous ne définissons aucune règle de remplacement pour spaCy.
+replacements: {}
+
+# Nous excluons toutes les entités spaCy pour court-circuiter l'analyse NER.
+exclude_entities:
+  - "PER"
+  - "LOC"
+  - "ORG"
+  - "MISC"
+  - "DATE"
+  - "EMAIL"
+
+# La seule règle personnalisée est pour les adresses IP v4 en début de ligne.
+custom_rules:
+  - pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b' # IP en début de ligne
+    replacement: '[IP_REDACTED]'
+    isRegex: true

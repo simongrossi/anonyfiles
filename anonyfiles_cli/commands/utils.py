@@ -9,7 +9,25 @@ from ..ui.console_display import ConsoleDisplay
 from ..utils.system_utils import detect_file_encoding # Import de la fonction
 from ..exceptions import AnonyfilesError # Assurez-vous d'importer les exceptions nécessaires
 
-app = typer.Typer(help="Commandes utilitaires pour Anonyfiles.")
+app = typer.Typer(
+    help="Commandes utilitaires pour Anonyfiles.",
+    rich_markup_mode="rich",
+    epilog="""
+:sparkles: [bold]Exemples d'utilisation[/bold] :sparkles:
+
+- [bold]Afficher la version de l'outil[/bold]:
+  [cyan]$ anonyfiles-cli utils version[/cyan]
+
+- [bold]Lister les types d'entités reconnues[/bold]:
+  [cyan]$ anonyfiles-cli utils list-entities[/cyan]
+
+- [bold]Obtenir des informations sur un fichier[/bold]:
+  [cyan]$ anonyfiles-cli utils info mon_document.pdf[/cyan]
+
+- [bold]Lancer un benchmark de performance[/bold]:
+  [cyan]$ anonyfiles-cli utils benchmark mon_gros_fichier.txt --iterations 5[/cyan]
+"""
+)
 console = ConsoleDisplay()
 
 # Définition des codes de sortie pour Typer

@@ -63,3 +63,5 @@ full_commits.txt
 *.egg-info/
 /anonyfiles_outputs
 sync.ffs_db
+To_Be_Deleted
+cleanup_old_files.sh
