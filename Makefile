@@ -22,7 +22,7 @@ NPM_DEPS_STAMP := anonyfiles_gui/node_modules
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup setup-cli setup-api setup-gui reinstall-cli venvs compile-deps spacy-models help-cli api gui tui test lint format docs clean test-api systemd-install systemd-start systemd-stop systemd-status
+.PHONY: help setup setup-cli setup-api setup-gui reinstall-cli git-config commit venvs compile-deps spacy-models help-cli api gui tui test lint format docs clean test-api systemd-install systemd-start systemd-stop systemd-status
 
 help: ## ✨ Affiche cette aide
 	@echo "Anonyfiles Makefile"
@@ -50,6 +50,15 @@ reinstall-cli: ## 🔄 Force la réinstallation de l'environnement CLI/TUI.
 	rm -rf $(CLI_VENV)
 	@echo "🚀 Réinstallation de l'environnement CLI/TUI..."
 	$(MAKE) setup-cli
+
+git-config: ## ⚙️ Configure git (template + hooks)
+	git config commit.template .gitmessage
+	git config core.hooksPath .githooks
+	chmod +x .githooks/commit-msg
+	@echo "✅ Git configuré : Template .gitmessage et Hooks dans .githooks/"
+
+commit: setup-cli ## 🖊️  Crée un commit standardisé avec l'assistant interactif
+	$(CLI_VENV)/bin/cz commit
 
 venvs: $(CLI_VENV)/bin/activate $(API_VENV)/bin/activate $(GUI_VENV)/bin/activate ## 🔧 Crée les environnements virtuels Python
 	@echo "✅ Environnements virtuels créés ou déjà existants."

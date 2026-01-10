@@ -192,6 +192,43 @@ Vous serez invité à confirmer la suppression. Pour supprimer sans confirmation
 
 python -m anonyfiles\_cli.main job delete 20250605-122744 --output-dir /home/debian/anonyfiles --force
 
+## **📜 Analyse et Anonymisation de Logs**
+
+Anonyfiles intègre désormais un module dédié au traitement des fichiers de logs (serveur, application, système...), avec une interface graphique en terminal (TUI) et des commandes batch.
+
+### **▶️ Mode Interactif (TUI)**
+
+Lancez une interface visuelle dans votre terminal pour configurer et suivre l'anonymisation de vos logs :
+
+```bash
+anonyfiles-cli logs interactive
+```
+ou via le Makefile à la racine du projet :
+```bash
+make tui
+```
+
+**Fonctionnalités de l'interface :**
+* Sélection visuelle du profil d'anonymisation (Apache, Syslog, Generic...)
+* Navigation dans les fichiers/dossiers
+* Configuration des options (sortie, mapping, récursivité...)
+* Suivi en temps réel avec coloration syntaxique
+* Historique des traitements
+
+### **▶️ Mode Batch (CLI)**
+
+Pour automatiser le traitement des logs dans des scripts :
+
+```bash
+anonyfiles-cli logs anonymize /var/log/nginx/ --profile apache_logs --output ./anonymized_logs --recursive
+```
+
+**Options principales :**
+* `--profile` : Nom du profil à utiliser (ex: `generic`, `apache`, `syslog`).
+* `--pattern` : Filtre de fichiers (défaut: `*.log`).
+* `--recursive` : Traite les sous-dossiers.
+* `--parallel` : Nombre de processus parallèles (0 = séquentiel).
+
 ## **📌 Options CLI résumées**
 
 | **Option** | **Description** |
@@ -212,6 +249,8 @@ python -m anonyfiles\_cli.main job delete 20250605-122744 --output-dir /home/deb
 | --dry-run | Mode simulation : affiche les actions sans modifier les fichiers (fonctionne aussi pour `config create` et `config reset`) |
 | job delete <JOB\_ID> | Supprime un job spécifique et son répertoire. Nécessite --output-dir si non par défaut. |
 | job list | Liste les IDs de tous les jobs. Nécessite --output-dir si non par défaut. |
+| logs interactive | Lance l'interface TUI pour l'anonymisation de logs. |
+| logs anonymize | Lance l'anonymisation de logs en mode batch (nécessite --profile). |
 
 ## **✨ Règles personnalisées (avant spaCy)**
 

@@ -44,6 +44,8 @@ click==8.2.1
     #   uvicorn
 cloudpathlib==0.21.1
     # via weasel
+commitizen
+    # via -r requirements-test.in
 confection==0.1.5
     # via
     #   thinc

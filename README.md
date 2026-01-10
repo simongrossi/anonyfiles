@@ -32,6 +32,7 @@ La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API p
 * Mapping complet pour désanonymisation ou audit
 * Export CSV des entités détectées
 * Sélection fine des entités à anonymiser (interface graphique ou CLI)
+* **Analyse de logs** : Interface TUI interactive pour visualiser et filtrer les journaux d'exécution
 * Prise en charge du français (et autres langues via spaCy)
 * **Asynchrone via l’API REST** (suivi via `job_id`)
 * **Portable** : aucun chemin codé en dur, multiplateforme (Windows, macOS, Linux)
@@ -245,6 +246,7 @@ Cette commande va :
 make cli         # Lancer un exemple CLI
 make api         # Lancer l'API FastAPI
 make gui         # Construire les fichiers statiques de la GUI (build web)
+make tui         # Lancer l'interface TUI d'analyse de logs
 make test-api    # Lancer un test API (avec curl)
 make clean       # Nettoyer les environnements virtuels
 ```

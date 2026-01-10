@@ -1,0 +1,18 @@
+# <type>(<scope>): <Sujet>
+#
+# <Description détaillée>
+
+### ✨ Fonctionnalités (Features)
+- 
+
+### 🐛 Corrections (Fixes)
+- 
+
+### 🔧 Configuration & Environnement
+- 
+
+# ---------------------------------------------------------
+# Types : feat (nouveau), fix (correction), docs (doc), 
+#         style (formatage), refactor (refonte), test, chore
+# Les lignes commençant par '#' seront ignorées.
+# ---------------------------------------------------------

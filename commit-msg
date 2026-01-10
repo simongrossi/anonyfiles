@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Récupère le chemin du fichier temporaire contenant le message de commit
+MSG_FILE="$1"
+
+# Lit le message en ignorant les lignes de commentaires (commençant par #)
+# On récupère la première ligne utile (le sujet)
+SUBJECT=$(grep -v '^[[:space:]]*#' "$MSG_FILE" | head -n 1)
+
+# Regex pour le format Conventional Commits
+# Types autorisés : feat, fix, docs, style, refactor, test, chore
+# Format : type(scope): Sujet
+PATTERN="^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .+$"
+
+if [[ ! "$SUBJECT" =~ $PATTERN ]]; then
+    echo "❌  Erreur de format du message de commit !"
+    echo "----------------------------------------------------------------"
+    echo "Le sujet du commit doit suivre le format 'Conventional Commits' :"
+    echo "  <type>(<scope>): <Sujet>"
+    echo ""
+    echo "Types valides : feat, fix, docs, style, refactor, test, chore"
+    echo "Exemple       : feat(cli): Ajout de la commande logs"
+    echo "----------------------------------------------------------------"
+    echo "Votre sujet était : $SUBJECT"
+    exit 1
+fi
