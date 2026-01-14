@@ -33,12 +33,23 @@ def _load_spacy_model_cached(model_name: str):
     """
     logger.info("Loading spaCy model: %s (this might be cached)...", model_name)
     try:
+        if not spacy.util.is_package(model_name):
+             logger.warning(f"Model '{model_name}' not found. Attempting to download it...")
+             spacy.cli.download(model_name)
         return spacy.load(model_name)
     except Exception as e:
-        install_cmd = f"python -m spacy download {model_name}"
-        raise ConfigurationError(
-            f"Could not load spaCy model '{model_name}'. Install it using: {install_cmd}. Original error: {e}"
-        ) from e
+        logger.error(f"Failed to load spaCy model '{model_name}': {e}")
+        # Une dernière tentative de téléchargement si l'erreur n'était pas claire
+        try:
+             import spacy.cli
+             logger.info(f"Downloading spaCy model '{model_name}' fallback...")
+             spacy.cli.download(model_name)
+             return spacy.load(model_name)
+        except Exception as e2:
+             install_cmd = f"python -m spacy download {model_name}"
+             raise ConfigurationError(
+                 f"Could not load spaCy model '{model_name}' after auto-download attempt. Install manualy: {install_cmd}. Error: {e2}"
+             ) from e2
 
 
 class SpaCyEngine:

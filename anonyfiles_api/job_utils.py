@@ -38,6 +38,7 @@ class Job:
     def _find_latest_file_sync(self, glob_suffix_pattern: str) -> Optional[Path]:
         glob_pattern = f"{self.base_input_stem}{glob_suffix_pattern}"
         logger.debug(f"Tâche {self.job_id}: Recherche fichier {self.job_dir} motif: {glob_pattern}")
+        # Note: glob returns a generator, converted to list for sorting
         candidates = sorted(
             [p for p in self.job_dir.glob(glob_pattern) if p.is_file()],
             key=lambda p: p.stat().st_mtime, reverse=True)
@@ -65,6 +66,7 @@ class Job:
             return None
 
     def set_initial_status_sync(self) -> bool:
+        """Sets the initial status to pending (synchronous)."""
         try:
             self.job_dir.mkdir(parents=True, exist_ok=True)
             with open(self.status_file_path, "w", encoding="utf-8") as f:
@@ -76,6 +78,7 @@ class Job:
             return False
 
     async def set_initial_status_async(self) -> bool:
+        """Sets the initial status to pending (asynchronous)."""
         try:
             await aio_os.makedirs(self.job_dir, exist_ok=True)
             async with aiofiles.open(self.status_file_path, "w", encoding="utf-8") as f:
@@ -120,6 +123,7 @@ class Job:
             return True
         except Exception as e:
             logger.error(f"Tâche {self.job_id}: Impossible d'écrire le statut 'finished'/journal d'audit: {e}", exc_info=True)
+            # Try to report the error
             self.set_status_as_error_sync(f"Erreur critique: Échec de l'écriture du statut 'finished'/journal d'audit après l'exécution réussie du moteur: {str(e)}")
             return False
 
@@ -162,6 +166,7 @@ class Job:
             )
             return False
         try:
+            # Safer async removal of directory content
             paths = await run_in_threadpool(
                 lambda: sorted(self.job_dir.rglob("*"), key=lambda p: len(str(p)), reverse=True)
             )
