@@ -41,26 +41,42 @@ def generate_code_replacement(session: 'ReplacementSession', label: str, index: 
 
 @register_generator("redact")
 def generate_redaction_replacement(session: 'ReplacementSession', label: str, index: int, options: Dict[str, Any], entity_text: str) -> str:
-    """Remplace par un texte statique masqué."""
-    return options.get("text", "{{REDACTED}}")
+    """
+    Remplace par un texte statique masqué, rendu unique par un index.
+    Ex: [NOM_MASQUÉ] -> [NOM_MASQUÉ_1]
+    """
+    base_text = options.get("text", "{{REDACTED}}")
+    # On insère l'index avant le dernier caractère si c'est un crochet ou une accolade, sinon à la fin
+    # Heuristique simple : si finit par "]" ou "}", on insère avant.
+    if base_text.endswith("]") or base_text.endswith("}"):
+        return f"{base_text[:-1]}_{index+1}{base_text[-1]}"
+    return f"{base_text}_{index+1}"
 
 @register_generator("placeholder")
 def generate_placeholder_replacement(session: 'ReplacementSession', label: str, index: int, options: Dict[str, Any], entity_text: str) -> str:
-    """Remplace par un format dynamique incluant potentiellement la valeur originale."""
+    """
+    Remplace par un format dynamique. Ajoute un index pour l'unicité si non présent.
+    """
     format_str = options.get("format", "{{{}}}".format(label.upper()))
     try:
-        return format_str.format(entity_text)
+        # Essai de formatage standard
+        formatted = format_str.format(entity_text)
+        # Pour garantir la bijectivité, on ajoute l'index si le format ne semble pas déjà unique (ce qui est dur à savoir)
+        # Par sécurité, on ajoute l'index en suffixe du tag si ça ressemble à un tag {{TAG...}}
+        if formatted.startswith("{{") and formatted.endswith("}}"):
+             return f"{formatted[:-2]}_{index+1}}}"
+        return f"{formatted}_{index+1}"
     except Exception as e:
         logger.warning(
             "Erreur format placeholder '%s' pour '%s': %s", format_str, entity_text, e
         )
-        return format_str
+        return f"{format_str}_{index+1}"
 
 @register_generator("faker")
 def generate_faker_replacement(session: 'ReplacementSession', label: str, index: int, options: Dict[str, Any], entity_text: str) -> str:
-    """Simule (pour l'instant) une génération Faker."""
+    """Simule (pour l'instant) une génération Faker avec index unique."""
     provider = options.get("provider", label.lower())
-    return f"{{{{FAKER_{provider.upper()}}}}}"
+    return f"{{{{FAKER_{provider.upper()}_{index+1}}}}}"
 
 
 class ReplacementSession:

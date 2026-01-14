@@ -33,6 +33,9 @@ class CustomRulesProcessor:
                             err=True,
                         )
                         continue
+                
+                # Initialisation d'un compteur spécifique à cette règle
+                rule["match_counter"] = 0
 
                 self.custom_rules.append(rule)
 
@@ -46,6 +49,7 @@ class CustomRulesProcessor:
         Applique les règles personnalisées à un bloc de texte donné.
         Met à jour le journal d'audit et le mapping des règles personnalisées.
         Utilise les expressions régulières compilées pour une performance optimale.
+        Garantit l'unicité des tokens générés (bijectivité).
         """
         if not self.custom_rules:
             return text_block
@@ -53,7 +57,7 @@ class CustomRulesProcessor:
         modified_text = text_block
         for rule in self.custom_rules:
             pattern_str = rule.get("pattern")
-            replacement = rule.get("replacement", "[CUSTOM_REDACTED]")
+            replacement_base = rule.get("replacement", "[CUSTOM_REDACTED]")
             is_regex = rule.get("isRegex", False)
             compiled_pattern: Optional[re.Pattern] = rule.get("compiled_pattern")
             
@@ -62,36 +66,72 @@ class CustomRulesProcessor:
 
             try:
                 if is_regex and compiled_pattern is not None:
-                    # Utilisation de la méthode .sub() avec un callback pour une performance maximale
-                    # et pour pouvoir logger chaque remplacement individuellement.
+                    # Callback unifié pour gérer la logique d'unicité
                     def replacement_handler(match):
                         original_text = match.group(0)
                         
-                        # Gérer l'expansion des groupes si le remplacement contient des backreferences (ex: \1)
+                        # Vérifier si on a déjà tokenisé ce texte précis
+                        if original_text in self.custom_replacements_mapping:
+                            return self.custom_replacements_mapping[original_text]
+                        
+                        # Sinon, générer un nouveau token unique
+                        rule["match_counter"] += 1
+                        current_count = rule["match_counter"]
+                        
+                        # Gestion basique du template remplacement
                         try:
-                            final_replacement = match.expand(replacement)
-                        except re.error:
-                            # Fallback si le template est invalide, on utilise le littéral
-                            final_replacement = replacement
+                             # Note: match.expand ne peut pas être utilisé facilement si on modifie dynamically le remplacement
+                             # On suppose ici que replacement_base est statique ou contient des groupes simples.
+                             # Pour injecter le compteur, on l'ajoute à la fin.
+                             
+                             # Heuristique : Si le remplacement finit par ] ou }, on insère avant
+                             if replacement_base.endswith("]") or replacement_base.endswith("}"):
+                                 final_token = f"{replacement_base[:-1]}_{current_count}{replacement_base[-1]}"
+                             else:
+                                 final_token = f"{replacement_base}_{current_count}"
+                             
+                             # Si backreferences nécessaires, c'est plus complexe car le compteur ferait partie du texte.
+                             # Ici on simplifie : le custom rule est un TAG.
+                        except Exception:
+                            final_token = f"{replacement_base}_{current_count}"
 
-                        self.audit_logger.log(original_text, final_replacement, "custom_regex", 1, original_text=original_text)
+                        self.audit_logger.log(original_text, final_token, "custom_regex", 1, original_text=original_text)
                         self.custom_replacements_count += 1
-                        self.custom_replacements_mapping[original_text] = final_replacement
-                        return final_replacement
+                        self.custom_replacements_mapping[original_text] = final_token
+                        return final_token
 
                     modified_text = compiled_pattern.sub(replacement_handler, modified_text)
 
                 else:
-                    # Simple text replacement (str.replace est très optimisé pour les littéraux)
+                    # Remplacement texte simple
+                    # Problème : str.replace remplace TOUTES les occurrences d'un coup.
+                    # Pour garantir l'unicité (bijectivité), il faut que "A" -> "T1", "A" -> "T1" (ça c'est ok).
+                    # Mais si on a plusieurs occurrences de "A", elles deviennent toutes "T1". C'est correct pour la bijection.
+                    # Le problème c'est que str.replace ne permet pas d'incrémenter globalement si c'est la 1ère fois qu'on voit ce mot
+                    # vs la 2ème fois qu'on le voit dans un autre bloc, mais on veut garder le MÊME token.
+                    
+                    # Approche : On vérifie si pattern_str est dans le mapping.
+                    if pattern_str in self.custom_replacements_mapping:
+                        token = self.custom_replacements_mapping[pattern_str]
+                    else:
+                        rule["match_counter"] += 1
+                        current_count = rule["match_counter"]
+                        if replacement_base.endswith("]") or replacement_base.endswith("}"):
+                             token = f"{replacement_base[:-1]}_{current_count}{replacement_base[-1]}"
+                        else:
+                             token = f"{replacement_base}_{current_count}"
+                        
+                        self.custom_replacements_mapping[pattern_str] = token
+                        # Log pour la première occurrence (ou à chaque fois ?) 
+                        # Audit log attend généralement un log par substitution.
+                    
                     count = modified_text.count(pattern_str)
                     if count > 0:
-                        modified_text = modified_text.replace(pattern_str, replacement)
-                        self.audit_logger.log(pattern_str, replacement, "custom_text", count, original_text=pattern_str)
+                        modified_text = modified_text.replace(pattern_str, token)
+                        self.audit_logger.log(pattern_str, token, "custom_text", count, original_text=pattern_str)
                         self.custom_replacements_count += count
-                        self.custom_replacements_mapping[pattern_str] = replacement
 
             except Exception as e:
-                # Catch-all pour éviter de crasher tout le process si une règle spécifique échoue
                 typer.echo(f"ERREUR (CustomRulesProcessor): Échec application règle '{pattern_str}': {e}", err=True)
                 
         return modified_text
