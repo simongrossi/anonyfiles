@@ -15,6 +15,7 @@ class CustomRulesProcessor:
         self.audit_logger = audit_logger
         self.custom_replacements_mapping: Dict[str, str] = {}
         self.custom_replacements_count = 0
+        
         if custom_replacement_rules:
             for rule in custom_replacement_rules:
                 # Ignore empty patterns early
@@ -22,6 +23,7 @@ class CustomRulesProcessor:
                 if not pattern_str:
                     continue
 
+                # Optimisation: Compilation unique des regex au chargement
                 if rule.get("isRegex", False):
                     try:
                         rule["compiled_pattern"] = re.compile(pattern_str, flags=re.IGNORECASE)
@@ -43,6 +45,7 @@ class CustomRulesProcessor:
         """
         Applique les règles personnalisées à un bloc de texte donné.
         Met à jour le journal d'audit et le mapping des règles personnalisées.
+        Utilise les expressions régulières compilées pour une performance optimale.
         """
         if not self.custom_rules:
             return text_block
@@ -59,30 +62,38 @@ class CustomRulesProcessor:
 
             try:
                 if is_regex and compiled_pattern is not None:
-                    # Capture all occurrences to log each replacement
-                    # Utilise une copie temporaire pour itérer afin d'éviter les problèmes
-                    # si `modified_text` est altéré pendant l'itération.
-                    temp_modified_text_for_re_finditer = modified_text 
-                    for match in compiled_pattern.finditer(temp_modified_text_for_re_finditer):
-                        matched_text = re.escape(match.group(0)) # Escape pour le sub pour ne pas interpréter comme regex
+                    # Utilisation de la méthode .sub() avec un callback pour une performance maximale
+                    # et pour pouvoir logger chaque remplacement individuellement.
+                    def replacement_handler(match):
+                        original_text = match.group(0)
                         
-                        # Remplacer une occurrence à la fois pour ne pas créer de chevauchements
-                        # qui seraient complexes à tracer.
-                        modified_text, num_replacements_made = re.subn(matched_text, replacement, modified_text, 1)
-                        if num_replacements_made > 0:
-                            self.audit_logger.log(matched_text, replacement, "custom_regex", 1, original_text=match.group(0))
-                            self.custom_replacements_count += 1
-                            self.custom_replacements_mapping[match.group(0)] = replacement
+                        # Gérer l'expansion des groupes si le remplacement contient des backreferences (ex: \1)
+                        try:
+                            final_replacement = match.expand(replacement)
+                        except re.error:
+                            # Fallback si le template est invalide, on utilise le littéral
+                            final_replacement = replacement
+
+                        self.audit_logger.log(original_text, final_replacement, "custom_regex", 1, original_text=original_text)
+                        self.custom_replacements_count += 1
+                        self.custom_replacements_mapping[original_text] = final_replacement
+                        return final_replacement
+
+                    modified_text = compiled_pattern.sub(replacement_handler, modified_text)
+
                 else:
-                    # Simple text replacement
+                    # Simple text replacement (str.replace est très optimisé pour les littéraux)
                     count = modified_text.count(pattern_str)
                     if count > 0:
                         modified_text = modified_text.replace(pattern_str, replacement)
                         self.audit_logger.log(pattern_str, replacement, "custom_text", count, original_text=pattern_str)
                         self.custom_replacements_count += count
                         self.custom_replacements_mapping[pattern_str] = replacement
-            except re.error as e:
-                typer.echo(f"AVERTISSEMENT (CustomRulesProcessor): Regex invalide pour la règle personnalisée '{pattern_str}': {e}. Règle ignorée.", err=True)
+
+            except Exception as e:
+                # Catch-all pour éviter de crasher tout le process si une règle spécifique échoue
+                typer.echo(f"ERREUR (CustomRulesProcessor): Échec application règle '{pattern_str}': {e}", err=True)
+                
         return modified_text
 
     def get_custom_replacements_mapping(self) -> Dict[str, str]:

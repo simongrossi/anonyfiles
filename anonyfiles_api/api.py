@@ -20,7 +20,10 @@ from .core_config import (
     DEFAULT_RATE_LIMIT,
     set_request_context,
     clear_request_context,
+    set_request_context,
+    clear_request_context,
     set_job_id,
+    AppConfig,
 )
 
 # Plus besoin d'importer load_config_api_safe depuis anonyfiles_cli.main
@@ -47,53 +50,27 @@ async def add_logging_context(request: Request, call_next):
 
 JOBS_DIR.mkdir(exist_ok=True)
 
-# Définir la fonction de chargement de configuration ici ou dans core_config.py
-def _load_config_for_api(config_path: Path) -> Optional[Dict[str, Any]]:
-    """
-    Charge un fichier de configuration YAML de manière sécurisée pour l'API.
-    Ne termine pas l'application en cas d'erreur mais loggue et retourne None ou {}.
-    """
-    try:
-        if not config_path.is_file():
-            logger.error(f"Fichier de configuration '{config_path}' non trouvé.")
-            return None # Indique un échec de chargement
-        with open(str(config_path), encoding="utf-8") as f:
-            config_data = yaml.safe_load(f)
-            if config_data is None:
-                logger.warning(f"Fichier de configuration '{config_path}' est vide ou invalide, chargé comme None. Utilisation de {{}}.")
-                return {} # Un YAML vide est valide mais peut être interprété comme None
-            if not isinstance(config_data, dict):
-                logger.warning(f"Le contenu de '{config_path}' n'est pas un dictionnaire. Type: {type(config_data)}. Utilisation de {{}}.")
-                return {}
-            return config_data
-    except yaml.YAMLError as e:
-        logger.error(f"Erreur de parsing YAML dans '{config_path}': {e}", exc_info=True)
-        return None
-    except Exception as e:
-        logger.error(f"Erreur inattendue lors du chargement de '{config_path}': {e}", exc_info=True)
-        return None
-
 @app.on_event("startup")
 async def startup_event():
     try:
-        # Utiliser la fonction de chargement définie ci-dessus
-        loaded_config = _load_config_for_api(CONFIG_TEMPLATE_PATH) # CONFIG_TEMPLATE_PATH vient de core_config
+        # Chargement de la configuration via Pydantic
+        # La validation stricte assure que si le YAML est invalide ou corrompu, l'app crashera (Fail Fast)
+        logger.info("Chargement et validation de la configuration de l'application...")
+        app_config = AppConfig()
         
-        if loaded_config is None: # Erreur de chargement critique
-            logger.error(f"ÉCHEC CRITIQUE du chargement de la configuration depuis {CONFIG_TEMPLATE_PATH}. L'API pourrait ne pas fonctionner. Utilisation d'une config vide {{}}.")
-            app.state.BASE_CONFIG = {}
-        elif not loaded_config: # Dictionnaire vide (par exemple, YAML vide ou invalide qui a résulté en {})
-            logger.warning(f"Configuration de base depuis {CONFIG_TEMPLATE_PATH} est vide. Vérifiez le fichier. Utilisation d'une configuration vide {{}}.")
-            app.state.BASE_CONFIG = {} # Ou loaded_config qui est déjà {}
-        else:
-            app.state.BASE_CONFIG = loaded_config
+        # Stocker l'objet config typé (ou convertir en dict si le reste du code attend un dict)
+        # Pour compatibilité immédiate avec le code existant qui attend souvent un dict :
+        app.state.settings = app_config
+        app.state.BASE_CONFIG = app_config.model_dump()
         
-        logger.info(f"Configuration de base chargée dans app.state.BASE_CONFIG. Contient {len(app.state.BASE_CONFIG)} clé(s) au premier niveau.")
-        # Pour un debug plus poussé, vous pourriez logger les clés: logger.info(f"Clés: {list(app.state.BASE_CONFIG.keys())}")
+        logger.info(f"Configuration validée avec succès via Pydantic Settings.")
+        if app_config.debug:
+            logger.info("Mode DEBUG activé via la configuration.")
 
     except Exception as e:
-        logger.error(f"Erreur critique imprévue DANS L'ÉVÉNEMENT STARTUP lors du chargement de la config: {e}", exc_info=True)
-        app.state.BASE_CONFIG = {} # Fallback ultime
+        logger.critical(f"ÉCHEC CRITIQUE: Configuration invalide. L'application ne peut pas démarrer.\nErreur: {e}", exc_info=True)
+        # On relève l'exception pour stopper Uvicorn (Fail Fast)
+        raise e
 
 # Le reste du fichier (middleware, inclusion des routeurs, endpoint racine)
 app.add_middleware(
