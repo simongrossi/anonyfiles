@@ -1,15 +1,10 @@
-#anonyfiles_cli/anonymizer/file_utils.py
-from pathlib import Path
-from datetime import datetime
-import os
-
 def timestamp() -> str:
     """Génère un timestamp au format YYYYMMDD-HHMMSS."""
     return datetime.now().strftime("%Y%m%d-%H%M%S")
 
 def ensure_folder(folder: Path) -> None:
     """Crée le dossier s'il n'existe pas."""
-    os.makedirs(folder, exist_ok=True)
+    folder.mkdir(parents=True, exist_ok=True)
 
 def make_run_dir(base_output_dir: Path, run_id: str) -> Path:
     """Crée un dossier de run unique dans 'runs/{timestamp}/'."""

@@ -1,7 +1,7 @@
 # anonymizer/pdf_processor.py
 
 import fitz  # PyMuPDF
-import os
+from pathlib import Path
 from .base_processor import BaseProcessor
 
 class PdfProcessor(BaseProcessor):
@@ -38,9 +38,9 @@ class PdfProcessor(BaseProcessor):
             # Appliquer toutes les redactions sur la page
             page.apply_redactions()
 
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
+        output_dir = Path(output_path).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
         doc.save(output_path)
 
     def reconstruct_and_write_anonymized_file(
@@ -77,8 +77,8 @@ class PdfProcessor(BaseProcessor):
                 if entities:
                     new_page.apply_redactions()
 
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
+        output_dir = Path(output_path).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
 
         new_doc.save(output_path)

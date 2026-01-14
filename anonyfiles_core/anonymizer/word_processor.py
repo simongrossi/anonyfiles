@@ -1,6 +1,6 @@
 # anonymizer/word_processor.py
 
-import os
+from pathlib import Path
 import logging
 from docx import Document
 from .base_processor import BaseProcessor
@@ -65,9 +65,9 @@ class DocxProcessor(BaseProcessor):
                 p.add_run(anonymized_text)
             # Sinon on laisse le paragraphe vide
 
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
+        output_dir = Path(output_path).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
 
         doc.save(output_path)
 
@@ -128,8 +128,8 @@ class DocxProcessor(BaseProcessor):
             if pointer < len(new_text):
                 runs[-1].text += new_text[pointer:]
 
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
+        output_dir = Path(output_path).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
 
         doc.save(output_path)

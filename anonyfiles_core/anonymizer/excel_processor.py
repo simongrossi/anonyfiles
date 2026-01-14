@@ -1,7 +1,7 @@
 # anonymizer/excel_processor.py
 
 import pandas as pd
-import os
+from pathlib import Path
 import logging
 from .base_processor import BaseProcessor
 from .utils import apply_positional_replacements
@@ -62,9 +62,9 @@ class ExcelProcessor(BaseProcessor):
                 anonymized_df.iloc[row_index, col_index] = anonymized_text
                 cell_index_counter += 1
 
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
+        output_dir = Path(output_path).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
 
         anonymized_df.to_excel(output_path, index=False)
 
@@ -102,8 +102,8 @@ class ExcelProcessor(BaseProcessor):
                     anonymized_df.iloc[row_index, col_index] = final_processed_blocks[cell_index_counter]
                 cell_index_counter += 1
 
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
+        output_dir = Path(output_path).parent
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
 
         anonymized_df.to_excel(output_path, index=False)

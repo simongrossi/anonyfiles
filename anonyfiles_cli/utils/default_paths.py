@@ -17,7 +17,7 @@ def _load_defaults() -> dict:
             with open(file_path, "rb") as f:
                 data = tomllib.load(f)
             paths = data.get("paths", {})
-            return {k: Path(os.path.expanduser(v)) for k, v in paths.items()}
+            return {k: Path(v).expanduser() for k, v in paths.items()}
         except Exception:
             return {}
     return {}
