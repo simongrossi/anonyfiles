@@ -1,126 +1,115 @@
 # anonyfiles_cli/anonymizer/replacer.py
-
+import logging
 import random
 import string
-import logging
+from typing import Dict, Any, Callable, Optional
 
 from .format_utils import create_placeholder
 
-logger = logging.getLogger(__name__) #
-# Importer Faker si vous prévoyez de l'utiliser réellement pour le type "faker"
-# from faker import Faker
+logger = logging.getLogger(__name__)
+
+# Registry pour stocker les generateurs
+_GENERATOR_REGISTRY: Dict[str, Callable] = {}
+
+def register_generator(rule_type: str):
+    """Décorateur pour enregistrer une fonction de génération."""
+    def decorator(func: Callable):
+        _GENERATOR_REGISTRY[rule_type] = func
+        return func
+    return decorator
+
+# --- Fonctions de génération ---
+
+@register_generator("codes")
+def generate_code_replacement(session: 'ReplacementSession', label: str, index: int, options: Dict[str, Any], entity_text: str) -> str:
+    """Génère un code séquentiel (ex: {{NOM_001}}). Incrémente le compteur."""
+    # Le 'prefix' dans les options définira maintenant le TAG interne.
+    default_inner_tags = {
+        "PER": "NOM",
+        "LOC": "LIEU",
+        "ORG": "ENTREPRISE",
+        "EMAIL": "EMAIL",
+        "DATE": "DATE",
+        "MISC": "DIVERS",
+        "PHONE": "TEL",
+        "IBAN": "IBAN_ID"
+    }
+    inner_tag = options.get("prefix", default_inner_tags.get(label, label.upper()))
+    padding = options.get("padding", 3)
+    # Incrémentation gérée par l'appelant via l'index passé
+    return create_placeholder(inner_tag, index, padding)
+
+@register_generator("redact")
+def generate_redaction_replacement(session: 'ReplacementSession', label: str, index: int, options: Dict[str, Any], entity_text: str) -> str:
+    """Remplace par un texte statique masqué."""
+    return options.get("text", "{{REDACTED}}")
+
+@register_generator("placeholder")
+def generate_placeholder_replacement(session: 'ReplacementSession', label: str, index: int, options: Dict[str, Any], entity_text: str) -> str:
+    """Remplace par un format dynamique incluant potentiellement la valeur originale."""
+    format_str = options.get("format", "{{{}}}".format(label.upper()))
+    try:
+        return format_str.format(entity_text)
+    except Exception as e:
+        logger.warning(
+            "Erreur format placeholder '%s' pour '%s': %s", format_str, entity_text, e
+        )
+        return format_str
+
+@register_generator("faker")
+def generate_faker_replacement(session: 'ReplacementSession', label: str, index: int, options: Dict[str, Any], entity_text: str) -> str:
+    """Simule (pour l'instant) une génération Faker."""
+    provider = options.get("provider", label.lower())
+    return f"{{{{FAKER_{provider.upper()}}}}}"
+
 
 class ReplacementSession:
     """
-    Gère la génération des codes anonymes pour les entités détectées.
-    Fournit le mapping {entity_text: code} (pas de label en clé).
+    Gère la génération des codes anonymes pour les entités détectées via un registre extensible.
     """
-
     def __init__(self):
         self.entity_to_code = {}
-        self.code_to_entity = {}
-        # self.faker_instance = Faker('fr_FR') # Exemple
-
-    def _generate_code(self, label: str, index: int, options: dict = None) -> str:
-        """
-        Génère un code unique pour chaque type d'entité au format {{TAG_XXX}},
-        en utilisant les options fournies si disponibles pour le TAG interne.
-        """
-        options = options or {}
-
-        # Le 'prefix' dans les options définira maintenant le TAG interne.
-        # Ex: si options={"prefix": "PERSONNE"}, et label="PER", inner_tag="PERSONNE"
-        # Si pas de prefix dans les options, on prend un tag par défaut basé sur le label.
-        default_inner_tags = {
-            "PER": "NOM",
-            "LOC": "LIEU",
-            "ORG": "ENTREPRISE", # Changé pour être plus distinctif que ORG
-            "EMAIL": "EMAIL",
-            "DATE": "DATE",
-            "MISC": "DIVERS",    # Changé pour être plus distinctif que DATA
-            "PHONE": "TEL",
-            "IBAN": "IBAN_ID"
-            # Ajoutez d'autres labels que vous gérez fréquemment
-        }
         
-        inner_tag = options.get("prefix", default_inner_tags.get(label, label.upper()))
-        
-        padding = options.get("padding", 3)
-        if not isinstance(padding, int) or padding < 0:
-            padding = 3
-
-        # Nouveau format : {{INNERTAG_XXX}}
-        return create_placeholder(inner_tag, index, padding)
-
     def generate_replacements(self, unique_spacy_entities, replacement_rules=None):
-        """
-        Prend une liste de tuples (entity_text, label) et génère le mapping {entity_text: code}.
-        Retourne: (replacements_map, mapping_dict)
-        """
-        replacements = {}
-        mapping = {}
-        entity_seen = {} 
-        label_counters = {} 
-
         if not replacement_rules:
             replacement_rules = {}
 
-        for entity_text, label in unique_spacy_entities:
-            if entity_text in entity_seen:
-                code = entity_seen[entity_text]
-            else:
-                current_label_index = label_counters.get(label, 0)
-                rule = replacement_rules.get(label)
-                
-                if rule and isinstance(rule, dict):
-                    rule_options = rule.get("options", {}) 
-                    rule_type = rule.get("type")
+        replacements = {}
+        mapping = {}
+        # Compteurs locaux pour la génération séquentielle
+        label_counters = {}
 
-                    if rule_type == "redact":
-                        # Le texte de 'redact' est maintenant directement le marqueur souhaité
-                        # Ex: "{{ORGANISATION_MASQUÉE}}"
-                        code = rule_options.get("text", "{{REDACTED}}") # Marqueur par défaut pour redact
-                    elif rule_type == "placeholder":
-                        # Le format du placeholder est maintenant directement le marqueur, potentiellement avec la valeur originale
-                        # Ex: "{{LIEU:{}}}" ou "{{DATE_CONFIDENTIELLE}}"
-                        format_str = rule_options.get("format", "{{{}}}".format(label.upper())) # Placeholder par défaut: "{{LABEL}}" ou "{{LABEL:valeur}}" si format_str inclut "{}"
-                        try:
-                            code = format_str.format(entity_text)
-                        except Exception as e:
-                            logger.warning( #
-                                "Erreur de formatage du placeholder pour l'entité '%s' avec le format '%s': %s. Utilisation du format simple.", #
-                                entity_text, #
-                                format_str, #
-                                e, #
-                            )
-                            # Fallback si le format_str est complexe et attendu pour inclure entity_text
-                            # mais que entity_text cause un souci ou si le format est juste un tag sans {}
-                            if "{}" in format_str: # Si le format attendait une valeur
-                                code = format_str.replace("{}", "[VALEUR_ORIGINALE_ERREUR_FORMAT]")
-                            else: # Si le format est juste un tag fixe
-                                code = format_str
-                    elif rule_type == "codes":
-                        code = self._generate_code(label, current_label_index, rule_options)
-                        label_counters[label] = current_label_index + 1 
-                    elif rule_type == "faker":
-                        # L'implémentation de Faker devrait aussi générer des chaînes au format {{TAG:ValeurFake}}
-                        # ou simplement la valeur Fake si le but n'est pas d'indiquer que c'est un remplacement.
-                        # Pour l'instant, on garde un marqueur clair.
-                        provider = rule_options.get("provider", label.lower()) # ex: "name", "address"
-                        code = f"{{{{FAKER_{provider.upper()}}}}}" # Placeholder simple
-                    else:
-                        logger.warning( #
-                            "Type de règle '%s' inconnu pour label '%s'. Utilisation de la génération de code par défaut.", #
-                            rule_type, #
-                            label, #
-                        )
-                        code = self._generate_code(label, current_label_index, rule_options) # Utilise rule_options si dispo
-                        label_counters[label] = current_label_index + 1
-                else: # Pas de règle spécifique ou règle malformée
-                    code = self._generate_code(label, current_label_index) # Utilise les options par défaut de _generate_code
-                    label_counters[label] = current_label_index + 1
+        for entity_text, label in unique_spacy_entities:
+            # Réutilisation si déjà vu
+            if entity_text in self.entity_to_code:
+                code = self.entity_to_code[entity_text]
+            else:
+                current_index = label_counters.get(label, 0)
                 
-                entity_seen[entity_text] = code
+                # Récupération de la règle
+                rule = replacement_rules.get(label, {})
+                rule_type = rule.get("type", "codes") # Par défaut 'codes'
+                options = rule.get("options", {})
+
+                # Sélection du générateur
+                generator_func = _GENERATOR_REGISTRY.get(rule_type)
+                if not generator_func:
+                    logger.warning("Type de règle inconnu '%s' pour '%s'. Fallback 'codes'.", rule_type, label)
+                    generator_func = _GENERATOR_REGISTRY["codes"]
+                
+                # Génération
+                try:
+                    code = generator_func(self, label, current_index, options, entity_text)
+                except Exception as e:
+                    logger.error("Erreur générateur '%s': %s", rule_type, e)
+                    code = f"{{{{ERR_{label}}}}}"
+
+                # Mise à jour des compteurs seulement si le générateur est de type 'codes' 
+                # (ou si on décide que l'index doit toujours avancer)
+                # Ici on avance toujours l'index par simplicité et unicité potentielle
+                label_counters[label] = current_index + 1
+                
+                self.entity_to_code[entity_text] = code
 
             replacements[entity_text] = code
             mapping[entity_text] = code
