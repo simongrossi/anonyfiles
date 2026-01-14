@@ -1,0 +1,60 @@
+Monsieur {{NOM_001}} habite au 12 {{LIEU_001}}, 75008 {{LIEU_002}}.
+Son adresse e-mail est {{EMAIL_001}} et il est né {{DATE_001}}.
+Son numéro de sécurité sociale : 1 84 12 75 123 456 89. Son IBAN est {{LIEU_003}}{{IBAN_ID_001}}.
+
+L’entreprise {{ENTREPRISE_001}}, basée à {{LIEU_004}}, a été fondée par {{NOM_002}} et {{NOM_003}}.
+{{DIVERS_001}} au {{TEL_001}} ou par fax au {{TEL_002}}.
+Pour toute question, envoyer un mail à {{EMAIL_002}} ou visiter le site www.acme-corp.fr.
+
+Les réunions prévues sont les suivantes :
+- {{DATE_002}} à 10h (avec Dr. {{NOM_004}})
+- Mardi {{DATE_003}} à {{LIEU_005}} de {{LIEU_006}}
+- Le {{DATE_004}} : signature du contrat (avec {{NOM_005}}).
+
+Él élèves présents : {{NOM_006}}, {{NOM_007}}, {{NOM_008}}, D’{{NOM_009}}.
+{{DIVERS_002}} : {{EMAIL_003}}
+
+Adresse secondaire : 18 bis {{LIEU_007}}, 69003 {{LIEU_006}}.  
+IBAN entreprise : {{LIEU_008}}{{IBAN_ID_002}}{{TEL_003}}.
+
+Rendez-vous au CHU d’{{LIEU_009}}, 4e étage, bureau 408B.
+
+{{NOM_010}} a-t-il payé par carte ? {{ENTREPRISE_002}} : 4532 9836 2938 2910  
+{{DIVERS_003}} (test) : sk_test_51Ht6Tw1UGdQJd4x... (factice)
+Note : Code promo à anonymiser : {{DIVERS_004}}Numéro de téléphone en format international : +33 6 12 34 56 78
+Et un mail bizarre : {{EMAIL_004}}
+
+Données en double :
+- Monsieur {{NOM_011}}{{EMAIL_001}}
+- 12 {{LIEU_010}}” : Le faux IBAN est {{LIEU_011}}{{IBAN_ID_003}}et ceci n’est pas un vrai IBAN.  
+Un mail non valide : {{NOM_012}}
+
+Proposition :
+« {{LIEU_012}} {{NOM_013}}, merci de contacter le service juridique avant {{DATE_005}}. »
+
+Date en toutes lettres : Quinze août deux mille vingt-quatre
+
+{{LIEU_013}} notes interne : 
+- “À rappeler après 19h : {{NOM_014}}, directrice RH ({{EMAIL_005}})”
+- « Virement bancaire prévu le 14.10.2024 (RIB : {{NOM_015}}) »
+- “IBAN ‘piège’ : {{DIVERS_005}} : {{NOM_016}}, CEO, {{EMAIL_006}}, {{LIEU_014}}, {{LIEU_015}}.
+{{NOM_017}} : {{LIEU_016}}, {{DIVERS_006}}, {{DIVERS_007}}, {{DIVERS_008}} :
+{{NOM_018}}  
+28 rue {{NOM_019}}  
+31000 {{LIEU_017}}
+
+Son IBAN : {{LIEU_003}}{{IBAN_ID_004}}  
+{{LIEU_018}} : {{TEL_004}}  
+{{DIVERS_009}} : {{EMAIL_007}}
+
+{{DIVERS_010}} dans un tableau :
+| Nom               | Email                        | Ville     | Date naissance |
+|-------------------|-----------------------------|-----------|---------------|
+| {{NOM_008}}     | {{EMAIL_008}}       | Lyon      | {{DATE_006}}    |
+| Romain {{NOM_020}} {{EMAIL_009}}          | Paris     | {{DATE_007}}    |
+| {{NOM_021}}     | {{EMAIL_010}}        | {{LIEU_019}}  | {{DATE_008}}    |
+
+Commentaires internes :
+“Confidentiel – à ne pas transmettre à l’externe.”
+
+FIN DU DOCUMENT
