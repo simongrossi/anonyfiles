@@ -1,9 +1,9 @@
 import pytest
+
 pytest.importorskip("httpx")
 import shutil
 import importlib
 import sys
-from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -17,6 +17,7 @@ def test_anonymize_sanitizes_filenames(tmp_path):
     try:
         saved = {}
         import importlib as _importlib
+
         for mod in [
             "anonyfiles_api.api",
             "anonyfiles_api.routers.anonymization",
@@ -27,12 +28,22 @@ def test_anonymize_sanitizes_filenames(tmp_path):
         _importlib.invalidate_caches()
         sys.modules.setdefault(
             "spacy",
-            importlib.util.module_from_spec(importlib.machinery.ModuleSpec("spacy", None)),
+            importlib.util.module_from_spec(
+                importlib.machinery.ModuleSpec("spacy", None)
+            ),
         )
         from anonyfiles_api.api import app
+
         app.state.BASE_CONFIG = {"dummy": True}
 
-        def fake_run_anonymization_job_sync(job_id, input_path, config_options, has_header, custom_rules, passed_base_config):
+        def fake_run_anonymization_job_sync(
+            job_id,
+            input_path,
+            config_options,
+            has_header,
+            custom_rules,
+            passed_base_config,
+        ):
             saved["job_id"] = job_id
             saved["input_path"] = input_path
 
@@ -42,7 +53,12 @@ def test_anonymize_sanitizes_filenames(tmp_path):
         ):
             client = TestClient(app)
             files = {"file": ("../secret.txt", b"data")}
-            data = {"config_options": "{}", "file_type": "txt", "has_header": "", "custom_replacement_rules": ""}
+            data = {
+                "config_options": "{}",
+                "file_type": "txt",
+                "has_header": "",
+                "custom_replacement_rules": "",
+            }
             resp = client.post("/anonymize/", files=files, data=data)
             assert resp.status_code == 200
 

@@ -1,15 +1,16 @@
 import pytest
+
 pytest.skip("unstable in CI", allow_module_level=True)
 pytest.importorskip("httpx")
-import shutil
-import importlib
-import sys
-from unittest.mock import patch
+import shutil  # noqa: E402
+import importlib  # noqa: E402
+import sys  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 
-import fastapi
-from fastapi.testclient import TestClient
+import fastapi  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-import anonyfiles_api.core_config as core_config
+import anonyfiles_api.core_config as core_config  # noqa: E402
 
 
 def test_deanonymize_uses_streaming(tmp_path):
@@ -19,12 +20,17 @@ def test_deanonymize_uses_streaming(tmp_path):
         saved = {}
         sys.modules.setdefault(
             "spacy",
-            importlib.util.module_from_spec(importlib.machinery.ModuleSpec("spacy", None)),
+            importlib.util.module_from_spec(
+                importlib.machinery.ModuleSpec("spacy", None)
+            ),
         )
         from anonyfiles_api.api import app
+
         app.state.BASE_CONFIG = {"dummy": True}
 
-        async def fake_run_deanonymization_job_sync(job_id, input_path, mapping_path, permissive):
+        async def fake_run_deanonymization_job_sync(
+            job_id, input_path, mapping_path, permissive
+        ):
             saved["job_id"] = job_id
 
         read_calls = []
@@ -35,17 +41,22 @@ def test_deanonymize_uses_streaming(tmp_path):
             read_calls.append((size, len(data)))
             return data
 
-        with patch(
-            "anonyfiles_api.routers.deanonymization.run_deanonymization_job_sync",
-            side_effect=fake_run_deanonymization_job_sync,
-        ), patch("fastapi.datastructures.UploadFile.read", spy_read):
+        with (
+            patch(
+                "anonyfiles_api.routers.deanonymization.run_deanonymization_job_sync",
+                side_effect=fake_run_deanonymization_job_sync,
+            ),
+            patch("fastapi.datastructures.UploadFile.read", spy_read),
+        ):
             client = TestClient(app)
             big_content = b"x" * (2 * 1024 * 1024 + 10)
             files = {
                 "file": ("big.txt", big_content),
                 "mapping": ("map.csv", b"code,original\nA,B"),
             }
-            resp = client.post("/deanonymize/", files=files, data={"permissive": "false"})
+            resp = client.post(
+                "/deanonymize/", files=files, data={"permissive": "false"}
+            )
             assert resp.status_code == 200
 
         # read() should never be called without an explicit size

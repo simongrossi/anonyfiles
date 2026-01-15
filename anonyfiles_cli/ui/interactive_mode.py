@@ -1,4 +1,3 @@
-
 """Fonctionnalités interactives pour la CLI."""
 
 from typing import List
@@ -37,7 +36,7 @@ def prompt_entities_to_exclude(console: ConsoleDisplay) -> List[str]:
     if not answer.strip():
         return []
 
-    selections = {a.strip() for a in answer.split(',') if a.strip()}
+    selections = {a.strip() for a in answer.split(",") if a.strip()}
     selected_codes: set[str] = set()
 
     for item in selections:
@@ -55,4 +54,3 @@ def prompt_entities_to_exclude(console: ConsoleDisplay) -> List[str]:
                 console.console.print(f"[red]Code inconnu : {item}[/red]")
 
     return [code for code, _ in ENTITY_CHOICES if code not in selected_codes]
-

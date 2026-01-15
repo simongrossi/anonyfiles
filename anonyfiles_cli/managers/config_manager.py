@@ -17,6 +17,7 @@ class ConfigManager:
     Gère le chargement et la fusion des configurations de l'application.
     Priorité: CLI-fournie > Utilisateur (~/.anonyfiles/config.yaml) > Par défaut de l'application.
     """
+
     DEFAULT_USER_CONFIG_DIR = Path.home() / ".anonyfiles"
     DEFAULT_USER_CONFIG_FILE = DEFAULT_USER_CONFIG_DIR / "config.yaml"
     DEFAULT_APP_CONFIG_TEMPLATE = (
@@ -26,18 +27,19 @@ class ConfigManager:
         / "config_default.yaml"
     )
 
-
     @classmethod
     def _load_yaml_file(cls, file_path: Path) -> Dict[str, Any]:
         """Charge un fichier YAML de manière sécurisée."""
         if not file_path.is_file():
             return {}
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = yaml.safe_load(f)
                 return content if isinstance(content, dict) else {}
         except yaml.YAMLError as e:
-            raise ConfigurationError(f"Erreur lors du parsing YAML de '{file_path}': {e}")
+            raise ConfigurationError(
+                f"Erreur lors du parsing YAML de '{file_path}': {e}"
+            )
         except Exception as e:
             raise ConfigurationError(f"Erreur lors de la lecture de '{file_path}': {e}")
 
@@ -51,7 +53,9 @@ class ConfigManager:
             return {}
 
     @classmethod
-    def get_effective_config(cls, cli_provided_config_path: Optional[Path]) -> Dict[str, Any]:
+    def get_effective_config(
+        cls, cli_provided_config_path: Optional[Path]
+    ) -> Dict[str, Any]:
         """
         Charge la configuration en respectant la priorité :
         1. Fichier de configuration fourni via la CLI.
@@ -74,7 +78,9 @@ class ConfigManager:
         merged_config.update(user_config)
 
         if cli_provided_config_path:
-            cli_config = ValidationManager.load_and_validate_config(cli_provided_config_path)
+            cli_config = ValidationManager.load_and_validate_config(
+                cli_provided_config_path
+            )
             merged_config.update(cli_config)
 
         # Validation finale de la configuration fusionnée
@@ -98,14 +104,32 @@ class ConfigManager:
                 "compression": False,
                 "spacy_model": "fr_core_news_md",
                 "replacements": {
-                    "PER": {"type": "codes", "options": {"prefix": "PERSON_", "padding": 3}},
-                    "LOC": {"type": "faker", "options": {"locale": "fr_FR", "provider": "city"}},
+                    "PER": {
+                        "type": "codes",
+                        "options": {"prefix": "PERSON_", "padding": 3},
+                    },
+                    "LOC": {
+                        "type": "faker",
+                        "options": {"locale": "fr_FR", "provider": "city"},
+                    },
                 },
-                "exclude_entities": []
+                "exclude_entities": [],
             }
             try:
                 with open(cls.DEFAULT_USER_CONFIG_FILE, "w", encoding="utf-8") as f:
-                    yaml.dump(initial_user_config, f, indent=2, sort_keys=False, allow_unicode=True)
-                logger.info("Configuration utilisateur par défaut créée à: %s", cls.DEFAULT_USER_CONFIG_FILE)
+                    yaml.dump(
+                        initial_user_config,
+                        f,
+                        indent=2,
+                        sort_keys=False,
+                        allow_unicode=True,
+                    )
+                logger.info(
+                    "Configuration utilisateur par défaut créée à: %s",
+                    cls.DEFAULT_USER_CONFIG_FILE,
+                )
             except Exception as e:
-                logger.error("Erreur lors de la création de la configuration utilisateur par défaut: %s", e)
+                logger.error(
+                    "Erreur lors de la création de la configuration utilisateur par défaut: %s",
+                    e,
+                )

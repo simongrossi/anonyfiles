@@ -1,4 +1,5 @@
 import pytest
+
 pytest.importorskip("spacy")
 import tempfile
 from anonyfiles_core.anonymizer.json_processor import JsonProcessor
@@ -35,10 +36,13 @@ def test_extract_blocks_json():
         assert "Jean Dupont" in blocks
         assert "jean.dupont@example.com" in blocks
 
+
 def test_reconstruct_and_write_anonymized_file_json():
     content = _nested_sample()
-    with tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8") as tmp_in, \
-         tempfile.NamedTemporaryFile("r", delete=False, encoding="utf-8") as tmp_out:
+    with (
+        tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8") as tmp_in,
+        tempfile.NamedTemporaryFile("r", delete=False, encoding="utf-8") as tmp_out,
+    ):
         tmp_in.write(content)
         tmp_in.flush()
         processor = JsonProcessor()
@@ -51,7 +55,9 @@ def test_reconstruct_and_write_anonymized_file_json():
         }
         final_blocks = [replacements.get(b, b) for b in blocks]
 
-        processor.reconstruct_and_write_anonymized_file(Path(tmp_out.name), final_blocks, Path(tmp_in.name))
+        processor.reconstruct_and_write_anonymized_file(
+            Path(tmp_out.name), final_blocks, Path(tmp_in.name)
+        )
         with open(tmp_out.name, encoding="utf-8") as res:
             result_json = json.load(res)
 

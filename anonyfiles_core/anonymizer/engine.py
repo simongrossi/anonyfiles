@@ -1,13 +1,10 @@
 # anonyfiles_cli/anonymizer/engine.py
 
-import csv
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 import logging
-import asyncio
 
 from .spacy_engine import SpaCyEngine
-from .replacer import ReplacementSession
 from .utils import apply_positional_replacements
 from .audit import AuditLogger
 
@@ -25,17 +22,22 @@ class AnonyfilesEngine:
     """
     Orchestre le processus complet d'anonymisation d'un fichier.
     """
-    def __init__(self, config: Dict[str, Any],
-                 exclude_entities_cli: Optional[List[str]] = None,
-                 custom_replacement_rules: Optional[List[Dict[str, str]]] = None):
-        
+
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        exclude_entities_cli: Optional[List[str]] = None,
+        custom_replacement_rules: Optional[List[Dict[str, str]]] = None,
+    ):
         self.config = config or {}
-        
+
         # Initialisation du logger d'audit
         self.audit_logger = AuditLogger()
 
         # Initialisation du CustomRulesProcessor
-        self.custom_rules_processor = CustomRulesProcessor(custom_replacement_rules, self.audit_logger)
+        self.custom_rules_processor = CustomRulesProcessor(
+            custom_replacement_rules, self.audit_logger
+        )
 
         # Initialisation des entités à exclure
         self.entities_exclude = set()
@@ -43,11 +45,15 @@ class AnonyfilesEngine:
 
         # Mapping des clés GUI aux labels spaCy et gestion des enabled_labels
         mapping_gui_keys = {
-            "anonymizePersons": "PER", "anonymizeLocations": "LOC",
-            "anonymizeOrgs": "ORG", "anonymizeEmails": "EMAIL",
-            "anonymizeDates": "DATE", "anonymizeMisc": "MISC",
-            "anonymizePhones": "PHONE", "anonymizeIbans": "IBAN",
-            "anonymizeAddresses": "ADDRESS"
+            "anonymizePersons": "PER",
+            "anonymizeLocations": "LOC",
+            "anonymizeOrgs": "ORG",
+            "anonymizeEmails": "EMAIL",
+            "anonymizeDates": "DATE",
+            "anonymizeMisc": "MISC",
+            "anonymizePhones": "PHONE",
+            "anonymizeIbans": "IBAN",
+            "anonymizeAddresses": "ADDRESS",
         }
         self.enabled_labels = set()
         for key, label in mapping_gui_keys.items():
@@ -58,16 +64,20 @@ class AnonyfilesEngine:
 
         if exclude_entities_cli:
             for e_list in exclude_entities_cli:
-                 for e in e_list.split(","):
+                for e in e_list.split(","):
                     self.entities_exclude.add(e.strip().upper())
 
         # Initialisation de SpaCyEngine et NERProcessor
         model = self.config.get("spacy_model", "fr_core_news_md")
         self.spacy_engine = SpaCyEngine(model=model)
-        self.ner_processor = NERProcessor(self.spacy_engine, self.enabled_labels, self.entities_exclude)
-        
+        self.ner_processor = NERProcessor(
+            self.spacy_engine, self.enabled_labels, self.entities_exclude
+        )
+
         # Initialisation du ReplacementGenerator
-        self.replacement_generator = ReplacementGenerator(self.config, self.audit_logger)
+        self.replacement_generator = ReplacementGenerator(
+            self.config, self.audit_logger
+        )
 
         # Initialisation du Writer (dépend de dry_run, sera initialisé dans anonymize())
         self.writer: Optional[AnonymizedFileWriter] = None
@@ -77,24 +87,35 @@ class AnonyfilesEngine:
             self.entities_exclude,
         )
 
-
-    def anonymize(self, input_path: Path, output_path: Optional[Path],
-                  entities: Optional[List[str]], # Ce paramètre n'est plus utilisé directement ici, la logique de filtrage est dans NERProcessor
-                  dry_run: bool,
-                  log_entities_path: Optional[Path],
-                  mapping_output_path: Optional[Path],
-                  **kwargs) -> Dict[str, Any]:
-
+    def anonymize(
+        self,
+        input_path: Path,
+        output_path: Optional[Path],
+        entities: Optional[
+            List[str]
+        ],  # Ce paramètre n'est plus utilisé directement ici, la logique de filtrage est dans NERProcessor
+        dry_run: bool,
+        log_entities_path: Optional[Path],
+        mapping_output_path: Optional[Path],
+        **kwargs,
+    ) -> Dict[str, Any]:
         self.audit_logger.reset()
         self.custom_rules_processor.reset()
-        self.writer = AnonymizedFileWriter(dry_run) # Initialise le writer pour cette exécution
+        self.writer = AnonymizedFileWriter(
+            dry_run
+        )  # Initialise le writer pour cette exécution
 
         ext = input_path.suffix.lower()
-        
+
         try:
             processor = FileProcessorFactory.get_processor(ext)
         except ValueError as e:
-            return {"status": "error", "error": str(e), "audit_log": self.audit_logger.summary(), "total_replacements": self.audit_logger.total()}
+            return {
+                "status": "error",
+                "error": str(e),
+                "audit_log": self.audit_logger.summary(),
+                "total_replacements": self.audit_logger.total(),
+            }
 
         logger.debug(
             "DEBUG (Engine): Type de processor choisi : %s pour extension %s",
@@ -103,8 +124,10 @@ class AnonyfilesEngine:
         )
 
         extract_kwargs = {}
-        if hasattr(processor, 'has_header') and 'has_header' in kwargs: # Pour CsvProcessor
-            extract_kwargs['has_header'] = kwargs['has_header']
+        if (
+            hasattr(processor, "has_header") and "has_header" in kwargs
+        ):  # Pour CsvProcessor
+            extract_kwargs["has_header"] = kwargs["has_header"]
         original_blocks = processor.extract_blocks(input_path, **extract_kwargs)
 
         # 1. Application des règles personnalisées
@@ -119,72 +142,107 @@ class AnonyfilesEngine:
                 mod_block = self.custom_rules_processor.apply_to_block(block_text)
                 blocks_after_custom_rules.append(mod_block)
             if self.custom_rules_processor.get_custom_replacements_count() > 0:
-                 logger.debug(
+                logger.debug(
                     "DEBUG (Engine): Nombre total de remplacements personnalisés effectués : %s",
                     self.custom_rules_processor.get_custom_replacements_count(),
-                 )
+                )
         else:
             blocks_after_custom_rules = original_blocks
-        
+
         # Vérification si le contenu est vide après règles custom
         if not any(block.strip() for block in blocks_after_custom_rules):
             logger.info(
                 "INFO (Engine): Contenu vide après application des règles personnalisées (ou initialement vide)."
             )
             if not dry_run and output_path:
-                self.writer.write_anonymized_file(processor, output_path, [], input_path, **kwargs)
+                self.writer.write_anonymized_file(
+                    processor, output_path, [], input_path, **kwargs
+                )
             if mapping_output_path and not dry_run:
-                self.writer.write_mapping_file(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+                self.writer.write_mapping_file(
+                    mapping_output_path,
+                    self.custom_rules_processor.get_custom_replacements_mapping(),
+                    {},
+                    [],
+                )
             return {
-                "status": "success", "message": "Input effectively empty, no spaCy processing.",
-                "entities_detected": [], "audit_log": self.audit_logger.summary(),
+                "status": "success",
+                "message": "Input effectively empty, no spaCy processing.",
+                "entities_detected": [],
+                "audit_log": self.audit_logger.summary(),
                 "total_replacements": self.audit_logger.total(),
             }
 
         # 2. Détection des entités spaCy et regex
-        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = (
+            self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
+        )
         logger.debug(
             "DEBUG (Engine): Entités spaCy uniques (après détection et filtres) à traiter : %s",
             len(unique_spacy_entities),
         )
 
         # 3. Génération des remplacements spaCy et journalisation
-        if not unique_spacy_entities and self.custom_rules_processor.get_custom_replacements_count() == 0:
+        if (
+            not unique_spacy_entities
+            and self.custom_rules_processor.get_custom_replacements_count() == 0
+        ):
             logger.info(
                 "INFO (Engine): Aucune entité spaCy à anonymiser et aucune règle personnalisée n'a été appliquée."
             )
             if not dry_run and output_path:
-                self.writer.write_anonymized_file(processor, output_path, blocks_after_custom_rules, input_path, **kwargs)
+                self.writer.write_anonymized_file(
+                    processor,
+                    output_path,
+                    blocks_after_custom_rules,
+                    input_path,
+                    **kwargs,
+                )
             if mapping_output_path and not dry_run:
-                self.writer.write_mapping_file(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+                self.writer.write_mapping_file(
+                    mapping_output_path,
+                    self.custom_rules_processor.get_custom_replacements_mapping(),
+                    {},
+                    [],
+                )
             return {
-                "status": "success", "message": "No spaCy entities found to anonymize and no custom rules applied.",
-                "entities_detected": [], "audit_log": self.audit_logger.summary(),
+                "status": "success",
+                "message": "No spaCy entities found to anonymize and no custom rules applied.",
+                "entities_detected": [],
+                "audit_log": self.audit_logger.summary(),
                 "total_replacements": self.audit_logger.total(),
             }
 
-        replacements_map_spacy, mapping_dict_spacy = self.replacement_generator.generate_spacy_replacements(
-            unique_spacy_entities, spacy_entities_per_block_with_offsets
+        replacements_map_spacy, mapping_dict_spacy = (
+            self.replacement_generator.generate_spacy_replacements(
+                unique_spacy_entities, spacy_entities_per_block_with_offsets
+            )
         )
 
         # 4. Application des remplacements spaCy positionnels
         truly_final_blocks_for_processor: List[str] = []
         for i, block_text_after_custom in enumerate(blocks_after_custom_rules):
             entities_in_this_block_to_replace = spacy_entities_per_block_with_offsets[i]
-            
+
             # Filtrer les entités pour s'assurer qu'elles sont dans unique_spacy_entities (par le texte et le label)
             # Normalement, cela devrait already be the case with the NERProcessor, but security.
-            unique_spacy_entities_set_of_tuples = set(unique_spacy_entities) # For faster lookup
+            unique_spacy_entities_set_of_tuples = set(
+                unique_spacy_entities
+            )  # For faster lookup
             filtered_entities_for_replacement_in_block = [
-                ent_offset for ent_offset in entities_in_this_block_to_replace
+                ent_offset
+                for ent_offset in entities_in_this_block_to_replace
                 if (ent_offset[0], ent_offset[1]) in unique_spacy_entities_set_of_tuples
             ]
 
-            if block_text_after_custom.strip() and filtered_entities_for_replacement_in_block:
+            if (
+                block_text_after_custom.strip()
+                and filtered_entities_for_replacement_in_block
+            ):
                 fully_anonymized_block = apply_positional_replacements(
                     block_text_after_custom,
                     replacements_map_spacy,
-                    filtered_entities_for_replacement_in_block
+                    filtered_entities_for_replacement_in_block,
                 )
                 truly_final_blocks_for_processor.append(fully_anonymized_block)
             else:
@@ -196,20 +254,22 @@ class AnonyfilesEngine:
                 processor=processor,
                 output_path=output_path,
                 final_processed_blocks=truly_final_blocks_for_processor,
-                original_input_path=input_path, 
-                spacy_entities_per_block_with_offsets=spacy_entities_per_block_with_offsets, # Necessary for PDF/DOCX
-                **kwargs # Pass remaining kwargs (e.g., has_header for CSV/XLSX)
+                original_input_path=input_path,
+                spacy_entities_per_block_with_offsets=spacy_entities_per_block_with_offsets,  # Necessary for PDF/DOCX
+                **kwargs,  # Pass remaining kwargs (e.g., has_header for CSV/XLSX)
             )
 
             if log_entities_path:
-                self.writer.write_log_entities_file(log_entities_path, unique_spacy_entities)
+                self.writer.write_log_entities_file(
+                    log_entities_path, unique_spacy_entities
+                )
 
             if mapping_output_path:
                 self.writer.write_mapping_file(
                     mapping_output_path,
                     self.custom_rules_processor.get_custom_replacements_mapping(),
                     mapping_dict_spacy,
-                    unique_spacy_entities
+                    unique_spacy_entities,
                 )
 
         total_replacements_logged = self.audit_logger.total()
@@ -245,7 +305,12 @@ class AnonyfilesEngine:
         try:
             processor = FileProcessorFactory.get_processor(ext)
         except ValueError as e:
-            return {"status": "error", "error": str(e), "audit_log": self.audit_logger.summary(), "total_replacements": self.audit_logger.total()}
+            return {
+                "status": "error",
+                "error": str(e),
+                "audit_log": self.audit_logger.summary(),
+                "total_replacements": self.audit_logger.total(),
+            }
 
         logger.debug(
             "DEBUG (Engine): Type de processor choisi : %s pour extension %s",
@@ -254,9 +319,11 @@ class AnonyfilesEngine:
         )
 
         extract_kwargs = {}
-        if hasattr(processor, 'has_header') and 'has_header' in kwargs:
-            extract_kwargs['has_header'] = kwargs['has_header']
-        original_blocks = await processor.extract_blocks_async(input_path, **extract_kwargs)
+        if hasattr(processor, "has_header") and "has_header" in kwargs:
+            extract_kwargs["has_header"] = kwargs["has_header"]
+        original_blocks = await processor.extract_blocks_async(
+            input_path, **extract_kwargs
+        )
 
         blocks_after_custom_rules = []
         if self.custom_rules_processor.custom_rules:
@@ -281,9 +348,16 @@ class AnonyfilesEngine:
                 "INFO (Engine): Contenu vide après application des règles personnalisées (ou initialement vide)."
             )
             if not dry_run and output_path:
-                await self.writer.write_anonymized_file_async(processor, output_path, [], input_path, **kwargs)
+                await self.writer.write_anonymized_file_async(
+                    processor, output_path, [], input_path, **kwargs
+                )
             if mapping_output_path and not dry_run:
-                await self.writer.write_mapping_file_async(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+                await self.writer.write_mapping_file_async(
+                    mapping_output_path,
+                    self.custom_rules_processor.get_custom_replacements_mapping(),
+                    {},
+                    [],
+                )
             return {
                 "status": "success",
                 "message": "Input effectively empty, no spaCy processing.",
@@ -292,20 +366,36 @@ class AnonyfilesEngine:
                 "total_replacements": self.audit_logger.total(),
             }
 
-        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = (
+            self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
+        )
         logger.debug(
             "DEBUG (Engine): Entités spaCy uniques (après détection et filtres) à traiter : %s",
             len(unique_spacy_entities),
         )
 
-        if not unique_spacy_entities and self.custom_rules_processor.get_custom_replacements_count() == 0:
+        if (
+            not unique_spacy_entities
+            and self.custom_rules_processor.get_custom_replacements_count() == 0
+        ):
             logger.info(
                 "INFO (Engine): Aucune entité spaCy à anonymiser et aucune règle personnalisée n'a été appliquée."
             )
             if not dry_run and output_path:
-                await self.writer.write_anonymized_file_async(processor, output_path, blocks_after_custom_rules, input_path, **kwargs)
+                await self.writer.write_anonymized_file_async(
+                    processor,
+                    output_path,
+                    blocks_after_custom_rules,
+                    input_path,
+                    **kwargs,
+                )
             if mapping_output_path and not dry_run:
-                await self.writer.write_mapping_file_async(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+                await self.writer.write_mapping_file_async(
+                    mapping_output_path,
+                    self.custom_rules_processor.get_custom_replacements_mapping(),
+                    {},
+                    [],
+                )
             return {
                 "status": "success",
                 "message": "No spaCy entities found to anonymize and no custom rules applied.",
@@ -314,8 +404,10 @@ class AnonyfilesEngine:
                 "total_replacements": self.audit_logger.total(),
             }
 
-        replacements_map_spacy, mapping_dict_spacy = self.replacement_generator.generate_spacy_replacements(
-            unique_spacy_entities, spacy_entities_per_block_with_offsets
+        replacements_map_spacy, mapping_dict_spacy = (
+            self.replacement_generator.generate_spacy_replacements(
+                unique_spacy_entities, spacy_entities_per_block_with_offsets
+            )
         )
 
         truly_final_blocks_for_processor: List[str] = []
@@ -323,11 +415,15 @@ class AnonyfilesEngine:
             entities_in_this_block_to_replace = spacy_entities_per_block_with_offsets[i]
             unique_spacy_entities_set_of_tuples = set(unique_spacy_entities)
             filtered_entities_for_replacement_in_block = [
-                ent_offset for ent_offset in entities_in_this_block_to_replace
+                ent_offset
+                for ent_offset in entities_in_this_block_to_replace
                 if (ent_offset[0], ent_offset[1]) in unique_spacy_entities_set_of_tuples
             ]
 
-            if block_text_after_custom.strip() and filtered_entities_for_replacement_in_block:
+            if (
+                block_text_after_custom.strip()
+                and filtered_entities_for_replacement_in_block
+            ):
                 fully_anonymized_block = apply_positional_replacements(
                     block_text_after_custom,
                     replacements_map_spacy,
@@ -348,7 +444,9 @@ class AnonyfilesEngine:
             )
 
             if log_entities_path:
-                await self.writer.write_log_entities_file_async(log_entities_path, unique_spacy_entities)
+                await self.writer.write_log_entities_file_async(
+                    log_entities_path, unique_spacy_entities
+                )
 
             if mapping_output_path:
                 await self.writer.write_mapping_file_async(

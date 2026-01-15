@@ -8,6 +8,7 @@ from .utils import apply_positional_replacements
 
 logger = logging.getLogger(__name__)
 
+
 class ExcelProcessor(BaseProcessor):
     """
     Processor pour les fichiers .xlsx (Excel).
@@ -24,15 +25,11 @@ class ExcelProcessor(BaseProcessor):
         for row_index in range(df.shape[0]):
             for col_index in range(df.shape[1]):
                 cell_value = df.iloc[row_index, col_index]
-                cell_texts.append(str(cell_value) if pd.notna(cell_value) else '')
+                cell_texts.append(str(cell_value) if pd.notna(cell_value) else "")
         return cell_texts
 
     def replace_entities(
-        self,
-        input_path,
-        output_path,
-        replacements,
-        entities_per_block_with_offsets
+        self, input_path, output_path, replacements, entities_per_block_with_offsets
     ):
         """
         Remplace les entités dans chaque cellule Excel et sauvegarde le résultat.
@@ -47,15 +44,15 @@ class ExcelProcessor(BaseProcessor):
         for row_index in range(anonymized_df.shape[0]):
             for col_index in range(anonymized_df.shape[1]):
                 cell_value = anonymized_df.iloc[row_index, col_index]
-                cell_text = str(cell_value) if pd.notna(cell_value) else ''
+                cell_text = str(cell_value) if pd.notna(cell_value) else ""
                 entities_for_this_cell = []
                 if cell_index_counter < len(entities_per_block_with_offsets):
-                    entities_for_this_cell = entities_per_block_with_offsets[cell_index_counter]
+                    entities_for_this_cell = entities_per_block_with_offsets[
+                        cell_index_counter
+                    ]
                 if cell_text.strip() and entities_for_this_cell:
                     anonymized_text = apply_positional_replacements(
-                        cell_text,
-                        replacements,
-                        entities_for_this_cell
+                        cell_text, replacements, entities_for_this_cell
                     )
                 else:
                     anonymized_text = cell_text
@@ -69,11 +66,7 @@ class ExcelProcessor(BaseProcessor):
         anonymized_df.to_excel(output_path, index=False)
 
     def reconstruct_and_write_anonymized_file(
-        self,
-        output_path,
-        final_processed_blocks,
-        original_input_path,
-        **kwargs
+        self, output_path, final_processed_blocks, original_input_path, **kwargs
     ):
         """Reconstruit un fichier Excel à partir des blocs traités et l'enregistre."""
         df = pd.read_excel(original_input_path)
@@ -99,7 +92,9 @@ class ExcelProcessor(BaseProcessor):
         for row_index in range(anonymized_df.shape[0]):
             for col_index in range(anonymized_df.shape[1]):
                 if cell_index_counter < len(final_processed_blocks):
-                    anonymized_df.iloc[row_index, col_index] = final_processed_blocks[cell_index_counter]
+                    anonymized_df.iloc[row_index, col_index] = final_processed_blocks[
+                        cell_index_counter
+                    ]
                 cell_index_counter += 1
 
         output_dir = Path(output_path).parent

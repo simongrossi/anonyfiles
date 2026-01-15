@@ -1,8 +1,7 @@
 # anonymizer/txt_processor.py
 
-import os
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List
 import logging
 import aiofiles
 
@@ -11,10 +10,11 @@ from .base_processor import BaseProcessor
 
 logger = logging.getLogger(__name__)
 
+
 class TxtProcessor(BaseProcessor):
     def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
         try:
-            with open(input_path, 'r', encoding='utf-8') as f:
+            with open(input_path, "r", encoding="utf-8") as f:
                 return [f.read()]
         except FileNotFoundError:
             # Le moteur AnonyfilesEngine devrait idéalement vérifier l'existence du fichier
@@ -29,16 +29,15 @@ class TxtProcessor(BaseProcessor):
             logger.error("Erreur lors de la lecture de %s: %s", input_path, e)
             return [""]
 
-
     def reconstruct_and_write_anonymized_file(
         self,
         output_path: Path,
-        final_processed_blocks: List[str], # Devrait contenir un seul élément pour TXT
-        original_input_path: Path, # Non spécifiquement utilisé pour la reconstruction TXT simple
-        **kwargs
+        final_processed_blocks: List[str],  # Devrait contenir un seul élément pour TXT
+        original_input_path: Path,  # Non spécifiquement utilisé pour la reconstruction TXT simple
+        **kwargs,
     ) -> None:
         content_to_write = ""
-        if final_processed_blocks: # S'assurer que la liste n'est pas vide
+        if final_processed_blocks:  # S'assurer que la liste n'est pas vide
             content_to_write = final_processed_blocks[0]
         else:
             # Cas où le fichier original était vide ou les règles ont tout supprimé,
@@ -48,16 +47,16 @@ class TxtProcessor(BaseProcessor):
                 output_path,
             )
 
-        output_dir = output_path.parent # Utiliser output_path.parent pour le dossier
-        if not output_dir.exists(): # S'assurer que le dossier de sortie existe
+        output_dir = output_path.parent  # Utiliser output_path.parent pour le dossier
+        if not output_dir.exists():  # S'assurer que le dossier de sortie existe
             output_dir.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'w', encoding='utf-8') as fout:
+        with open(output_path, "w", encoding="utf-8") as fout:
             fout.write(content_to_write)
 
     async def extract_blocks_async(self, input_path: Path, **kwargs) -> List[str]:
         try:
-            async with aiofiles.open(input_path, 'r', encoding='utf-8') as f:
+            async with aiofiles.open(input_path, "r", encoding="utf-8") as f:
                 content = await f.read()
             return [content]
         except FileNotFoundError:
@@ -77,5 +76,5 @@ class TxtProcessor(BaseProcessor):
         output_dir = output_path.parent
         if not output_dir.exists():
             output_dir.mkdir(parents=True, exist_ok=True)
-        async with aiofiles.open(output_path, 'w', encoding='utf-8') as fout:
+        async with aiofiles.open(output_path, "w", encoding="utf-8") as fout:
             await fout.write(content_to_write)

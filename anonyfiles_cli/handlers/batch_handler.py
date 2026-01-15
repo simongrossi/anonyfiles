@@ -1,7 +1,7 @@
 # anonyfiles_cli/handlers/batch_handler.py
 
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 import typer
 from rich.progress import (
     Progress,
@@ -12,7 +12,6 @@ from rich.progress import (
 )
 
 from ..handlers.anonymize_handler import AnonymizeHandler
-from ..managers.config_manager import ConfigManager
 from ..ui.console_display import ConsoleDisplay
 from ..exceptions import (
     AnonyfilesError,
@@ -167,7 +166,7 @@ class BatchHandler:
 
                 progress.advance(task)
 
-        self.console.console.print(f"\n📊 [bold]Résumé du traitement batch:[/bold]")
+        self.console.console.print("\n📊 [bold]Résumé du traitement batch:[/bold]")
         self.console.console.print(f"✅ Succès : [green]{success_count}[/green]")
         self.console.console.print(f"❌ Erreurs : [red]{error_count}[/red]")
         self.console.console.print(f"📁 Dossier de sortie : [blue]{output_dir}[/blue]")

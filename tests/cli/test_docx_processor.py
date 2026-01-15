@@ -1,8 +1,10 @@
 import pytest
+
 Document = pytest.importorskip("docx").Document
-from anonyfiles_core.anonymizer.word_processor import DocxProcessor
-from pathlib import Path
-import tempfile
+from anonyfiles_core.anonymizer.word_processor import DocxProcessor  # noqa: E402
+from pathlib import Path  # noqa: E402
+import tempfile  # noqa: E402
+
 
 def test_extract_blocks_docx():
     tmp = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
@@ -15,6 +17,7 @@ def test_extract_blocks_docx():
     assert len(blocks) == 2
     assert "Pierre" in blocks[0]
 
+
 def test_reconstruct_and_write_anonymized_file_docx():
     tmp_in = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
     tmp_out = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
@@ -24,7 +27,9 @@ def test_reconstruct_and_write_anonymized_file_docx():
     processor = DocxProcessor()
 
     blocks = processor.extract_blocks(tmp_in.name)
-    final_blocks = [b.replace("Pierre", "NOM003").replace("Paris", "VILLE_Z") for b in blocks]
+    final_blocks = [
+        b.replace("Pierre", "NOM003").replace("Paris", "VILLE_Z") for b in blocks
+    ]
 
     processor.reconstruct_and_write_anonymized_file(
         Path(tmp_out.name),
@@ -52,7 +57,9 @@ def test_reconstruct_and_write_anonymized_file_docx_preserves_formatting():
 
     processor = DocxProcessor()
     blocks = processor.extract_blocks(tmp_in.name)
-    final_blocks = [b.replace("Pierre", "NOM003").replace("Paris", "VILLE_Z") for b in blocks]
+    final_blocks = [
+        b.replace("Pierre", "NOM003").replace("Paris", "VILLE_Z") for b in blocks
+    ]
 
     processor.reconstruct_and_write_anonymized_file(
         Path(tmp_out.name),

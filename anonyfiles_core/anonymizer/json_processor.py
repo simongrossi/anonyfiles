@@ -3,7 +3,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Any, Optional, Tuple
 import aiofiles
 
 from .base_processor import BaseProcessor
@@ -38,7 +38,9 @@ class JsonProcessor(BaseProcessor):
                 next_collect = collect_all or (target_keys and k in target_keys)
 
                 if isinstance(v, (dict, list)):
-                    self._traverse(v, path + [k], next_collect, values, target_keys, anonymize_keys)
+                    self._traverse(
+                        v, path + [k], next_collect, values, target_keys, anonymize_keys
+                    )
                 else:
                     if next_collect or target_keys is None:
                         self._value_paths.append(path + [k])
@@ -46,7 +48,14 @@ class JsonProcessor(BaseProcessor):
         elif isinstance(node, list):
             for idx, item in enumerate(node):
                 if isinstance(item, (dict, list)):
-                    self._traverse(item, path + [idx], collect_all, values, target_keys, anonymize_keys)
+                    self._traverse(
+                        item,
+                        path + [idx],
+                        collect_all,
+                        values,
+                        target_keys,
+                        anonymize_keys,
+                    )
                 else:
                     if collect_all or target_keys is None:
                         self._value_paths.append(path + [idx])
@@ -78,7 +87,9 @@ class JsonProcessor(BaseProcessor):
         self._key_paths = []
         collected_values: List[str] = []
         keys_set = set(target_keys) if target_keys else None
-        self._traverse(self._original_json, [], False, collected_values, keys_set, anonymize_keys)
+        self._traverse(
+            self._original_json, [], False, collected_values, keys_set, anonymize_keys
+        )
         return collected_values
 
     async def extract_blocks_async(
@@ -103,16 +114,17 @@ class JsonProcessor(BaseProcessor):
         self._key_paths = []
         collected_values: List[str] = []
         keys_set = set(target_keys) if target_keys else None
-        self._traverse(self._original_json, [], False, collected_values, keys_set, anonymize_keys)
+        self._traverse(
+            self._original_json, [], False, collected_values, keys_set, anonymize_keys
+        )
         return collected_values
-
 
     def reconstruct_and_write_anonymized_file(
         self,
         output_path: Path,
         final_processed_blocks: List[str],
         original_input_path: Path,
-        **kwargs
+        **kwargs,
     ) -> None:
         if self._original_json is None:
             with open(original_input_path, "r", encoding="utf-8") as f:

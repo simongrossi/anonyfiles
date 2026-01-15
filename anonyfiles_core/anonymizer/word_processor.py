@@ -8,6 +8,7 @@ from .utils import apply_positional_replacements
 
 logger = logging.getLogger(__name__)
 
+
 class DocxProcessor(BaseProcessor):
     """
     Processor pour les fichiers .docx.
@@ -23,11 +24,7 @@ class DocxProcessor(BaseProcessor):
         return [p.text for p in doc.paragraphs]
 
     def replace_entities(
-        self,
-        input_path,
-        output_path,
-        replacements,
-        entities_per_block_with_offsets
+        self, input_path, output_path, replacements, entities_per_block_with_offsets
     ):
         """
         Remplace les entités dans chaque paragraphe du document DOCX, puis sauvegarde le résultat.
@@ -37,8 +34,10 @@ class DocxProcessor(BaseProcessor):
 
         if len(paragraphs) != len(entities_per_block_with_offsets):
             # Mismatch logique, sécurité !
-            raise ValueError(f"Le nombre de paragraphes ({len(paragraphs)}) ne correspond pas "
-                             f"au nombre de listes d'entités fournies ({len(entities_per_block_with_offsets)}).")
+            raise ValueError(
+                f"Le nombre de paragraphes ({len(paragraphs)}) ne correspond pas "
+                f"au nombre de listes d'entités fournies ({len(entities_per_block_with_offsets)})."
+            )
 
         if not paragraphs or all(not p.text.strip() for p in paragraphs):
             doc.save(output_path)
@@ -50,15 +49,13 @@ class DocxProcessor(BaseProcessor):
 
             if original_text.strip() and entities_for_this_paragraph:
                 anonymized_text = apply_positional_replacements(
-                    original_text,
-                    replacements,
-                    entities_for_this_paragraph
+                    original_text, replacements, entities_for_this_paragraph
                 )
             else:
                 anonymized_text = original_text
 
             # Supprimer tout le contenu du paragraphe (et donc son formatage !)
-            for run_element in p._element.xpath('./w:r'):
+            for run_element in p._element.xpath("./w:r"):
                 run_element.getparent().remove(run_element)
 
             if anonymized_text.strip():
@@ -72,11 +69,7 @@ class DocxProcessor(BaseProcessor):
         doc.save(output_path)
 
     def reconstruct_and_write_anonymized_file(
-        self,
-        output_path,
-        final_processed_blocks,
-        original_input_path,
-        **kwargs
+        self, output_path, final_processed_blocks, original_input_path, **kwargs
     ):
         """
         Reconstruit un document DOCX à partir des blocs traités et l'enregistre.
@@ -122,7 +115,7 @@ class DocxProcessor(BaseProcessor):
                 if pointer >= len(new_text):
                     r.text = ""
                 else:
-                    r.text = new_text[pointer: pointer + orig_len]
+                    r.text = new_text[pointer : pointer + orig_len]
                 pointer += orig_len
 
             if pointer < len(new_text):

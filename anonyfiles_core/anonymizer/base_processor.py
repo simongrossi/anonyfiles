@@ -1,7 +1,8 @@
 # anonymizer/base_processor.py
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List
 from pathlib import Path
 import asyncio
+
 
 class BaseProcessor:
     def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
@@ -10,23 +11,29 @@ class BaseProcessor:
         Chaque chaîne de la liste représente une unité de texte à traiter
         (ex: un paragraphe, une cellule, une page, ou le fichier entier).
         """
-        raise NotImplementedError("extract_blocks doit être implémenté par la sous-classe.")
+        raise NotImplementedError(
+            "extract_blocks doit être implémenté par la sous-classe."
+        )
 
     def reconstruct_and_write_anonymized_file(
         self,
         output_path: Path,
-        final_processed_blocks: List[str], # Blocs après règles custom ET remplacements spaCy
-        original_input_path: Path, # Pour la structure du fichier original si besoin (DOCX, PDF, en-têtes CSV)
+        final_processed_blocks: List[
+            str
+        ],  # Blocs après règles custom ET remplacements spaCy
+        original_input_path: Path,  # Pour la structure du fichier original si besoin (DOCX, PDF, en-têtes CSV)
         # **kwargs peut contenir des options spécifiques au processeur,
         # par exemple 'has_header' pour CsvProcessor,
         # ou 'spacy_entities_on_custom_text_per_block' pour PdfProcessor si nécessaire
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Reconstruit le fichier dans son format d'origine en utilisant les blocs de texte
         finalement traités et l'écrit dans output_path.
         """
-        raise NotImplementedError("reconstruct_and_write_anonymized_file doit être implémenté par la sous-classe.")
+        raise NotImplementedError(
+            "reconstruct_and_write_anonymized_file doit être implémenté par la sous-classe."
+        )
 
     # Les anciennes méthodes comme 'replace_entities' ou 'write_final_blocks' (pour TxtProcessor)
     # peuvent être marquées comme obsolètes ou supprimées si elles ne sont plus appelées

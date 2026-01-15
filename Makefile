@@ -1,10 +1,10 @@
-.PHONY: setup spacy-models cli api gui clean test-api dev systemd-install systemd-start systemd-stop systemd-status
+.PHONY: setup install-deps-debian spacy-models cli api gui clean test-api dev systemd-install systemd-start systemd-stop systemd-status
 
-setup:
-	@echo "🔧 Installation des dépendances système..."
+install-deps-debian:
+	@echo "🔧 [Debian/Ubuntu Only] Installation des dépendances système..."
+	@echo "⚠️  Attention : Cette commande nécessite des droits root (sudo)."
 	sudo apt update
 	sudo apt install -y python3 python3-venv python3-pip curl
-
 	@if ! command -v npm >/dev/null 2>&1; then \
 		echo "🧰 Installation de Node.js + npm..."; \
 		curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
@@ -13,6 +13,7 @@ setup:
 		echo "✅ Node.js et npm déjà installés."; \
 	fi
 
+setup:
 	@echo "🔧 Création des environnements virtuels..."
 	python3 -m venv env-cli
 	python3 -m venv env-api
@@ -20,12 +21,13 @@ setup:
 
 	@echo "📦 Installation des dépendances pour anonyfiles_cli..."
 	env-cli/bin/pip install --upgrade pip setuptools wheel
-	env-cli/bin/pip install -r anonyfiles_cli/requirements.txt
-	env-cli/bin/pip install -e .
+	# Utilisation du requirements.txt racine standardisé
+	env-cli/bin/pip install -r requirements.txt
 
 	@echo "📦 Installation des dépendances pour anonyfiles_api..."
 	env-api/bin/pip install --upgrade pip setuptools wheel
-	env-api/bin/pip install -r anonyfiles_api/requirements.txt
+	# Utilisation du requirements.txt racine standardisé
+	env-api/bin/pip install -r requirements.txt
 
 	@echo "📦 Installation des dépendances pour anonyfiles_gui (si requirements.txt présent)..."
 	if [ -f anonyfiles_gui/requirements.txt ]; then \
@@ -36,7 +38,12 @@ setup:
 	fi
 
 	@echo "📦 Installation des modules npm pour anonyfiles_gui..."
-	cd anonyfiles_gui && npm install
+	# On suppose que npm est installé via install-deps-debian ou manuellement
+	if command -v npm >/dev/null 2>&1; then \
+		cd anonyfiles_gui && npm install; \
+	else \
+		echo "⚠️  npm non trouvé. Impossible d'installer les dépendances GUI. Lancez d'abord 'make install-deps-debian' ou installez Node.js manuellement."; \
+	fi
 
 	$(MAKE) spacy-models
 
@@ -57,7 +64,7 @@ gui:
 
 test-api:
 	@echo "🔗 Envoi du fichier vers $${API_URL:-http://localhost:8000}"
-	curl -X POST $${API_URL:-http://localhost:8000}/api/anonymize/ \
+	curl -X POST $${API_URL:-http://localhost:8000}/anonymize/ \
 		-F "file=@tests/sample.txt;type=text/plain" \
 		-F 'config_options={"anonymizePersons":true,"anonymizeLocations":true,"anonyfilesOrgs":true,"anonymizeEmails":true,"anonymizeDates":true,"custom_replacement_rules":[]}' \
 		-F "file_type=txt"

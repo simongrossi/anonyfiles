@@ -2,6 +2,7 @@ import os
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
+
 def create_test_pdf(path):
     print(f"Création PDF vers : {path}")
     # S'assurer que le dossier existe
@@ -18,12 +19,15 @@ def create_test_pdf(path):
     c.showPage()
 
     # Page 2
-    c.drawString(100, height - 100, "Deuxième page avec des entités : Jean Martin à Lyon.")
+    c.drawString(
+        100, height - 100, "Deuxième page avec des entités : Jean Martin à Lyon."
+    )
     c.drawString(100, height - 120, "Contact : jean.martin@domain.com")
     c.drawString(100, height - 140, "Rendez-vous le 1er janvier 2024")
 
     c.save()
     print("PDF test créé avec succès.")
+
 
 if __name__ == "__main__":
     create_test_pdf("input_files/test_pdf.pdf")

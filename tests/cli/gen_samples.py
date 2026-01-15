@@ -15,37 +15,53 @@ try:
 except ImportError:
     fitz = None  # Gère l'absence pour le PDF
 
-fake = Faker('fr_FR')
+fake = Faker("fr_FR")
+
 
 def gen_csv(path, n=5):
     """
     Génère un CSV avec n lignes, chaque ligne contient deux identités + des entités croisées
     """
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    headers = ["Nom1", "Email1", "DateNaiss1", "Ville1", "Entreprise1", 
-               "Nom2", "Email2", "DateNaiss2", "Ville2", "Entreprise2", 
-               "DateEvent", "LieuEvent", "Organisateur"]
+    headers = [
+        "Nom1",
+        "Email1",
+        "DateNaiss1",
+        "Ville1",
+        "Entreprise1",
+        "Nom2",
+        "Email2",
+        "DateNaiss2",
+        "Ville2",
+        "Entreprise2",
+        "DateEvent",
+        "LieuEvent",
+        "Organisateur",
+    ]
     data = [headers]
     for _ in range(n):
-        data.append([
-            fake.name(),
-            fake.email(),
-            fake.date_of_birth().strftime('%d/%m/%Y'),
-            fake.city(),
-            fake.company(),
-            fake.name(),
-            fake.email(),
-            fake.date_of_birth().strftime('%d/%m/%Y'),
-            fake.city(),
-            fake.company(),
-            fake.date(),
-            fake.city(),
-            fake.company()
-        ])
-    with open(path, "w", newline='', encoding="utf-8") as f:
+        data.append(
+            [
+                fake.name(),
+                fake.email(),
+                fake.date_of_birth().strftime("%d/%m/%Y"),
+                fake.city(),
+                fake.company(),
+                fake.name(),
+                fake.email(),
+                fake.date_of_birth().strftime("%d/%m/%Y"),
+                fake.city(),
+                fake.company(),
+                fake.date(),
+                fake.city(),
+                fake.company(),
+            ]
+        )
+    with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerows(data)
     print(f"[OK] Fichier CSV généré: {path}")
+
 
 def gen_docx(path, n=5):
     """
@@ -56,13 +72,13 @@ def gen_docx(path, n=5):
     for _ in range(n):
         nom1 = fake.name()
         email1 = fake.email()
-        date1 = fake.date_of_birth().strftime('%d/%m/%Y')
+        date1 = fake.date_of_birth().strftime("%d/%m/%Y")
         ville1 = fake.city()
         entreprise1 = fake.company()
 
         nom2 = fake.name()
         email2 = fake.email()
-        date2 = fake.date_of_birth().strftime('%d/%m/%Y')
+        date2 = fake.date_of_birth().strftime("%d/%m/%Y")
         ville2 = fake.city()
         entreprise2 = fake.company()
 
@@ -79,6 +95,7 @@ def gen_docx(path, n=5):
     doc.save(path)
     print(f"[OK] Fichier DOCX généré: {path}")
 
+
 def gen_json(path, n=5):
     """
     Génère un JSON avec des objets imbriqués et plusieurs identités par entrée
@@ -86,32 +103,35 @@ def gen_json(path, n=5):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     events = []
     for _ in range(n):
-        events.append({
-            "event": {
-                "date": fake.date(),
-                "place": fake.city(),
-                "organizer": fake.company()
-            },
-            "participants": [
-                {
-                    "name": fake.name(),
-                    "email": fake.email(),
-                    "birth": fake.date_of_birth().strftime('%d/%m/%Y'),
-                    "city": fake.city(),
-                    "company": fake.company()
+        events.append(
+            {
+                "event": {
+                    "date": fake.date(),
+                    "place": fake.city(),
+                    "organizer": fake.company(),
                 },
-                {
-                    "name": fake.name(),
-                    "email": fake.email(),
-                    "birth": fake.date_of_birth().strftime('%d/%m/%Y'),
-                    "city": fake.city(),
-                    "company": fake.company()
-                }
-            ]
-        })
+                "participants": [
+                    {
+                        "name": fake.name(),
+                        "email": fake.email(),
+                        "birth": fake.date_of_birth().strftime("%d/%m/%Y"),
+                        "city": fake.city(),
+                        "company": fake.company(),
+                    },
+                    {
+                        "name": fake.name(),
+                        "email": fake.email(),
+                        "birth": fake.date_of_birth().strftime("%d/%m/%Y"),
+                        "city": fake.city(),
+                        "company": fake.company(),
+                    },
+                ],
+            }
+        )
     with open(path, "w", encoding="utf-8") as f:
         json.dump(events, f, ensure_ascii=False, indent=2)
     print(f"[OK] Fichier JSON généré: {path}")
+
 
 def gen_pdf(path, n=5):
     """
@@ -127,12 +147,12 @@ def gen_pdf(path, n=5):
         page = doc.new_page()
         nom1 = fake.name()
         email1 = fake.email()
-        date1 = fake.date_of_birth().strftime('%d/%m/%Y')
+        date1 = fake.date_of_birth().strftime("%d/%m/%Y")
         ville1 = fake.city()
         entreprise1 = fake.company()
         nom2 = fake.name()
         email2 = fake.email()
-        date2 = fake.date_of_birth().strftime('%d/%m/%Y')
+        date2 = fake.date_of_birth().strftime("%d/%m/%Y")
         ville2 = fake.city()
         entreprise2 = fake.company()
         date_event = fake.date()
@@ -146,6 +166,7 @@ def gen_pdf(path, n=5):
         page.insert_text((72, 72), texte, fontsize=12)
     doc.save(path)
     print(f"[OK] Fichier PDF généré: {path}")
+
 
 if __name__ == "__main__":
     gen_csv("input_files/exemple.csv", n=6)

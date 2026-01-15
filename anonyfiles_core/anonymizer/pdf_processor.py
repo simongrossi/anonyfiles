@@ -4,6 +4,7 @@ import fitz  # PyMuPDF
 from pathlib import Path
 from .base_processor import BaseProcessor
 
+
 class PdfProcessor(BaseProcessor):
     """
     Processor pour fichiers PDF utilisant les annotations de redaction.
@@ -18,7 +19,9 @@ class PdfProcessor(BaseProcessor):
             blocks.append(text)
         return blocks
 
-    def replace_entities(self, input_path, output_path, replacements, entities_per_block_with_offsets):
+    def replace_entities(
+        self, input_path, output_path, replacements, entities_per_block_with_offsets
+    ):
         doc = fitz.open(input_path)
 
         for page_num, page in enumerate(doc):
@@ -49,14 +52,16 @@ class PdfProcessor(BaseProcessor):
         final_processed_blocks,
         original_input_path,
         entities_per_block_with_offsets=None,
-        **kwargs
+        **kwargs,
     ):
         """Reconstruit un PDF à partir des blocs traités."""
         original_doc = fitz.open(original_input_path)
         new_doc = fitz.open()
 
         if entities_per_block_with_offsets is None:
-            entities_per_block_with_offsets = kwargs.get("entities_per_block_with_offsets", [])
+            entities_per_block_with_offsets = kwargs.get(
+                "entities_per_block_with_offsets", []
+            )
 
         for page_num, original_page in enumerate(original_doc):
             rect = original_page.rect

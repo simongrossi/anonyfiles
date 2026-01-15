@@ -1,21 +1,22 @@
 import pytest
+
 pytest.importorskip("typer")
-from typer.testing import CliRunner
-from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import patch
-import zipfile
-import importlib
-import sys
+from typer.testing import CliRunner  # noqa: E402
+from pathlib import Path  # noqa: E402
+from types import SimpleNamespace  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+import zipfile  # noqa: E402
+import importlib  # noqa: E402
+import sys  # noqa: E402
 
 sys.modules.setdefault(
     "spacy",
     importlib.util.module_from_spec(importlib.machinery.ModuleSpec("spacy", None)),
 )
 
-from anonyfiles_cli.main import app
-from anonyfiles_core.anonymizer import spacy_engine
-from anonyfiles_cli.managers.config_manager import ConfigManager
+from anonyfiles_cli.main import app  # noqa: E402
+from anonyfiles_core.anonymizer import spacy_engine  # noqa: E402
+from anonyfiles_cli.managers.config_manager import ConfigManager  # noqa: E402
 
 
 class DummyModel:
@@ -26,7 +27,9 @@ class DummyModel:
 def test_cli_anonymize_dry_run(tmp_path):
     sample = tmp_path / "sample.txt"
     sample.write_text("Jean Dupont à Paris", encoding="utf-8")
-    with patch.object(spacy_engine, "spacy", SimpleNamespace(load=lambda name: DummyModel())):
+    with patch.object(
+        spacy_engine, "spacy", SimpleNamespace(load=lambda name: DummyModel())
+    ):
         runner = CliRunner()
         result = runner.invoke(
             app,
@@ -50,7 +53,9 @@ def test_cli_anonymize_bundle(tmp_path):
     map_file = tmp_path / "map.csv"
     log_file = tmp_path / "log.csv"
     bundle = tmp_path / "bundle.zip"
-    with patch.object(spacy_engine, "spacy", SimpleNamespace(load=lambda name: DummyModel())):
+    with patch.object(
+        spacy_engine, "spacy", SimpleNamespace(load=lambda name: DummyModel())
+    ):
         runner = CliRunner()
         result = runner.invoke(
             app,
@@ -93,9 +98,11 @@ def test_cli_validate_config(tmp_path):
 def test_cli_config_create_dry_run(tmp_path):
     cfg_dir = tmp_path / ".anonyfiles"
     cfg_file = cfg_dir / "config.yaml"
-    with patch.object(ConfigManager, "DEFAULT_USER_CONFIG_DIR", cfg_dir), \
-         patch.object(ConfigManager, "DEFAULT_USER_CONFIG_FILE", cfg_file), \
-         patch.object(ConfigManager, "create_default_user_config", return_value=None):
+    with (
+        patch.object(ConfigManager, "DEFAULT_USER_CONFIG_DIR", cfg_dir),
+        patch.object(ConfigManager, "DEFAULT_USER_CONFIG_FILE", cfg_file),
+        patch.object(ConfigManager, "create_default_user_config", return_value=None),
+    ):
         runner = CliRunner()
         result = runner.invoke(app, ["config", "create", "--dry-run"])
         assert result.exit_code == 0
@@ -108,9 +115,11 @@ def test_cli_config_reset_dry_run(tmp_path):
     cfg_dir.mkdir()
     cfg_file = cfg_dir / "config.yaml"
     cfg_file.write_text("dummy", encoding="utf-8")
-    with patch.object(ConfigManager, "DEFAULT_USER_CONFIG_DIR", cfg_dir), \
-         patch.object(ConfigManager, "DEFAULT_USER_CONFIG_FILE", cfg_file), \
-         patch.object(ConfigManager, "create_default_user_config", return_value=None):
+    with (
+        patch.object(ConfigManager, "DEFAULT_USER_CONFIG_DIR", cfg_dir),
+        patch.object(ConfigManager, "DEFAULT_USER_CONFIG_FILE", cfg_file),
+        patch.object(ConfigManager, "create_default_user_config", return_value=None),
+    ):
         runner = CliRunner()
         result = runner.invoke(app, ["config", "reset", "--dry-run"])
         assert result.exit_code == 0
@@ -124,8 +133,12 @@ def test_cli_deanonymize_uses_engine(tmp_path):
     mapping = tmp_path / "map.csv"
     mapping.write_text("anonymized,original\n{{NAME}},Jean", encoding="utf-8")
 
-    with patch("typer.rich_utils.make_panel", lambda *a, **k: "panel", create=True), \
-         patch("anonyfiles_cli.handlers.deanonymize_handler.DeanonymizationEngine") as Engine:
+    with (
+        patch("typer.rich_utils.make_panel", lambda *a, **k: "panel", create=True),
+        patch(
+            "anonyfiles_cli.handlers.deanonymize_handler.DeanonymizationEngine"
+        ) as Engine,
+    ):
         engine_inst = Engine.return_value
         engine_inst.deanonymize.return_value = {
             "status": "success",

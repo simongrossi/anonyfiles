@@ -1,18 +1,12 @@
 # anonyfiles_cli/handlers/anonymize_handler.py
 
-import json
-import time
 from pathlib import Path
-from typing import Dict, Any, Optional, List
-import typer  # Importez typer si vous comptez l'utiliser pour les messages ou confirmations
+from typing import Optional, List
 
 from anonyfiles_core import AnonyfilesEngine
 from anonyfiles_core.anonymizer.run_logger import log_run_event
 from anonyfiles_core.anonymizer.file_utils import (
     timestamp,
-    default_output,
-    default_mapping,
-    default_log,
 )
 from ..managers.path_manager import PathManager
 from ..managers.config_manager import ConfigManager
@@ -70,13 +64,17 @@ class AnonymizeHandler:
             bool: ``True`` on success, ``False`` otherwise.
         """
         run_id = timestamp()
-        self.console.console.print(f"📂 Anonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]")
+        self.console.console.print(
+            f"📂 Anonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]"
+        )
 
         csv_has_header_bool: Optional[bool] = None
         if has_header_opt is not None:
             csv_has_header_bool = has_header_opt.lower() == "true"
         else:
-            csv_has_header_bool = not csv_no_header  # Si has_header_opt non défini, utilise csv_no_header
+            csv_has_header_bool = (
+                not csv_no_header
+            )  # Si has_header_opt non défini, utilise csv_no_header
 
         try:
             # 0. Validation préliminaire de la configuration et des dossiers
@@ -84,7 +82,9 @@ class AnonymizeHandler:
                 ValidationManager.load_and_validate_config(config_path)
 
             if not output_dir.is_dir():
-                raise FileIOError(f"Le dossier de sortie '{output_dir}' est introuvable ou n'est pas un dossier.")
+                raise FileIOError(
+                    f"Le dossier de sortie '{output_dir}' est introuvable ou n'est pas un dossier."
+                )
 
             for specific_path in [output, log_entities, mapping_output, bundle_output]:
                 if specific_path and not specific_path.parent.is_dir():
@@ -94,12 +94,16 @@ class AnonymizeHandler:
 
             # 1. Configuration
             effective_config = ConfigManager.get_effective_config(config_path)
-            ValidationManager.ensure_spacy_model(effective_config.get("spacy_model", "fr_core_news_md"))
+            ValidationManager.ensure_spacy_model(
+                effective_config.get("spacy_model", "fr_core_news_md")
+            )
             self.console.console.print("🔧 Configuration chargée et validée.")
 
             # 2. Résolution des chemins
             path_manager = PathManager(input_file, output_dir, run_id, append_timestamp)
-            paths = path_manager.resolve_paths(output, mapping_output, log_entities, dry_run, bundle_output)
+            paths = path_manager.resolve_paths(
+                output, mapping_output, log_entities, dry_run, bundle_output
+            )
             self.console.console.print("➡️  Chemins de sortie résolus.")
 
             # 3. Vérifications pré-traitement (écrasement de fichiers)
@@ -122,7 +126,9 @@ class AnonymizeHandler:
             self.console.console.print("⚙️  Démarrage du traitement d'anonymisation...")
 
             # 4. Préparation et exécution du moteur AnonyfilesEngine
-            custom_rules_list = ValidationManager.parse_custom_replacements(custom_replacements_json)
+            custom_rules_list = ValidationManager.parse_custom_replacements(
+                custom_replacements_json
+            )
 
             engine = AnonyfilesEngine(
                 config=effective_config,
@@ -149,7 +155,11 @@ class AnonymizeHandler:
                 )
 
             if result.get("status") == "error":
-                raise ProcessingError(result.get("error", "Le moteur d'anonymisation a signalé une erreur."))
+                raise ProcessingError(
+                    result.get(
+                        "error", "Le moteur d'anonymisation a signalé une erreur."
+                    )
+                )
 
             # 5. Affichage et logging
             self.console.display_results(result, dry_run, paths)
@@ -159,7 +169,9 @@ class AnonymizeHandler:
                 run_id=run_id,
                 input_file=str(input_file),
                 output_file=(
-                    str(paths.get("output_file")) if paths.get("output_file") and not dry_run else "DRY_RUN_NO_OUTPUT"
+                    str(paths.get("output_file"))
+                    if paths.get("output_file") and not dry_run
+                    else "DRY_RUN_NO_OUTPUT"
                 ),
                 mapping_file=(
                     str(paths.get("mapping_file"))
@@ -187,7 +199,9 @@ class AnonymizeHandler:
                     result.get("audit_log", []),
                     paths.get("log_entities_file"),
                 )
-                self.console.console.print(f"🎁 Bundle créé : [bold green]{paths.get('bundle_file')}[/bold green]")
+                self.console.console.print(
+                    f"🎁 Bundle créé : [bold green]{paths.get('bundle_file')}[/bold green]"
+                )
             # AJOUTEZ CETTE LIGNE POUR AFFICHER L'ID DU JOB
             if not dry_run and paths.get("output_file"):
                 full_output_base_path = path_manager.base_output_dir.resolve()

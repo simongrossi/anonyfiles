@@ -1,4 +1,5 @@
 import pytest
+
 pytest.importorskip("spacy")
 from anonyfiles_core.anonymizer.replacer import ReplacementSession
 
@@ -11,7 +12,12 @@ def test_generate_code_defaults():
 
 def test_generate_replacements_with_rules():
     session = ReplacementSession()
-    entities = [("Jean", "PER"), ("Jean", "PER"), ("ACME", "ORG"), ("01/01/2020", "DATE")]
+    entities = [
+        ("Jean", "PER"),
+        ("Jean", "PER"),
+        ("ACME", "ORG"),
+        ("01/01/2020", "DATE"),
+    ]
     rules = {
         "PER": {"type": "codes", "options": {"prefix": "PERS"}},
         "ORG": {"type": "placeholder", "options": {"format": "{{ORGANIZATION:{}}}"}},

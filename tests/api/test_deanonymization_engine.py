@@ -1,8 +1,8 @@
 import pytest
+
 pytest.importorskip("aiofiles")
 import shutil
 from unittest.mock import patch
-from pathlib import Path
 import sys
 
 import importlib
@@ -17,6 +17,7 @@ def test_run_deanonymization_job_sync_uses_engine(tmp_path):
             del sys.modules[mod]
     importlib.invalidate_caches()
     from anonyfiles_api.job_utils import Job
+
     try:
         input_file = tmp_path / "sample.txt"
         input_file.write_text("{{NAME}}", encoding="utf-8")
@@ -28,7 +29,9 @@ def test_run_deanonymization_job_sync_uses_engine(tmp_path):
 
         from anonyfiles_api.routers.deanonymization import run_deanonymization_job_sync
 
-        with patch("anonyfiles_api.routers.deanonymization.DeanonymizationEngine") as Engine:
+        with patch(
+            "anonyfiles_api.routers.deanonymization.DeanonymizationEngine"
+        ) as Engine:
             engine_inst = Engine.return_value
             engine_inst.deanonymize.return_value = {
                 "status": "success",

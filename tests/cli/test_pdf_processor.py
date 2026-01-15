@@ -1,9 +1,10 @@
 import pytest
-fitz = pytest.importorskip("fitz")
-import tempfile
-from pathlib import Path
 
-from anonyfiles_core.anonymizer.pdf_processor import PdfProcessor
+fitz = pytest.importorskip("fitz")
+import tempfile  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from anonyfiles_core.anonymizer.pdf_processor import PdfProcessor  # noqa: E402
 
 
 def create_simple_pdf(path: Path, text: str) -> None:
@@ -32,7 +33,9 @@ def test_reconstruct_and_write_anonymized_file_pdf():
 
     processor = PdfProcessor()
     blocks = processor.extract_blocks(tmp_in.name)
-    final_blocks = [b.replace("Pierre", "NOM001").replace("Paris", "VILLE_X") for b in blocks]
+    final_blocks = [
+        b.replace("Pierre", "NOM001").replace("Paris", "VILLE_X") for b in blocks
+    ]
 
     processor.reconstruct_and_write_anonymized_file(
         Path(tmp_out.name), final_blocks, Path(tmp_in.name)

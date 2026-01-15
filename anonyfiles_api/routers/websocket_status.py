@@ -8,6 +8,7 @@ from ..core_config import logger
 
 router = APIRouter()
 
+
 @router.websocket("/ws/{job_id}")
 async def websocket_job_status(websocket: WebSocket, job_id: str) -> None:
     """Send real-time job status updates over a WebSocket connection.

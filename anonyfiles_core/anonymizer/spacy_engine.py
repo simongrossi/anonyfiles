@@ -11,21 +11,23 @@ logger = logging.getLogger(__name__)
 # ANCIEN: EMAIL_REGEX = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
 # NOUVEAU: Utilise \b (word boundary) pour s'assurer que le match est une adresse email complète
 # et ne capture pas la ponctuation finale si elle n'est pas structurellement une partie de l'email.
-EMAIL_REGEX = r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}\b'
+EMAIL_REGEX = r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}\b"
 
 DATE_REGEX = (
-    r'\b('
-    r'(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4})|'         # 12/06/1980 ou 12-06-80
-    r'(?:\d{4}[/-]\d{1,2}[/-]\d{1,2})|'           # 1980-06-12
-    r'(?:\d{1,2}\s+[a-zA-Zéûîôâ]+\s+\d{4})|'      # 12 juin 1980
-    r'(?:le\s+\d{1,2}(?:er)?\s+[a-zA-Zéûîôâ]+\s+\d{4})'  # le 1er janvier 2020
-    r')\b'
+    r"\b("
+    r"(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4})|"  # 12/06/1980 ou 12-06-80
+    r"(?:\d{4}[/-]\d{1,2}[/-]\d{1,2})|"  # 1980-06-12
+    r"(?:\d{1,2}\s+[a-zA-Zéûîôâ]+\s+\d{4})|"  # 12 juin 1980
+    r"(?:le\s+\d{1,2}(?:er)?\s+[a-zA-Zéûîôâ]+\s+\d{4})"  # le 1er janvier 2020
+    r")\b"
 )
-PHONE_REGEX = r'\b(?:\+33|0)[1-9](?:[\s.-]?\d{2}){4}\b'
-IBAN_REGEX = r'\b[A-Z]{2}\d{2}[ ]?(?:\d[ ]?){12,26}\b'
+PHONE_REGEX = r"\b(?:\+33|0)[1-9](?:[\s.-]?\d{2}){4}\b"
+IBAN_REGEX = r"\b[A-Z]{2}\d{2}[ ]?(?:\d[ ]?){12,26}\b"
 
 
-@lru_cache(maxsize=2) # Cache jusqu'à 2 modèles spaCy (ex: 'fr_core_news_md' et 'fr_core_news_lg')
+@lru_cache(
+    maxsize=2
+)  # Cache jusqu'à 2 modèles spaCy (ex: 'fr_core_news_md' et 'fr_core_news_lg')
 def _load_spacy_model_cached(model_name: str):
     """
     Charge un modèle spaCy et met le résultat en cache.
@@ -34,22 +36,25 @@ def _load_spacy_model_cached(model_name: str):
     logger.info("Loading spaCy model: %s (this might be cached)...", model_name)
     try:
         if not spacy.util.is_package(model_name):
-             logger.warning(f"Model '{model_name}' not found. Attempting to download it...")
-             spacy.cli.download(model_name)
+            logger.warning(
+                f"Model '{model_name}' not found. Attempting to download it..."
+            )
+            spacy.cli.download(model_name)
         return spacy.load(model_name)
     except Exception as e:
         logger.error(f"Failed to load spaCy model '{model_name}': {e}")
         # Une dernière tentative de téléchargement si l'erreur n'était pas claire
         try:
-             import spacy.cli
-             logger.info(f"Downloading spaCy model '{model_name}' fallback...")
-             spacy.cli.download(model_name)
-             return spacy.load(model_name)
+            import spacy.cli as spacy_cli
+
+            logger.info(f"Downloading spaCy model '{model_name}' fallback...")
+            spacy_cli.download(model_name)
+            return spacy.load(model_name)
         except Exception as e2:
-             install_cmd = f"python -m spacy download {model_name}"
-             raise ConfigurationError(
-                 f"Could not load spaCy model '{model_name}' after auto-download attempt. Install manualy: {install_cmd}. Error: {e2}"
-             ) from e2
+            install_cmd = f"python -m spacy download {model_name}"
+            raise ConfigurationError(
+                f"Could not load spaCy model '{model_name}' after auto-download attempt. Install manualy: {install_cmd}. Error: {e2}"
+            ) from e2
 
 
 class SpaCyEngine:
@@ -66,13 +71,15 @@ class SpaCyEngine:
             enabled_labels = set()
 
         doc = self.nlp(text)
-        entities = [(ent.text, ent.label_) for ent in doc.ents if ent.label_ in enabled_labels]
+        entities = [
+            (ent.text, ent.label_) for ent in doc.ents if ent.label_ in enabled_labels
+        ]
 
         regex_sources = {
             "EMAIL": EMAIL_REGEX,
             "DATE": DATE_REGEX,
             "PHONE": PHONE_REGEX,
-            "IBAN": IBAN_REGEX
+            "IBAN": IBAN_REGEX,
         }
 
         for label, pattern in regex_sources.items():
@@ -91,14 +98,15 @@ class SpaCyEngine:
             # Si l'entité_text est déjà vue, et le nouveau label est une regex (plus spécifique), on met à jour
             # Sinon, on garde le premier label ou on l'ajoute.
             if entity_text in unique_entities:
-                if label in ("EMAIL", "DATE", "PHONE", "IBAN") and unique_entities[entity_text][0] not in ("EMAIL", "DATE", "PHONE", "IBAN"):
+                if label in ("EMAIL", "DATE", "PHONE", "IBAN") and unique_entities[
+                    entity_text
+                ][0] not in ("EMAIL", "DATE", "PHONE", "IBAN"):
                     unique_entities[entity_text] = (label, "regex_override")
                 # else: keep existing entry or handle spaCy vs regex overlap if needed
             else:
                 unique_entities[entity_text] = (label, "initial")
 
         return [(text, label_type) for text, (label_type, _) in unique_entities.items()]
-
 
     def nlp_doc(self, text):
         """Renvoie le doc spaCy (utile pour offsets, etc.)."""

@@ -2,15 +2,18 @@
 
 import typer
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 
 from ..handlers.deanonymize_handler import DeanonymizeHandler
 from ..handlers.validation_handler import ValidationHandler
 from ..ui.console_display import ConsoleDisplay
-from ..exceptions import AnonyfilesError # Assurez-vous d'importer les exceptions nécessaires
+from ..exceptions import (
+    AnonyfilesError,
+)  # Assurez-vous d'importer les exceptions nécessaires
 
 app = typer.Typer(help="Commandes pour désanonymiser les fichiers.")
 console = ConsoleDisplay()
+
 
 # Définition des codes de sortie pour Typer
 class ExitCodes:
@@ -21,14 +24,42 @@ class ExitCodes:
     PROCESSING_ERROR = 4
 
 
-@app.command(name="process", help="Désanonymise un fichier en utilisant un mapping CSV.")
+@app.command(
+    name="process", help="Désanonymise un fichier en utilisant un mapping CSV."
+)
 def process_deanonymize(
-    input_file: Path = typer.Argument(..., help="Fichier à désanonymiser", exists=True, file_okay=True, dir_okay=False, readable=True),
-    mapping_csv: Path = typer.Option(..., help="Mapping CSV à utiliser", exists=True, file_okay=True, dir_okay=False, readable=True),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Fichier de sortie restauré (optionnel)."),
-    report: Optional[Path] = typer.Option(None, "--report", help="Fichier de rapport détaillé JSON sur la désanonymisation (optionnel)."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Simulation sans écriture de fichiers."),
-    permissive: bool = typer.Option(False, "--permissive", help="Tolère les codes inconnus dans le mapping et restaure ce qui peut l'être (mode non-strict).")
+    input_file: Path = typer.Argument(
+        ...,
+        help="Fichier à désanonymiser",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    mapping_csv: Path = typer.Option(
+        ...,
+        help="Mapping CSV à utiliser",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Fichier de sortie restauré (optionnel)."
+    ),
+    report: Optional[Path] = typer.Option(
+        None,
+        "--report",
+        help="Fichier de rapport détaillé JSON sur la désanonymisation (optionnel).",
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Simulation sans écriture de fichiers."
+    ),
+    permissive: bool = typer.Option(
+        False,
+        "--permissive",
+        help="Tolère les codes inconnus dans le mapping et restaure ce qui peut l'être (mode non-strict).",
+    ),
 ):
     """
     Désanonymise un fichier anonymisé à partir d'un mapping CSV fourni.
@@ -36,8 +67,7 @@ def process_deanonymize(
     try:
         # 1. Validation des entrées de la commande
         ValidationHandler.validate_deanonymize_inputs(
-            input_file=input_file,
-            mapping_csv=mapping_csv
+            input_file=input_file, mapping_csv=mapping_csv
         )
 
         # 2. Instanciation et appel du handler métier
@@ -48,7 +78,7 @@ def process_deanonymize(
             output=output,
             report=report,
             dry_run=dry_run,
-            permissive=permissive
+            permissive=permissive,
         )
 
         if not success:

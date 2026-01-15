@@ -1,6 +1,5 @@
 import sys
 from unittest.mock import MagicMock
-from pathlib import Path
 
 # Mock aiofiles
 sys.modules["aiofiles"] = MagicMock()
@@ -15,6 +14,7 @@ sys.path.insert(0, r"n:\Programmation\GitHub\anonyfiles")
 
 try:
     from anonyfiles_api.job_utils import Job
+
     print("Job class imported.")
     j = Job("test-id")
     print(f"Job methods: {dir(j)}")

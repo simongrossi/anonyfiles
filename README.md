@@ -39,6 +39,23 @@ La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API p
 
 ---
 
+## 📂 Structure des sorties
+
+Par défaut, chaque exécution (ou job) génère ses résultats dans un sous-dossier unique basé sur un timestamp ou un UUID.
+
+```plaintext
+anonyfiles_outputs/
+└── runs/
+    └── <JOB_ID>/
+        ├── status.json           # Statut et métadonnées du job
+        ├── mapping.csv           # Table de correspondance (Code <-> Original)
+        ├── log_entities.csv      # Log CSV détaillé des entités détectées
+        ├── audit_log.json        # Journal complet de l'exécution
+        └── fichier_anonymise.txt # Le fichier résultat
+```
+
+---
+
 ## 🗂️ Structure du projet
 
 ```plaintext
@@ -160,34 +177,63 @@ méthode de base de façon non bloquante.
 * Rust & Cargo (pour la GUI)
 * Modèle spaCy `fr_core_news_md`
 
+### 🐳 Installation Zéro-Config (Docker)
+
+La méthode la plus simple pour tester l'API sans rien installer sur votre machine (à part Docker).
+
+```bash
+# Construire l'image
+docker build -t anonyfiles .
+
+# Lancer le conteneur sur le port 8000
+docker run -p 8000:8000 anonyfiles
+```
+L'API sera alors accessible sur [http://localhost:8000/docs](http://localhost:8000/docs).
+
 ### Clonage du projet
+
+Si vous souhaitez contribuer ou utiliser la CLI localement :
 
 ```bash
 git clone https://github.com/simongrossi/anonyfiles.git
 cd anonyfiles
 ```
 
-Chaque dossier (`anonyfiles_core`, `anonyfiles_cli`, `anonyfiles_api`) possède son
-propre `requirements.txt`. Vous pouvez donc installer uniquement la partie qui
-vous intéresse :
+Chaque dossier possède son propre `requirements.txt`, mais il est recommandé d'utiliser le fichier racine.
 
+**Pour les utilisateurs (installation standard) :**
+Utilise le `pyproject.toml` pour résoudre les dépendances compatibles.
 ```bash
-# Installation du moteur seulement
-pip install -e anonyfiles_core
-# Installation de la CLI uniquement
-pip install -r anonyfiles_cli/requirements.txt
-# Installation de l'API uniquement
-pip install -r anonyfiles_api/requirements.txt
+pip install -e .
 ```
 
-### Installation CLI
+**Pour les développeurs (environnement figé) :**
+Utilise `requirements.txt` pour garantir des versions identiques à la CI.
+```bash
+pip install -r requirements.txt
+```
 
-➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
+> **Note importante :** Le fichier `requirements.txt` à la racine est la référence synchronisée. Évitez d'utiliser les anciens fichiers `requirements.txt` présents dans les sous-dossiers (`anonyfiles_cli/`, etc.) qui sont conservés uniquement pour compatibilité historique.
 
-Pour activer l'autocomplétion Bash, Zsh ou Fish :
+
+### ▶️ Démarrage rapide avec la CLI
+
+Pour tester immédiatement l'anonymisation de manière interactive (guidée) :
 
 ```bash
-anonyfiles_cli --install-completion bash   # ou zsh/fish
+anonyfiles-cli anonymize mon_fichier.txt --interactive
+```
+Un menu vous permettra de **cocher/décocher les entités** à anonymiser (Noms, Villes, Emails...) avant de lancer le traitement.
+
+---
+
+### Installation CLI détaillée
+
+➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md) pour les options avancées.
+
+Pour activer l'autocomplétion : 
+```bash
+anonyfiles_cli --install-completion bash
 ```
 
 ![Aperçu de la CLI](https://i.imgur.com/GJksQfm.jpeg)
@@ -225,18 +271,25 @@ Des scripts de configuration automatique sont disponibles à la racine du projet
 
 Pour simplifier l'installation et l'exécution sous Linux et macOS, utilisez le `Makefile` fourni à la racine du projet.
 
-#### ✨ Installation initiale (une seule fois)
+#### ✨ Installation initiale
 
+**Utilisateurs Debian/Ubuntu uniquement :**
+Si vous n'avez pas Python 3.11, pip, venv ou Node.js installés, vous pouvez utiliser :
+```bash
+make install-deps-debian  # Requiert sudo
+```
+
+**Pour tous les utilisateurs (Linux/macOS) :**
+Créez les environnements virtuels et installez les dépendances Python/Node locales avec :
 ```bash
 make setup
 ```
 
 Cette commande va :
 
-* Installer les dépendances système nécessaires *(Python, venv, pip, curl, Node.js, npm)*
 * Créer les environnements virtuels (`env-cli`, `env-api`, `env-gui`)
-* Installer les dépendances Python pour la CLI et l'API
-* Installer les modules npm pour la GUI
+* Installer les dépendances Python standardisées (depuis `requirements.txt`)
+* Installer les modules npm pour la GUI (si `npm` est disponible)
 * Télécharger le modèle spaCy `fr_core_news_md` dans l'environnement `env-cli`
 
 #### 🔢 Commandes courantes
@@ -298,6 +351,11 @@ mapping_dir = "~/anonyfiles_mappings"
 log_dir = "~/anonyfiles_logs"
 ```
 
+> **⚠️ Note pour les utilisateurs Windows :**
+> L'utilisation du tilde `~` (raccourci pour le dossier utilisateur) est prise en charge par le code Python, mais peut parfois prêter à confusion selon votre configuration.
+> Si les fichiers ne sont pas créés à l'endroit attendu (ex : `C:\Users\VotreNom`), **modifiez ce fichier** pour utiliser des chemins absolus (ex : `C:/Projets/anonyfiles/sorties` ou `C:\\Values\\...`).
+> *Note : Les variables d'environnement comme `ANONYFILES_OUTPUT_DIR` ne sont pas supportées directement pour surcharger ces valeurs isolément ; éditez le fichier TOML ou utilisez l'option CLI `--output-dir`.*
+
 Ces valeurs seront chargées automatiquement par la CLI et la GUI pour
 déterminer où écrire les fichiers générés. Vous pouvez également
 fournir un autre fichier en définissant la variable d’environnement
@@ -343,7 +401,7 @@ passés à la CLI lorsque ces informations sont disponibles.
 | 5        | Règles de remplacement par type (YAML)           | ⚠️ Test/Debug | Règles personnalisées en test            |
 | 6        | Mapping codes <-> originaux                      | ⚠️ Test/Debug | Mapping inverse, audit, désanonymisation |
 | 7        | Filtre exclusion (YAML / CLI)                    | ✅ Fait        | Configurable, évite faux positifs        |
-| 8        | Support PDF / JSON                               | 🔜 À venir    | PDF natif, JSON complet                  |
+| 8        | Support PDF / JSON                               | ✅ Fait (Bêta)| PDF natif, JSON complet                  |
 | 9        | Désanonymisation CLI (mapping inverse)           | ⚠️ Test/Debug | Tests en cours                           |
 | 10       | GUI avancée (drag & drop, prévisualisation)      | 🚧 En cours   | Tauri/Svelte, UX moderne                 |
 | 11       | Copie, export, gestion multi-fichier dans la GUI | 🚧 En cours   | Copier/coller, sélection, batch          |

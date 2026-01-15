@@ -2,10 +2,10 @@
 
 from pathlib import Path
 from typing import Dict, Optional
+
 # C'EST LA LIGNE CLÉ À VÉRIFIER : DOIT ÊTRE UN IMPORT RELATIF AVEC DEUX POINTS (..)
 from ..exceptions import FileIOError
 from anonyfiles_core.anonymizer.file_utils import (
-    timestamp,
     ensure_folder,
     make_run_dir,
     default_output,
@@ -18,7 +18,14 @@ class PathManager:
     """
     Gère la résolution et la création de tous les chemins de fichiers pour une exécution.
     """
-    def __init__(self, input_file: Path, base_output_dir: Path, run_id: str, append_timestamp: bool = True):
+
+    def __init__(
+        self,
+        input_file: Path,
+        base_output_dir: Path,
+        run_id: str,
+        append_timestamp: bool = True,
+    ):
         """
         Initialise le PathManager.
         :param input_file: Chemin du fichier d'entrée.
@@ -45,7 +52,7 @@ class PathManager:
         mapping_override: Optional[Path],
         log_entities_override: Optional[Path],
         dry_run: bool,
-        bundle_override: Optional[Path] = None
+        bundle_override: Optional[Path] = None,
     ) -> Dict[str, Path]:
         """
         Résout tous les chemins de fichiers de sortie.
@@ -66,14 +73,20 @@ class PathManager:
                 try:
                     ensure_folder(output_override.parent)
                 except Exception as e:
-                    raise FileIOError(f"Impossible de créer le répertoire parent pour le fichier de sortie '{output_override}': {e}")
+                    raise FileIOError(
+                        f"Impossible de créer le répertoire parent pour le fichier de sortie '{output_override}': {e}"
+                    )
         else:
-            if not dry_run: # Ne générer de chemin par défaut que si on va écrire
-                paths["output_file"] = default_output(self.input_file, self.run_dir, self.append_timestamp)
+            if not dry_run:  # Ne générer de chemin par défaut que si on va écrire
+                paths["output_file"] = default_output(
+                    self.input_file, self.run_dir, self.append_timestamp
+                )
             else:
                 # En dry_run, si non spécifié, le chemin par default ne sera pas utilisé pour l'écriture
                 # On peut le laisser à None ou un chemin "virtuel" si besoin
-                paths["output_file"] = self.base_output_dir / "dry_run_output.tmp" # Chemin factice
+                paths["output_file"] = (
+                    self.base_output_dir / "dry_run_output.tmp"
+                )  # Chemin factice
 
         # Chemin du fichier de mapping
         if mapping_override:
@@ -82,7 +95,9 @@ class PathManager:
                 try:
                     ensure_folder(mapping_override.parent)
                 except Exception as e:
-                    raise FileIOError(f"Impossible de créer le répertoire parent pour le fichier de mapping '{mapping_override}': {e}")
+                    raise FileIOError(
+                        f"Impossible de créer le répertoire parent pour le fichier de mapping '{mapping_override}': {e}"
+                    )
         else:
             if not dry_run:
                 paths["mapping_file"] = default_mapping(self.input_file, self.run_dir)
@@ -96,7 +111,9 @@ class PathManager:
                 try:
                     ensure_folder(log_entities_override.parent)
                 except Exception as e:
-                    raise FileIOError(f"Impossible de créer le répertoire parent pour le fichier de log '{log_entities_override}': {e}")
+                    raise FileIOError(
+                        f"Impossible de créer le répertoire parent pour le fichier de log '{log_entities_override}': {e}"
+                    )
         else:
             if not dry_run:
                 paths["log_entities_file"] = default_log(self.input_file, self.run_dir)
@@ -110,10 +127,14 @@ class PathManager:
                 try:
                     ensure_folder(bundle_override.parent)
                 except Exception as e:
-                    raise FileIOError(f"Impossible de créer le répertoire parent pour le bundle '{bundle_override}': {e}")
+                    raise FileIOError(
+                        f"Impossible de créer le répertoire parent pour le bundle '{bundle_override}': {e}"
+                    )
         else:
             if not dry_run:
-                paths["bundle_file"] = self.run_dir / f"{self.input_file.stem}_bundle.zip"
+                paths["bundle_file"] = (
+                    self.run_dir / f"{self.input_file.stem}_bundle.zip"
+                )
             else:
                 paths["bundle_file"] = self.base_output_dir / "dry_run_bundle.tmp"
 
@@ -122,6 +143,8 @@ class PathManager:
             try:
                 _ = self.run_dir
             except Exception as e:
-                raise FileIOError(f"Impossible de créer le répertoire de run '{self.run_dir}': {e}")
+                raise FileIOError(
+                    f"Impossible de créer le répertoire de run '{self.run_dir}': {e}"
+                )
 
         return paths

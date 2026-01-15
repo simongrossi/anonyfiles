@@ -6,16 +6,22 @@ import typer
 
 from .audit import AuditLogger
 
+
 class CustomRulesProcessor:
     """
     Gère l'application des règles de remplacement personnalisées sur des blocs de texte.
     """
-    def __init__(self, custom_replacement_rules: Optional[List[Dict[str, Any]]], audit_logger: AuditLogger):
+
+    def __init__(
+        self,
+        custom_replacement_rules: Optional[List[Dict[str, Any]]],
+        audit_logger: AuditLogger,
+    ):
         self.custom_rules: List[Dict[str, Any]] = []
         self.audit_logger = audit_logger
         self.custom_replacements_mapping: Dict[str, str] = {}
         self.custom_replacements_count = 0
-        
+
         if custom_replacement_rules:
             for rule in custom_replacement_rules:
                 # Ignore empty patterns early
@@ -26,14 +32,16 @@ class CustomRulesProcessor:
                 # Optimisation: Compilation unique des regex au chargement
                 if rule.get("isRegex", False):
                     try:
-                        rule["compiled_pattern"] = re.compile(pattern_str, flags=re.IGNORECASE)
+                        rule["compiled_pattern"] = re.compile(
+                            pattern_str, flags=re.IGNORECASE
+                        )
                     except re.error as e:
                         typer.echo(
                             f"AVERTISSEMENT (CustomRulesProcessor): Regex invalide pour la règle personnalisée '{pattern_str}': {e}. Règle ignorée.",
                             err=True,
                         )
                         continue
-                
+
                 # Initialisation d'un compteur spécifique à cette règle
                 rule["match_counter"] = 0
 
@@ -60,7 +68,7 @@ class CustomRulesProcessor:
             replacement_base = rule.get("replacement", "[CUSTOM_REDACTED]")
             is_regex = rule.get("isRegex", False)
             compiled_pattern: Optional[re.Pattern] = rule.get("compiled_pattern")
-            
+
             if not pattern_str:
                 continue
 
@@ -69,38 +77,48 @@ class CustomRulesProcessor:
                     # Callback unifié pour gérer la logique d'unicité
                     def replacement_handler(match):
                         original_text = match.group(0)
-                        
+
                         # Vérifier si on a déjà tokenisé ce texte précis
                         if original_text in self.custom_replacements_mapping:
                             return self.custom_replacements_mapping[original_text]
-                        
+
                         # Sinon, générer un nouveau token unique
                         rule["match_counter"] += 1
                         current_count = rule["match_counter"]
-                        
+
                         # Gestion basique du template remplacement
                         try:
-                             # Note: match.expand ne peut pas être utilisé facilement si on modifie dynamically le remplacement
-                             # On suppose ici que replacement_base est statique ou contient des groupes simples.
-                             # Pour injecter le compteur, on l'ajoute à la fin.
-                             
-                             # Heuristique : Si le remplacement finit par ] ou }, on insère avant
-                             if replacement_base.endswith("]") or replacement_base.endswith("}"):
-                                 final_token = f"{replacement_base[:-1]}_{current_count}{replacement_base[-1]}"
-                             else:
-                                 final_token = f"{replacement_base}_{current_count}"
-                             
-                             # Si backreferences nécessaires, c'est plus complexe car le compteur ferait partie du texte.
-                             # Ici on simplifie : le custom rule est un TAG.
+                            # Note: match.expand ne peut pas être utilisé facilement si on modifie dynamically le remplacement
+                            # On suppose ici que replacement_base est statique ou contient des groupes simples.
+                            # Pour injecter le compteur, on l'ajoute à la fin.
+
+                            # Heuristique : Si le remplacement finit par ] ou }, on insère avant
+                            if replacement_base.endswith(
+                                "]"
+                            ) or replacement_base.endswith("}"):
+                                final_token = f"{replacement_base[:-1]}_{current_count}{replacement_base[-1]}"
+                            else:
+                                final_token = f"{replacement_base}_{current_count}"
+
+                            # Si backreferences nécessaires, c'est plus complexe car le compteur ferait partie du texte.
+                            # Ici on simplifie : le custom rule est un TAG.
                         except Exception:
                             final_token = f"{replacement_base}_{current_count}"
 
-                        self.audit_logger.log(original_text, final_token, "custom_regex", 1, original_text=original_text)
+                        self.audit_logger.log(
+                            original_text,
+                            final_token,
+                            "custom_regex",
+                            1,
+                            original_text=original_text,
+                        )
                         self.custom_replacements_count += 1
                         self.custom_replacements_mapping[original_text] = final_token
                         return final_token
 
-                    modified_text = compiled_pattern.sub(replacement_handler, modified_text)
+                    modified_text = compiled_pattern.sub(
+                        replacement_handler, modified_text
+                    )
 
                 else:
                     # Remplacement texte simple
@@ -109,31 +127,42 @@ class CustomRulesProcessor:
                     # Mais si on a plusieurs occurrences de "A", elles deviennent toutes "T1". C'est correct pour la bijection.
                     # Le problème c'est que str.replace ne permet pas d'incrémenter globalement si c'est la 1ère fois qu'on voit ce mot
                     # vs la 2ème fois qu'on le voit dans un autre bloc, mais on veut garder le MÊME token.
-                    
+
                     # Approche : On vérifie si pattern_str est dans le mapping.
                     if pattern_str in self.custom_replacements_mapping:
                         token = self.custom_replacements_mapping[pattern_str]
                     else:
                         rule["match_counter"] += 1
                         current_count = rule["match_counter"]
-                        if replacement_base.endswith("]") or replacement_base.endswith("}"):
-                             token = f"{replacement_base[:-1]}_{current_count}{replacement_base[-1]}"
+                        if replacement_base.endswith("]") or replacement_base.endswith(
+                            "}"
+                        ):
+                            token = f"{replacement_base[:-1]}_{current_count}{replacement_base[-1]}"
                         else:
-                             token = f"{replacement_base}_{current_count}"
-                        
+                            token = f"{replacement_base}_{current_count}"
+
                         self.custom_replacements_mapping[pattern_str] = token
-                        # Log pour la première occurrence (ou à chaque fois ?) 
+                        # Log pour la première occurrence (ou à chaque fois ?)
                         # Audit log attend généralement un log par substitution.
-                    
+
                     count = modified_text.count(pattern_str)
                     if count > 0:
                         modified_text = modified_text.replace(pattern_str, token)
-                        self.audit_logger.log(pattern_str, token, "custom_text", count, original_text=pattern_str)
+                        self.audit_logger.log(
+                            pattern_str,
+                            token,
+                            "custom_text",
+                            count,
+                            original_text=pattern_str,
+                        )
                         self.custom_replacements_count += count
 
             except Exception as e:
-                typer.echo(f"ERREUR (CustomRulesProcessor): Échec application règle '{pattern_str}': {e}", err=True)
-                
+                typer.echo(
+                    f"ERREUR (CustomRulesProcessor): Échec application règle '{pattern_str}': {e}",
+                    err=True,
+                )
+
         return modified_text
 
     def get_custom_replacements_mapping(self) -> Dict[str, str]:

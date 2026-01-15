@@ -1,7 +1,7 @@
 import pytest
+
 pytest.importorskip("typer")
 from typer.testing import CliRunner
-import importlib
 import types
 import sys
 
@@ -15,7 +15,7 @@ sys.modules.setdefault("docx", fake_docx)
 sys.modules.setdefault("pandas", types.ModuleType("pandas"))
 sys.modules.setdefault("fitz", types.ModuleType("fitz"))
 
-from anonyfiles_cli.main import app
+from anonyfiles_cli.main import app  # noqa: E402
 
 
 def test_job_list_nonexistent_directory(tmp_path):

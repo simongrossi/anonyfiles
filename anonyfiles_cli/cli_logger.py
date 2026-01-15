@@ -2,7 +2,6 @@
 
 import datetime
 import json
-import os
 import logging
 from typing import Any, Dict, Optional
 import typer
@@ -10,6 +9,7 @@ from pathlib import Path
 import traceback
 
 logger = logging.getLogger(__name__)
+
 
 class CLIUsageLogger:
     LOG_BASE_DIR = Path(__file__).parent / "logs"
@@ -27,7 +27,9 @@ class CLIUsageLogger:
             Path: Path object pointing to ``cli_audit_log.jsonl`` for today.
         """
         now = datetime.datetime.now()
-        log_dir = cls.LOG_BASE_DIR / str(now.year) / f"{now.month:02d}" / f"{now.day:02d}"
+        log_dir = (
+            cls.LOG_BASE_DIR / str(now.year) / f"{now.month:02d}" / f"{now.day:02d}"
+        )
         log_dir.mkdir(parents=True, exist_ok=True)
         return log_dir / "cli_audit_log.jsonl"
 
@@ -41,10 +43,7 @@ class CLIUsageLogger:
         This method automatically adds a UTC timestamp to ``info`` and writes
         it as a JSON object to the log file.
         """
-        entry = {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
-            **info
-        }
+        entry = {"timestamp": datetime.datetime.utcnow().isoformat(), **info}
         log_path = cls.get_log_path()
         try:
             with open(log_path, "a", encoding="utf-8") as f:

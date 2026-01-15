@@ -7,6 +7,7 @@ Utilisable aussi bien dans le CLI que l'API pour garantir une structure de log c
 
 from typing import Any, Dict, Optional
 
+
 def log_run_event(
     logger: Any,
     run_id: str,
@@ -37,17 +38,19 @@ def log_run_event(
     :param status: Statut de l'opération ("success", "error", etc.)
     :param error: Message d'erreur éventuel
     """
-    logger.log_run({
-        "timestamp": run_id,
-        "input_file": str(input_file),
-        "output_file": str(output_file),
-        "mapping_file": str(mapping_file),
-        "log_entities_file": str(log_entities_file),
-        "entities_detected": entities_detected or [],
-        "total_replacements": total_replacements,
-        "rules_applied": audit_log or [],
-        "success": status == "success",
-        "error": error,
-        "command": command,
-        "arguments": args or {},
-    })
+    logger.log_run(
+        {
+            "timestamp": run_id,
+            "input_file": str(input_file),
+            "output_file": str(output_file),
+            "mapping_file": str(mapping_file),
+            "log_entities_file": str(log_entities_file),
+            "entities_detected": entities_detected or [],
+            "total_replacements": total_replacements,
+            "rules_applied": audit_log or [],
+            "success": status == "success",
+            "error": error,
+            "command": command,
+            "arguments": args or {},
+        }
+    )

@@ -2,13 +2,12 @@
 
 import traceback
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import typer
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 from ..exceptions import (
     AnonyfilesError,
@@ -24,14 +23,18 @@ class ConsoleDisplay:
 
     def display_welcome(self):
         """Affiche le message de bienvenue de l'application."""
-        self.console.print(Panel.fit(
-            "[bold blue]🕵️‍♂️ Anonyfiles CLI[/bold blue]\n"
-            "Anonymisation intelligente de documents",
-            border_style="blue"
-        ))
+        self.console.print(
+            Panel.fit(
+                "[bold blue]🕵️‍♂️ Anonyfiles CLI[/bold blue]\n"
+                "Anonymisation intelligente de documents",
+                border_style="blue",
+            )
+        )
         self.console.print("")
 
-    def display_results(self, result: Dict[str, Any], dry_run: bool, paths: Dict[str, Path]):
+    def display_results(
+        self, result: Dict[str, Any], dry_run: bool, paths: Dict[str, Path]
+    ):
         """
         Affiche un résumé des résultats de l'anonymisation.
         :param result: Dictionnaire des résultats de l'engine d'anonymisation.
@@ -39,7 +42,9 @@ class ConsoleDisplay:
         :param paths: Dictionnaire des chemins de fichiers de sortie.
         """
         if dry_run:
-            self.console.print("🔍 [yellow]Mode simulation - Aucun fichier modifié[/yellow]")
+            self.console.print(
+                "🔍 [yellow]Mode simulation - Aucun fichier modifié[/yellow]"
+            )
         else:
             self.console.print("✅ [green]Anonymisation terminée avec succès![/green]")
 
@@ -47,8 +52,13 @@ class ConsoleDisplay:
         table.add_column("Métrique", style="cyan")
         table.add_column("Valeur", style="green")
 
-        table.add_row("Entités détectées (spaCy)", str(len(result.get('entities_detected', []))))
-        table.add_row("Remplacements totaux (custom + spaCy)", str(result.get('total_replacements', 0)))
+        table.add_row(
+            "Entités détectées (spaCy)", str(len(result.get("entities_detected", [])))
+        )
+        table.add_row(
+            "Remplacements totaux (custom + spaCy)",
+            str(result.get("total_replacements", 0)),
+        )
 
         if not dry_run:
             if paths.get("output_file") and paths["output_file"].exists():
@@ -63,7 +73,9 @@ class ConsoleDisplay:
         self.console.print(table)
 
         if result.get("audit_log"):
-            self.console.print("\n📊 [bold blue]Journal d'Audit des Remplacements :[/bold blue]")
+            self.console.print(
+                "\n📊 [bold blue]Journal d'Audit des Remplacements :[/bold blue]"
+            )
             audit_table = Table(show_header=True, header_style="bold magenta")
             audit_table.add_column("Original", style="white")
             audit_table.add_column("Remplacement", style="green")
@@ -76,9 +88,8 @@ class ConsoleDisplay:
                 count = str(entry.get("count", 0))
                 audit_table.add_row(original, replacement, type_val, count)
             self.console.print(audit_table)
-        
-        self.console.print("")
 
+        self.console.print("")
 
     def handle_error(self, error: Exception, context: str = ""):
         """
@@ -87,6 +98,7 @@ class ConsoleDisplay:
         :param context: Contexte de l'erreur (où elle s'est produite).
         """
         from ..cli_logger import CLIUsageLogger
+
         command_name = None
         params = None
         try:

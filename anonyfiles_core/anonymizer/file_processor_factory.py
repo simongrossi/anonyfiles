@@ -1,7 +1,6 @@
 # anonyfiles_cli/anonymizer/file_processor_factory.py
 
-from pathlib import Path
-from typing import Dict, Type # Corrected: Added Dict import
+from typing import Dict, Type  # Corrected: Added Dict import
 
 from .base_processor import BaseProcessor
 from .txt_processor import TxtProcessor
@@ -20,10 +19,12 @@ PROCESSOR_MAP: Dict[str, Type[BaseProcessor]] = {
     ".json": JsonProcessor,
 }
 
+
 class FileProcessorFactory:
     """
     Fabrique pour obtenir le processeur de fichier approprié en fonction de l'extension.
     """
+
     @staticmethod
     def get_processor(file_extension: str) -> BaseProcessor:
         """

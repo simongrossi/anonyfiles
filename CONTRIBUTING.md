@@ -57,5 +57,20 @@ def saluer(nom: str) -> str:
 
    Les composants graphiques (`anonyfiles_gui`) ne sont pas concernés et peuvent être ignorés pendant ces tests.
 
+## Gestion des dépendances
+
+Le projet utilise une approche hybride moderne :
+
+*   **`pyproject.toml`** : Source de vérité unique. Déclare les dépendances abstraites avec des plages de versions (ex: `fastapi>=0.110.0`). C'est ce fichier qui est utilisé lors d'un `pip install .`.
+*   **`requirements.txt`** : Fichier généré automatiquement via `pip-tools`. Il contient les versions épinglées (versions exactes) pour garantir la reproductibilité des environnements (CI/CD, déploiement).
+
+### Mettre à jour les dépendances
+
+1.  Modifiez `pyproject.toml` pour ajouter/modifier une bibliothèque.
+2.  Régénérez le `requirements.txt` :
+    ```bash
+    pip-compile pyproject.toml -o requirements.txt
+    ```
+
 ## Signaler un bug
 Ouvrez un ticket GitHub avec un titre explicite et un maximum de détails !
