@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  # Service API (Backend Python)
+  api:
+    build: . # Utilise le Dockerfile existant à la racine
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app # Optionnel : pour le développement (hot-reload si configuré)
+    environment:
+      - HOST=0.0.0.0
+
+  # Service Frontend (Interface Web)
+  web:
+    build: ./anonyfiles_gui # Utilise le nouveau Dockerfile créé à l'étape 1
+    ports:
+      - "3000:80" # Accessible via http://localhost:3000
+    depends_on:
+      - api
