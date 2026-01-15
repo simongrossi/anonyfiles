@@ -1,3 +1,6 @@
+from pathlib import Path
+from datetime import datetime
+
 def timestamp() -> str:
     """Génère un timestamp au format YYYYMMDD-HHMMSS."""
     return datetime.now().strftime("%Y%m%d-%H%M%S")
