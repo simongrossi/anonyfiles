@@ -12,11 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class CLIUsageLogger:
-    LOG_BASE_DIR = Path(__file__).parent / "logs"
+    # Utilisation d'un dossier utilisateur standard pour les logs
+    # Linux/Mac: ~/.anonyfiles/logs
+    # Windows: C:\Users\Nom\.anonyfiles\logs
+    LOG_BASE_DIR = Path.home() / ".anonyfiles" / "logs"
     VERBOSE: bool = False
 
     @classmethod
-    def get_log_path(cls):
+    def get_log_path(cls) -> Optional[Path]:
         """Return the path to today's audit log file.
 
         The method creates the directory structure for the current date if
@@ -24,14 +27,26 @@ class CLIUsageLogger:
         log file used to store CLI audit entries.
 
         Returns:
-            Path: Path object pointing to ``cli_audit_log.jsonl`` for today.
+            Optional[Path]: Path object to ``cli_audit_log.jsonl``, or None if creation fails.
         """
-        now = datetime.datetime.now()
-        log_dir = (
-            cls.LOG_BASE_DIR / str(now.year) / f"{now.month:02d}" / f"{now.day:02d}"
-        )
-        log_dir.mkdir(parents=True, exist_ok=True)
-        return log_dir / "cli_audit_log.jsonl"
+        try:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            log_dir = (
+                cls.LOG_BASE_DIR
+                / str(now.year)
+                / f"{now.month:02d}"
+                / f"{now.day:02d}"
+            )
+            log_dir.mkdir(parents=True, exist_ok=True)
+            return log_dir / "cli_audit_log.jsonl"
+        except Exception as e:
+            # En cas d'erreur (droits, disque plein...), on loggue discrètement et on retourne None
+            # pour ne pas bloquer l'application.
+            if cls.VERBOSE:
+                logger.warning(
+                    "[CLIUsageLogger] Impossible de créer/accéder au dossier de logs: %s", e
+                )
+            return None
 
     @classmethod
     def log_run(cls, info: dict):
@@ -39,16 +54,20 @@ class CLIUsageLogger:
 
         Args:
             info (dict): Arbitrary metadata describing the executed command.
-
-        This method automatically adds a UTC timestamp to ``info`` and writes
-        it as a JSON object to the log file.
         """
-        entry = {"timestamp": datetime.datetime.utcnow().isoformat(), **info}
+        entry = {
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            **info,
+        }
         log_path = cls.get_log_path()
+        if not log_path:
+            return
+
         try:
             with open(log_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         except Exception as e:
+            # On ne veut jamais crasher l'appli à cause d'un log auxiliaire
             logger.error("[CLIUsageLogger] Erreur d’écriture log: %s", e)
 
     @classmethod
@@ -60,22 +79,9 @@ class CLIUsageLogger:
         command: Optional[str] = None,
         args: Optional[Dict[str, Any]] = None,
     ):
-        """Record an error entry in the audit log.
-
-        Args:
-            context (str): Text explaining in which context the error occurred.
-            exc (Exception): The raised exception instance.
-            command (Optional[str], optional): Command name to associate with
-                the error. Defaults to ``None``.
-            args (Optional[Dict[str, Any]], optional): Parameters passed to the
-                command. If ``None`` and ``VERBOSE`` is ``True``, the current
-                Typer context is used when available.
-
-        The entry contains the exception message and stack trace in addition to
-        the provided context.
-        """
+        """Record an error entry in the audit log."""
         entry: Dict[str, Any] = {
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "error": str(exc),
             "traceback": traceback.format_exc(),
             "context": context,
@@ -86,12 +92,17 @@ class CLIUsageLogger:
             entry["arguments"] = args
         elif cls.VERBOSE:
             try:
+                # Tentative de récupération du contexte Typer si disponible
                 ctx = typer.get_current_context()
                 entry["command"] = ctx.command_path
                 entry["arguments"] = ctx.params
             except Exception:
                 pass
+
         log_path = cls.get_log_path()
+        if not log_path:
+            return
+
         try:
             with open(log_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
@@ -100,20 +111,24 @@ class CLIUsageLogger:
 
     @classmethod
     def get_last_runs(cls, n=10):
-        """Return the last ``n`` recorded runs from today's log.
-
-        Only the log file for the current day is inspected; older log files are
-        ignored.
-
-        Args:
-            n (int): Number of recent entries to retrieve. Defaults to ``10``.
-
-        Returns:
-            List[dict]: Parsed log entries ordered from oldest to newest.
-        """
+        """Return the last ``n`` recorded runs from today's log."""
         log_path = cls.get_log_path()
-        if not log_path.exists():
+        if not log_path or not log_path.exists():
             return []
-        with open(log_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()[-n:]
-            return [json.loads(line) for line in lines]
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+                # On prend les derniers n lignes valides
+                results = []
+                for line in reversed(lines):
+                    if len(results) >= n:
+                        break
+                    if line.strip():
+                        try:
+                            results.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            continue
+                return results[::-1]  # On remet dans l'ordre chronologique
+        except Exception as e:
+            logger.error("[CLIUsageLogger] Lecture impossible: %s", e)
+            return []
