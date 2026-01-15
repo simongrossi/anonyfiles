@@ -6,12 +6,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Dossier source désormais dans anonyfiles_gui/wordlist_presets
-const sourceDir = path.resolve(__dirname, './wordlist_presets');
+// Dossier source désormais dans anonyfiles_gui/presets
+const sourceDir = path.resolve(__dirname, './presets');
 const destDir = path.resolve(__dirname, './public/presets');
 
 if (!fs.existsSync(sourceDir)) {
-  console.error('❌ Le dossier source "anonyfiles_gui/wordlist_presets" est introuvable.');
+  console.error('❌ Le dossier source "presets" est introuvable.');
   process.exit(1);
 }
 

@@ -8,6 +8,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app # Optionnel : pour le développement (hot-reload si configuré)
+      - /app/anonyfiles.egg-info # Prevent Windows egg-info from breaking Linux install
     environment:
       - HOST=0.0.0.0
 
