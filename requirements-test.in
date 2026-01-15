@@ -3,6 +3,8 @@
 # ==============================================================================
 pytest
 httpx  # Client HTTP asynchrone, essentiel pour tester les endpoints FastAPI
+textual
+rich
 
 # ==============================================================================
 # == Dépendances de l'API FastAPI

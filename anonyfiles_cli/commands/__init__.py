@@ -8,3 +8,4 @@ from . import config  # noqa: F401
 from . import batch  # noqa: F401
 from . import utils  # noqa: F401
 from . import clean_job  # noqa: F401
+from . import logs  # noqa: F401

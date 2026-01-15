@@ -13,6 +13,7 @@ from anonyfiles_cli.commands import (
     batch,
     utils,
     clean_job,
+    logs,
 )
 from anonyfiles_cli.managers.config_manager import ConfigManager
 from anonyfiles_cli.ui.console_display import ConsoleDisplay
@@ -40,6 +41,11 @@ app.add_typer(
     clean_job.app,
     name="job",
     help="Gère et nettoie les répertoires de jobs (suppression, listage).",
+)
+app.add_typer(
+    logs.app,
+    name="logs",
+    help="Gestion et visualisation des logs du système.",
 )
 
 

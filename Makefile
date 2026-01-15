@@ -62,6 +62,18 @@ api:
 gui:
 	cd anonyfiles_gui && npm run build
 
+tui:
+	env-cli/bin/anonyfiles-cli logs interactive
+
+setup-cli:
+	@echo "📦 Installation/Mise à jour de la CLI..."
+	env-cli/bin/pip install -e .
+
+reinstall-cli:
+	@echo "📦 Réinstallation propre de la CLI..."
+	env-cli/bin/pip uninstall -y anonyfiles || true
+	env-cli/bin/pip install -e .
+
 test-api:
 	@echo "🔗 Envoi du fichier vers $${API_URL:-http://localhost:8000}"
 	curl -X POST $${API_URL:-http://localhost:8000}/anonymize/ \

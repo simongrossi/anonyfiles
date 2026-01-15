@@ -30,7 +30,8 @@ dependencies = [
     "aiofiles>=23.0.0",
     "python-dotenv>=1.0.0",
     "rich>=13.0.0",
-    "chardet>=5.0.0"
+    "chardet>=5.0.0",
+    "textual>=0.70.0"
 ]
 
 [project.scripts]
