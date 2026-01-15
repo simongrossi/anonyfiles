@@ -67,6 +67,9 @@ class AppConfig(BaseSettings):
     replacements: Dict[str, EntityConfig] = Field(default_factory=dict)
 
     # Autres configurations globales potentielles
+    cors_origins: str = Field(
+        default="", description="Origines CORS autorisées (séparées par des virgules)"
+    )
     debug: bool = False
 
     model_config = SettingsConfigDict(

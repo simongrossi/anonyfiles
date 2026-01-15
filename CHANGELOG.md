@@ -6,6 +6,27 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [1.3.0] – 2026-01-16
+
+### Ajouté
+- **Docker Multi-Arch & Sécurité** : Dockerfile réécrit en multi-stage build avec support natif ARM64 (Apple Silicon, NAS) et exécution en utilisateur non-root.
+- **Réalisme (Faker)** : Intégration de la librairie `Faker` pour des remplacements réalistes (Noms, Villes, Emails, IBAN...) avec option de cohérence (seed).
+- **Validation** : Validation stricte des dates détectées via `dateutil` pour éliminer les faux positifs.
+- **Sécurité API** : Gestion fine des origines CORS via variable d'environnement `ANONYFILES_CORS_ORIGINS`.
+
+### Optimisé
+- **Moteur SpaCy** : Utilisation de l'`EntityRuler` pour intégrer les Regex directement dans le pipeline NLP (gain de performance et gestion native des conflits).
+- **Frontend** : Configuration Nginx optimisée pour le reverse-proxy API et Dockerfile frontend allégé.
+- **API Files** : Utilisation de `mimetypes` standard pour une détection robuste des types MIME.
+
+### Corrigé
+- **Docker Build** : Résolution de `ModuleNotFoundError: No module named 'pydantic_settings'` et des problèmes d'installation en mode éditable avec Hot-Reload.
+- **Frontend Docker** : Correction des chemins Nginx (`/api/`) et de la configuration `API_URL` codée en dur pour compatibilité Synology/Reverse-Proxy.
+- **API Configuration** : Correction critique du chargement du `config.yaml` dans Docker via `ANONYFILES_CONFIG_PATH` et refonte complète via Pydantic `BaseSettings`.
+- **CLI** : Ajout de la commande `anonyfiles-cli logs interactive` (TUI avec Textual) pour la consultation avancée des logs.
+- **Documentation et Alias** : Unification des commandes CLI (`anonyfiles-cli`), ajout de `config init`, et mise à jour massive des READMEs.
+- **Refactoring** : Nettoyage du code, suppression des `if/elif` géants pour les MIME types et les regex, adoption du pattern Registry pour les générateurs (`replacer.py`).
+
 ## [1.2.1] – 2025-06-08
 
 ### Corrigé

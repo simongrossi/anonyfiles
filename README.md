@@ -32,7 +32,9 @@ La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API p
 * Mapping complet pour désanonymisation ou audit
 * Export CSV des entités détectées
 * Sélection fine des entités à anonymiser (interface graphique ou CLI)
+* **Moteur Hybride Optimisé** : Combinaison puissante de Regex compilées nativement dans SpaCy (EntityRuler) et de validation contextuelle (e.g. validateur de dates).
 * Prise en charge du français (et autres langues via spaCy)
+* **Données réalistes** : Intégration de la librairie **Faker** pour générer des faux noms, adresses, etc. cohérents.
 * **Asynchrone via l’API REST** (suivi via `job_id`)
 * **Portable** : aucun chemin codé en dur, multiplateforme (Windows, macOS, Linux)
 * **Validation rapide** : les chemins, la configuration et la présence du modèle spaCy sont vérifiés avant de lancer le traitement
@@ -406,11 +408,15 @@ définir (par exemple dans `/etc/default/anonyfiles-api`) :
 - `ANONYFILES_HOST` : adresse d'écoute d'uvicorn (ex. `127.0.0.1`)
 - `ANONYFILES_PORT` : port d'écoute de l'API (ex. `8000`)
 - `ANONYFILES_JOBS_DIR` : répertoire des jobs (défaut `jobs`)
+- `ANONYFILES_CORS_ORIGINS` : domaines autorisés pour les requêtes API (ex: `https://mon-domaine.com,http://localhost:3000`)
 
 Un fichier `railway.json.example` est fourni à la racine pour simplifier un
-déploiement via Railway. Copiez-le en `railway.json` puis ajustez les valeurs
-(nom du service, chemin de santé, variables d'environnement...) avant de
-lancer votre déploiement.
+déploiement via Railway. Copiez-le en `railway.json` puis ajustez les valeurs.
+
+**Optimisations récentes du Dockerfile :**
+* **Support Multi-arch (ARM64)** : Compilation native des dépendances (Numpy, SpaCy/Blis) pour Apple Silicon et NAS ARM.
+* **Sécurité & Taille** : Utilisation d'un build multi-stage pour une image finale plus légère (sans GCC) et exécution sous utilisateur non-root `anonyfiles`.
+* **CORS Sécurisé** : Restriction par défaut des origines autorisées via `ANONYFILES_CORS_ORIGINS`.
 
 ---
 

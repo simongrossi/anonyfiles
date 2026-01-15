@@ -31,6 +31,8 @@ from .core_config import (
 # from anonyfiles_cli.main import load_config_api_safe # Supprimer cet import
 
 limiter = Limiter(key_func=get_remote_address, default_limits=[DEFAULT_RATE_LIMIT])
+# Instanciation de la configuration au niveau module pour être disponible pour les middleware
+app_config = AppConfig()
 app = FastAPI(root_path="/api")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -58,8 +60,8 @@ async def startup_event():
     try:
         # Chargement de la configuration via Pydantic
         # La validation stricte assure que si le YAML est invalide ou corrompu, l'app crashera (Fail Fast)
-        logger.info("Chargement et validation de la configuration de l'application...")
-        app_config = AppConfig()
+        logger.info("Validation de la configuration de l'application (chargée au démarrage)...")
+        # app_config est déjà instancié globalement
 
         # Stocker l'objet config typé (ou convertir en dict si le reste du code attend un dict)
         # Pour compatibilité immédiate avec le code existant qui attend souvent un dict :
@@ -80,9 +82,14 @@ async def startup_event():
 
 
 # Le reste du fichier (middleware, inclusion des routeurs, endpoint racine)
+# Gestion des origines CORS
+origins = [o.strip() for o in app_config.cors_origins.split(",")] if app_config.cors_origins else []
+if not origins:
+    origins = ["http://localhost:3000", "tauri://localhost"]  # Restrictif par défaut
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
