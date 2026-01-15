@@ -46,7 +46,7 @@ export async function runAnonymization({
     if (isTauri()) {
       throw new Error("Tauri non supporté en mode web !");
     } else {
-      const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || 'http://127.0.0.1:8000/api';
+      const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || '/api';
 
       let formData = new FormData();
 
@@ -99,7 +99,7 @@ export async function runAnonymization({
             try {
               const pollErrJson = JSON.parse(pollErrText);
               specificError = pollErrJson.detail || specificError;
-            } catch (e) {}
+            } catch (e) { }
             errorMessage.set(specificError);
             polling = false;
             continue;

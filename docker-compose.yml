@@ -12,6 +12,8 @@ services:
     environment:
       - HOST=0.0.0.0
       - PYTHONPATH=/app
+      # Force l'utilisation du fichier de config présent dans le dossier monté
+      - ANONYFILES_CONFIG_PATH=/app/anonyfiles_core/config/config.yaml
 
   # Service Frontend (Interface Web)
   web:
