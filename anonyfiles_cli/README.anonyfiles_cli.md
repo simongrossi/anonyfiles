@@ -38,87 +38,107 @@ Il s’appuie sur le NLP (spaCy), une configuration flexible en YAML, et des rè
 
 * Python **3.8+**
 * pip et environnements virtuels recommandés
-* Modèle spaCy fr\_core\_news\_md ou lg
+* Modèle spaCy fr_core_news_md ou lg
 
 ### **🧪 Installation rapide**
 
+```bash
 git clone https://github.com/simongrossi/anonyfiles.git
-cd anonyfiles/anonyfiles\_cli
+cd anonyfiles/anonyfiles_cli
 pip install -r requirements.txt
+# Installer le package en mode éditable pour avoir l'alias 'anonyfiles-cli'
+pip install -e .
 # Installer le modèle spaCy séparément après les dépendances
-python3 -m spacy download fr\_core\_news\_md
+python3 -m spacy download fr_core_news_md
+```
 
 ## **📁 Structure du projet refactorisée**
 
-Le projet anonyfiles\_cli est conçu de manière modulaire, avec une séparation claire des responsabilités.
+Le projet anonyfiles_cli est conçu de manière modulaire, avec une séparation claire des responsabilités.
 
 ### **À la racine :**
 
-* main.py : point d’entrée pour python -m anonyfiles\_cli.main
+* main.py : point d’entrée via la commande `anonyfiles-cli`
 * requirements.txt : dépendances Python
 * README.md : documentation
 
 ### **anonymizer/**
 
-* anonyfiles\_core.py : coordination du processus principal
-* spacy\_engine.py : instanciation spaCy et regex
+* anonyfiles_core.py : coordination du processus principal
+* spacy_engine.py : instanciation spaCy et regex
 * replacer.py : remplacements d’entités selon config YAML
-* \*\_processor.py : traitements spécifiques par type de fichier
+* *_processor.py : traitements spécifiques par type de fichier
 * audit.py : export CSV des entités
 * utils.py : outils divers
 * deanonymize.py : lecture du mapping CSV pour restaurer
 
 ### **managers/**
 
-* config\_manager.py : fusion config utilisateur / CLI / YAML
-* path\_manager.py : gestion des chemins de sortie, mapping, logs
-* validation\_manager.py : validation YAML (Cerberus)
+* config_manager.py : fusion config utilisateur / CLI / YAML
+* path_manager.py : gestion des chemins de sortie, mapping, logs
+* validation_manager.py : validation YAML (Cerberus)
 
 ### **ui/**
 
-* console\_display.py : affichage console enrichi (Rich)
-* interactive\_mode.py : préparation d'un mode CLI interactif
+* console_display.py : affichage console enrichi (Rich)
+* interactive_mode.py : préparation d'un mode CLI interactif
 
 ### **commands/**
 
 * anonymize.py : Logique de la commande anonymize
 * deanonymize.py : Logique de la commande deanonymize
-* config.py : Logique de la commande config
+* config.py : Logique de la commande config (incluant `init`)
 * batch.py : Logique de la commande batch
 * utils.py : Commandes utilitaires diverses
-* clean\_job.py : Logique de la commande job (suppression et listage)
+* clean_job.py : Logique de la commande job (suppression et listage)
 
 ### **config/**
 
 * config.yaml : exemple de config utilisateur
-* generated\_config.yaml : généré par interface ou API
+* generated_config.yaml : généré par interface ou API
 * schema.yaml : schéma de validation YAML
 
 ### **Sorties & tests :**
 
-* anonyfiles\_outputs/ : Répertoire par défaut des sorties.
+* anonyfiles_outputs/ : Répertoire par défaut des sorties.
   + runs/ : Contient les sous-dossiers pour chaque job (ex: 20250605-122744/).
-* log/ : logs CSV (peut être configuré dans anonyfiles\_outputs/runs/{job\_id}/)
-* mappings/ : fichiers de correspondance (peut être configuré dans anonyfiles\_outputs/runs/{job\_id}/)
+* log/ : logs CSV (peut être configuré dans anonyfiles_outputs/runs/{job_id}/)
+* mappings/ : fichiers de correspondance (peut être configuré dans anonyfiles_outputs/runs/{job_id}/)
 * examples/ : jeux de données
 * tests/cli/ : tests unitaires
 
 ## **💡 Utilisation rapide**
 
+> **Note importante** : L'alias `anonyfiles-cli` est disponible une fois le package installé (par exemple via `pip install .` ou `pip install -e .`).
+
+### **🚀 Initialisation**
+
+Pour commencer, générez une configuration utilisateur par défaut :
+
+```bash
+anonyfiles-cli config init
+```
+
+Cela créera un fichier `~/.anonyfiles/config.yaml` propre.
+
 ### **▶️ Exemple simple d'anonymisation**
 
-python -m anonyfiles\_cli.main anonymize anonyfiles\_cli/input.txt
+```bash
+anonyfiles-cli anonymize anonyfiles_cli/input.txt
+```
 
-Le résultat affichera un Job ID (un timestamp) et le chemin vers les fichiers générés dans un sous-dossier de anonyfiles\_outputs/runs/.
+Le résultat affichera un Job ID (un timestamp) et le chemin vers les fichiers générés dans un sous-dossier de anonyfiles_outputs/runs/.
 
 ### **▶️ Exemple avancé d'anonymisation**
 
-python -m anonyfiles\_cli.main anonymize anonyfiles\_cli/input.txt \
- --output-dir anonyfiles\_cli/output\_test \
- --config anonyfiles\_cli/config.yaml \
- --custom-replacements-json '[{"pattern": "ProjetX", "replacement": "[SECRET\_PROJET]", "isRegex": false}]' \
- --log-entities anonyfiles\_cli/log/log.csv \
- --mapping-output anonyfiles\_cli/mappings/mapping.csv
+```bash
+anonyfiles-cli anonymize anonyfiles_cli/input.txt \
+ --output-dir anonyfiles_cli/output_test \
+ --config anonyfiles_cli/config.yaml \
+ --custom-replacements-json '[{"pattern": "ProjetX", "replacement": "[SECRET_PROJET]", "isRegex": false}]' \
+ --log-entities anonyfiles_cli/log/log.csv \
+ --mapping-output anonyfiles_cli/mappings/mapping.csv
+```
 
 ## **🧹 Gestion des jobs (nettoyage et listage)**
 
@@ -128,33 +148,43 @@ La CLI d'Anonyfiles permet de gérer les fichiers générés par chaque opérati
 
 Pour voir la liste de tous les jobs disponibles dans le répertoire de sortie par défaut :
 
-python -m anonyfiles\_cli.main job list
+```bash
+anonyfiles-cli job list
+```
 
 Si vos jobs sont stockés dans un répertoire différent, utilisez --output-dir :
 
-python -m anonyfiles\_cli.main job list --output-dir /chemin/vers/mon/dossier/de/sorties
+```bash
+anonyfiles-cli job list --output-dir /chemin/vers/mon/dossier/de/sorties
+```
 
 ### **▶️ Supprimer un job spécifique**
 
 Pour supprimer un job et tous ses fichiers générés (anonymisés, mapping, logs) :
 
-python -m anonyfiles\_cli.main job delete <JOB\_ID> --output-dir /chemin/absolut/vers/anonyfiles/
+```bash
+anonyfiles-cli job delete <JOB_ID> --output-dir /chemin/absolut/vers/anonyfiles/
+```
 
 Exemple concret :
 
 Si votre job ID est 20250605-122744 et que le chemin de votre projet est /home/debian/anonyfiles, la commande serait :
 
-python -m anonyfiles\_cli.main job delete 20250605-122744 --output-dir /home/debian/anonyfiles
+```bash
+anonyfiles-cli job delete 20250605-122744 --output-dir /home/debian/anonyfiles
+```
 
 Vous serez invité à confirmer la suppression. Pour supprimer sans confirmation, ajoutez --force :
 
-python -m anonyfiles\_cli.main job delete 20250605-122744 --output-dir /home/debian/anonyfiles --force
+```bash
+anonyfiles-cli job delete 20250605-122744 --output-dir /home/debian/anonyfiles --force
+```
 
 ## **📌 Options CLI résumées**
 
 | **Option** | **Description** |
 | --- | --- |
-| INPUT\_FILE | Fichier à anonymiser |
+| INPUT_FILE | Fichier à anonymiser |
 | --config | Fichier YAML de configuration |
 | --custom-replacements-json | Remplacements simples JSON (appliqués avant spaCy) |
 | --output / -o | Fichier de sortie anonymisé/désanonymisé |
@@ -162,57 +192,65 @@ python -m anonyfiles\_cli.main job delete 20250605-122744 --output-dir /home/deb
 | --force | Écrase les fichiers de sortie existants (pour anonymize) ou supprime sans confirmation (pour job delete) |
 | --exclude-entities | Types d'entités spaCy à exclure (ex: PER,LOC) |
 | --log-entities | Export CSV des entités détectées et leurs labels |
-| --mapping-output | Fichier CSV de mapping (original\_text -> anonymized\_code) |
+| --mapping-output | Fichier CSV de mapping (original_text -> anonymized_code) |
 | --has-header-opt | true ou false pour les fichiers CSV/XLSX (prioritaire sur --csv-no-header) |
 | --csv-no-header | Indique que le fichier CSV d'entrée N'A PAS d'en-tête |
 | --append-timestamp | Ajoute un horodatage aux noms des fichiers de sortie par défaut |
 | --dry-run | Mode simulation : affiche les actions sans modifier les fichiers (fonctionne aussi pour `config create` et `config reset`) |
 | --verbose / -v | Affiche les messages de debug dans la console |
-| job delete <JOB\_ID> | Supprime un job spécifique et son répertoire. Nécessite --output-dir si non par défaut. |
+| job delete <JOB_ID> | Supprime un job spécifique et son répertoire. Nécessite --output-dir si non par défaut. |
 | job list | Liste les IDs de tous les jobs. Nécessite --output-dir si non par défaut. |
 
 ## **✨ Règles personnalisées (avant spaCy)**
 
-python -m anonyfiles\_cli.main anonymize fichier.txt \
+```bash
+anonyfiles-cli anonymize fichier.txt \
  --config config.yaml \
- --custom-replacements-json '[{"pattern": "ProjetX", "replacement": "[SECRET\_PROJET]", "isRegex": false}]'
+ --custom-replacements-json '[{"pattern": "ProjetX", "replacement": "[SECRET_PROJET]", "isRegex": false}]'
+```
 
 ⚠️ Ces remplacements ne sont **pas** inclus dans le mapping CSV.
 
 ## **🔄 Désanonymisation**
 
-python -m anonyfiles\_cli.main deanonymize fichier\_anonymise.txt \
- --mapping-csv anonyfiles\_cli/mappings/mapping.csv \
- -o anonyfiles\_cli/fichier\_restaure.txt \
+```bash
+anonyfiles-cli deanonymize fichier_anonymise.txt \
+ --mapping-csv anonyfiles_cli/mappings/mapping.csv \
+ -o anonyfiles_cli/fichier_restaure.txt \
  --permissive
+```
 
 ### **Validation d'un fichier de configuration**
 
-python -m anonyfiles\_cli.main config validate-config mon\_config.yaml
+```bash
+anonyfiles-cli config validate-config mon_config.yaml
+```
 
 ## **🧹 Exemple de fichier config.yaml**
 
-spacy\_model: fr\_core\_news\_md
+```yaml
+spacy_model: fr_core_news_md
 replacements:
  PER:
  type: faker
  options:
- locale: fr\_FR
+ locale: fr_FR
  ORG:
  type: code
  options:
- prefix: ORG\_
+ prefix: ORG_
  padding: 4
  EMAIL:
  type: redact
  options:
- text: "[EMAIL\_CONFIDENTIEL]"
+ text: "[EMAIL_CONFIDENTIEL]"
  DATE:
  type: placeholder
  options:
  format: "[DATE:{}]"
-exclude\_entities:
+exclude_entities:
  - ORG
+```
 
 ## **🔍 Entités supportées & stratégies YAML**
 
@@ -227,23 +265,23 @@ exclude\_entities:
 | IBAN | IBAN | FR7612345678901234567890 | faker, code, redact, placeholder |
 | Adresse | ADDRESS | 10 rue Victor Hugo | faker, code, redact, placeholder |
 
-📌 Essayez fr\_core\_news\_lg si certaines entités sont mal détectées.
+📌 Essayez fr_core_news_lg si certaines entités sont mal détectées.
 
 ## **🗌 Conseils d’usage & limites**
 
 ### **✅ Conseils**
 
 * Tester avec des données non sensibles
-* Organiser les répertoires : input\_files, anonyfiles\_outputs/, log/, mappings/
+* Organiser les répertoires : input_files, anonyfiles_outputs/, log/, mappings/
 * Bien définir ses regex personnalisées
-* Lancer depuis la racine avec python -m anonyfiles\_cli.main
+* Lancer avec `anonyfiles-cli`
 
 ### **⚠️ Limites actuelles**
 
 * PDF et DOCX peu testés (TXT, CSV, JSON OK)
 * --custom-replacements-json non inclus dans le mapping CSV
 * Désanonymisation uniquement sur entités NLP
-* Certaines entités nécessitent fr\_core\_news\_lg
+* Certaines entités nécessitent fr_core_news_lg
 
 ## **🔭 Roadmap / En cours**
 

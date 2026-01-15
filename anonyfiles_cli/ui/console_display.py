@@ -109,7 +109,18 @@ class ConsoleDisplay:
             pass
 
         if isinstance(error, ConfigurationError):
-            self.console.print(f"⚙️  [yellow]Erreur de configuration:[/yellow] {error}")
+            if "spaCy model" in str(error) and "Install manualy" in str(error):
+                # Message spécifique et visible pour l'erreur de modèle manquant
+                title = "❌ Modèle spaCy manquant ou inaccessible"
+                msg = (
+                    "Le modèle linguistique nécessaire n'a pas pu être chargé.\n\n"
+                    "Veuillez exécuter la commande suivante pour l'installer :\n"
+                    "[bold green]python -m spacy download fr_core_news_md[/bold green]"
+                )
+                self.console.print(Panel(msg, title=title, border_style="red"))
+            else:
+                self.console.print(f"⚙️  [yellow]Erreur de configuration:[/yellow] {error}")
+            
             CLIUsageLogger.log_error(context, error, command=command_name, args=params)
         elif isinstance(error, FileIOError):
             self.console.print(f"📂 [red]Erreur fichier:[/red] {error}")

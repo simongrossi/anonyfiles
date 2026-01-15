@@ -102,6 +102,46 @@ def create_config(
 
 
 @app.command(
+    name="init",
+    help="Initialise la configuration d'Anonyfiles (alias convivial de reset).",
+)
+def init_config(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Force la réinitialisation sans confirmation si une config existe déjà.",
+    ),
+):
+    """
+    Initialise ou réinitialise la configuration d'Anonyfiles.
+    Idéal pour commencer avec une installation fraîche.
+    """
+    user_config_path = ConfigManager.DEFAULT_USER_CONFIG_FILE
+
+    if user_config_path.exists():
+        if not force and not typer.confirm(
+            f"Une configuration existe déjà à {user_config_path}. Voulez-vous la réinitialiser (écraser) ?"
+        ):
+            console.console.print("Initialisation annulée.")
+            raise typer.Exit(ExitCodes.USER_CANCEL)
+        
+        # Suppression de l'existante si confirmée ou forcée
+        try:
+            os.remove(user_config_path)
+        except Exception as e:
+            console.console.print(f"[red]Erreur lors de la suppression de l'ancienne config : {e}[/red]")
+            raise typer.Exit(ExitCodes.GENERAL_ERROR)
+
+    try:
+        ConfigManager.create_default_user_config()
+        console.console.print(f"✨ Configuration initialisée dans [green]{user_config_path}[/green]")
+    except Exception as e:
+        console.handle_error(e, "config_init_command")
+        raise typer.Exit(ExitCodes.CONFIG_ERROR)
+
+
+@app.command(
     name="reset",
     help="Réinitialise le fichier de configuration utilisateur à ses valeurs par défaut.",
 )

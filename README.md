@@ -151,31 +151,31 @@ méthode de base de façon non bloquante.
 
 ---
 
-## 🛆 Installation rapide
+### ⚡ Démarrage Rapide (API avec Docker)
 
-### Pré-requis
+La méthode la plus simple pour tester l'API sans rien installer sur votre machine (ni Python, ni dépendances).
+
+**Commande unique ("One-Liner") :**
+```bash
+docker build -t anonyfiles . && docker run -p 8000:8000 anonyfiles
+```
+Une fois lancé :
+👉 Ouvrez **[http://localhost:8000/docs](http://localhost:8000/docs)** pour tester l'API via l'interface interactive Swagger.
+
+---
+
+### 🛆 Installation Standard (Développeurs / CLI)
+
+#### Pré-requis
 
 * Python 3.11 (recommandé, testé en production)
 * Node.js 18+, npm/yarn (pour la GUI)
 * Rust & Cargo (pour la GUI)
 * Modèle spaCy `fr_core_news_md`
 
-### 🐳 Installation Zéro-Config (Docker)
+#### Clonage du projet
 
-La méthode la plus simple pour tester l'API sans rien installer sur votre machine (à part Docker).
-
-```bash
-# Construire l'image
-docker build -t anonyfiles .
-
-# Lancer le conteneur sur le port 8000
-docker run -p 8000:8000 anonyfiles
-```
-L'API sera alors accessible sur [http://localhost:8000/docs](http://localhost:8000/docs).
-
-### Clonage du projet
-
-Si vous souhaitez contribuer ou utiliser la CLI localement :
+Si vous souhaitez utiliser la CLI ou contribuer :
 
 ```bash
 git clone https://github.com/simongrossi/anonyfiles.git
@@ -196,17 +196,25 @@ Utilise `requirements.txt` pour garantir des versions identiques à la CI.
 pip install -r requirements.txt
 ```
 
-> **Note importante :** Le fichier `requirements.txt` à la racine est la référence synchronisée. Évitez d'utiliser les anciens fichiers `requirements.txt` présents dans les sous-dossiers (`anonyfiles_cli/`, etc.) qui sont conservés uniquement pour compatibilité historique.
+> **Note importante :** Le fichier `requirements.txt` à la racine est la référence synchronisée.
 
+### 📥 Étape post-installation : Modèle NLP
+
+Après l'installation des paquets Python, vous **devez** télécharger le modèle de langue française pour spaCy :
+
+```bash
+python -m spacy download fr_core_news_md
+```
+*(Si cela échoue pour cause de permissions, essayez avec `sudo` ou vérifiez votre environnement virtuel.)*
 
 ### Installation CLI
 
 ➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
 
-Pour activer l'autocomplétion Bash, Zsh ou Fish :
+Pour activer l'autocomplétion Bash, Zsh ou Fish :
 
 ```bash
-anonyfiles_cli --install-completion bash   # ou zsh/fish
+anonyfiles-cli --install-completion bash   # ou zsh/fish
 ```
 
 ![Aperçu de la CLI](https://i.imgur.com/GJksQfm.jpeg)
