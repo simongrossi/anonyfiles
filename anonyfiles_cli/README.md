@@ -212,6 +212,38 @@ Vous serez invité à confirmer la suppression. Pour supprimer sans confirmation
 anonyfiles-cli job delete 20250605-122744 --output-dir /home/debian/anonyfiles --force
 ```
 
+## **📊 Gestion et analyse des logs**
+
+La CLI offre des outils dédiés pour consulter et gérer les journaux d'application (situés par défaut dans `logs/`).
+
+### **▶️ Lister les logs**
+
+Affiche la liste des fichiers de logs disponibles :
+
+```bash
+anonyfiles-cli logs list
+```
+
+### **▶️ Interface interactive (TUI)**
+
+Lance une interface texte graphique (basée sur Textual) pour explorer les logs en temps réel, avec filtrage et coloration syntaxique :
+
+```bash
+anonyfiles-cli logs interactive
+```
+
+*   **Navigation** : Utilisez les flèches ou la souris pour sélectionner un fichier.
+*   **Filtrage** : Saisissez une regex (ex: `ERROR|CRITICAL`) pour filtrer les lignes.
+*   **Rechargement** : Bouton "Recharger" pour rafraîchir la vue.
+
+### **▶️ Nettoyer les logs**
+
+Supprime tous les fichiers de logs :
+
+```bash
+anonyfiles-cli logs clear
+```
+
 ## **📌 Options CLI résumées**
 
 | **Option** | **Description** |

@@ -57,6 +57,18 @@ def saluer(nom: str) -> str:
 
    Les composants graphiques (`anonyfiles_gui`) ne sont pas concernés et peuvent être ignorés pendant ces tests.
 
+### Générer des données de test (Logs)
+
+Pour tester l'interface de logs (TUI) ou le parsing, un script de génération est disponible :
+
+```bash
+# Génère 1000 logs au format standard
+python scripts/generate_test_logs.py -n 1000
+
+# Génère des logs au format Apache en continu (CTRL+C pour arrêter)
+python scripts/generate_test_logs.py --live --format apache
+```
+
 ## Gestion des dépendances
 
 Le projet utilise une approche hybride moderne :
