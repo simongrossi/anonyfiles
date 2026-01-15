@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from fastapi.concurrency import run_in_threadpool
 from pathlib import Path
 import uuid
+import mimetypes
 
 # import logging # Logger est maintenant importé depuis core_config
 from typing import Optional
@@ -81,29 +82,15 @@ async def get_file_endpoint(
         f"Tâche {job_id_str}: Service du fichier '{file_path_to_serve.name}' (clé: {file_key})."
     )
 
-    media_type = "application/octet-stream"
-    file_suffix = file_path_to_serve.suffix.lower()
+    # Détection automatique standard
+    media_type, _ = mimetypes.guess_type(file_path_to_serve)
 
-    if file_key in ["mapping", "log_entities"] and file_suffix == ".csv":
-        media_type = "text/csv"
-    elif file_key == "output":
-        if file_suffix == ".txt":
-            media_type = "text/plain"
-        # ... (autres types media)
-        elif file_suffix == ".json":
+    # Surcharges spécifiques si nécessaire
+    if not media_type:
+        if file_key == "audit_log" or file_path_to_serve.suffix == ".json":
             media_type = "application/json"
-        elif file_suffix == ".csv":
-            media_type = "text/csv"
-        elif file_suffix == ".docx":
-            media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        elif file_suffix == ".xlsx":
-            media_type = (
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        elif file_suffix == ".pdf":
-            media_type = "application/pdf"
-    elif file_key == "audit_log" and file_path_to_serve.name == "audit_log.json":
-        media_type = "application/json"
+        else:
+            media_type = "application/octet-stream"
 
     if as_attachment:
         return FileResponse(

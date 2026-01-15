@@ -4,6 +4,7 @@ import spacy
 import re
 import logging
 from functools import lru_cache
+from dateutil.parser import parse
 from anonyfiles_cli.exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,17 @@ def _load_spacy_model_cached(model_name: str):
             ) from e2
 
 
+
+
+
+def is_valid_date(text):
+    try:
+        parse(text, fuzzy=False)
+        return True
+    except:
+        return False
+
+
 class SpaCyEngine:
     def __init__(self, model="fr_core_news_md"):
         # Utilise la fonction de chargement mise en cache
@@ -91,11 +103,16 @@ class SpaCyEngine:
         doc = self.nlp(text)
         
         # Filtrage simple
-        entities = [
-            (ent.text, ent.label_) 
-            for ent in doc.ents 
-            if ent.label_ in enabled_labels
-        ]
+        entities = []
+        for ent in doc.ents:
+            if ent.label_ not in enabled_labels:
+                continue
+            
+            # Validation supplémentaire pour réduire les faux positifs sur les dates
+            if ent.label_ == "DATE" and not is_valid_date(ent.text):
+                continue
+                
+            entities.append((ent.text, ent.label_))
         
         return entities
 
