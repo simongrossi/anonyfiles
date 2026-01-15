@@ -40,7 +40,7 @@ Il s’appuie sur le NLP (spaCy), une configuration flexible en YAML, et des rè
 
 ### **🛆 Dépendances techniques**
 
-* Python **3.8+**
+* Python **3.11+**
 * pip et environnements virtuels recommandés
 * Modèle spaCy fr\_core\_news\_md ou lg
 

@@ -22,7 +22,7 @@ fonctionnalités que la CLI mais via des endpoints REST.
 
 ## 🛠️ Prérequis
 
-- Python 3.10 ou 3.11 recommandé
+- Python 3.11+
 - [pip](https://pip.pypa.io/)
 - Dépendances listées dans `requirements.txt` (racine du projet ou local)
 

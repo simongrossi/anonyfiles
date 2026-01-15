@@ -155,7 +155,7 @@ méthode de base de façon non bloquante.
 
 ### Pré-requis
 
-* Python 3.11 (recommandé, testé en production)
+* Python 3.11+
 * Node.js 18+, npm/yarn (pour la GUI)
 * Rust & Cargo (pour la GUI)
 * Modèle spaCy `fr_core_news_md`
