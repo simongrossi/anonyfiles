@@ -39,24 +39,7 @@ La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API p
 
 ---
 
-## 📂 Structure des sorties
-
-Par défaut, chaque exécution (ou job) génère ses résultats dans un sous-dossier unique basé sur un timestamp ou un UUID.
-
-```plaintext
-anonyfiles_outputs/
-└── runs/
-    └── <JOB_ID>/
-        ├── status.json           # Statut et métadonnées du job
-        ├── mapping.csv           # Table de correspondance (Code <-> Original)
-        ├── log_entities.csv      # Log CSV détaillé des entités détectées
-        ├── audit_log.json        # Journal complet de l'exécution
-        └── fichier_anonymise.txt # Le fichier résultat
-```
-
----
-
-## 🗂️ Structure du projet
+## ️ Structure du projet
 
 ```plaintext
 anonyfiles/
@@ -172,7 +155,7 @@ méthode de base de façon non bloquante.
 
 ### Pré-requis
 
-* Python 3.11+
+* Python 3.11 (recommandé, testé en production)
 * Node.js 18+, npm/yarn (pour la GUI)
 * Rust & Cargo (pour la GUI)
 * Modèle spaCy `fr_core_news_md`
@@ -216,24 +199,14 @@ pip install -r requirements.txt
 > **Note importante :** Le fichier `requirements.txt` à la racine est la référence synchronisée. Évitez d'utiliser les anciens fichiers `requirements.txt` présents dans les sous-dossiers (`anonyfiles_cli/`, etc.) qui sont conservés uniquement pour compatibilité historique.
 
 
-### ▶️ Démarrage rapide avec la CLI
+### Installation CLI
 
-Pour tester immédiatement l'anonymisation de manière interactive (guidée) :
+➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
+
+Pour activer l'autocomplétion Bash, Zsh ou Fish :
 
 ```bash
-anonyfiles-cli anonymize mon_fichier.txt --interactive
-```
-Un menu vous permettra de **cocher/décocher les entités** à anonymiser (Noms, Villes, Emails...) avant de lancer le traitement.
-
----
-
-### Installation CLI détaillée
-
-➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md) pour les options avancées.
-
-Pour activer l'autocomplétion : 
-```bash
-anonyfiles_cli --install-completion bash
+anonyfiles_cli --install-completion bash   # ou zsh/fish
 ```
 
 ![Aperçu de la CLI](https://i.imgur.com/GJksQfm.jpeg)
@@ -356,6 +329,7 @@ log_dir = "~/anonyfiles_logs"
 > Si les fichiers ne sont pas créés à l'endroit attendu (ex : `C:\Users\VotreNom`), **modifiez ce fichier** pour utiliser des chemins absolus (ex : `C:/Projets/anonyfiles/sorties` ou `C:\\Values\\...`).
 > *Note : Les variables d'environnement comme `ANONYFILES_OUTPUT_DIR` ne sont pas supportées directement pour surcharger ces valeurs isolément ; éditez le fichier TOML ou utilisez l'option CLI `--output-dir`.*
 
+
 Ces valeurs seront chargées automatiquement par la CLI et la GUI pour
 déterminer où écrire les fichiers générés. Vous pouvez également
 fournir un autre fichier en définissant la variable d’environnement
@@ -461,7 +435,7 @@ Projet distribué sous licence MIT. Voir [LICENSE](LICENSE).
 
 ---
 
-## 👨‍💻 Auteur & Liens
+## 👨💻 Auteur & Liens
 
 * Projet développé par [Simon Grossi](https://github.com/simongrossi)
 * Repo GitHub principal : [https://github.com/simongrossi/anonyfiles](https://github.com/simongrossi/anonyfiles)
