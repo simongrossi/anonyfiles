@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 authors = [{name = "Anonyfiles"}]
 dependencies = [
     "fastapi>=0.110.0",
+    "pydantic-settings>=2.0.0",
     "uvicorn[standard]>=0.29.0",
     "python-multipart",
     "spacy>=3.7.0,<4.0.0",
