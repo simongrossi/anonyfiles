@@ -11,6 +11,7 @@ services:
       - /app/anonyfiles.egg-info # Prevent Windows egg-info from breaking Linux install
     environment:
       - HOST=0.0.0.0
+      - PYTHONPATH=/app
 
   # Service Frontend (Interface Web)
   web:
