@@ -6,7 +6,7 @@ import typer
 import logging
 
 # Importe les applications Typer des modules de commandes séparés
-from anonyfiles_cli.commands import anonymize, deanonymize, config, batch, utils, clean_job # <--- AJOUTEZ clean_job ici
+from anonyfiles_cli.commands import anonymize, deanonymize, config, batch, utils, clean_job
 from anonyfiles_cli.managers.config_manager import ConfigManager
 from anonyfiles_cli.ui.console_display import ConsoleDisplay
 from anonyfiles_cli.cli_logger import CLIUsageLogger
@@ -20,7 +20,7 @@ app.add_typer(deanonymize.app, name="deanonymize", help="Commandes pour desanony
 app.add_typer(config.app, name="config", help="Gère la configuration d'Anonyfiles.")
 app.add_typer(batch.app, name="batch", help="Traite des fichiers en lot.")
 app.add_typer(utils.app, name="utils", help="Commandes utilitaires diverses.")
-app.add_typer(clean_job.app, name="job", help="Gère et nettoie les répertoires de jobs (suppression, listage).") # <--- AJOUTEZ CETTE LIGNE
+app.add_typer(clean_job.app, name="job", help="Gère et nettoie les répertoires de jobs (suppression, listage).")
 
 
 @app.callback()

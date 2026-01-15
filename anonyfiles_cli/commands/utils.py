@@ -4,6 +4,7 @@ import typer
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime
+import time
 
 from ..ui.console_display import ConsoleDisplay
 from ..utils.system_utils import detect_file_encoding # Import de la fonction
