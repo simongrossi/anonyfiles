@@ -96,6 +96,17 @@ def generate_placeholder_replacement(
         return f"{format_str}_{index + 1}"
 
 
+from faker import Faker
+
+# Cache pour éviter de recréer l'objet Faker à chaque appel
+_faker_instances = {}
+
+def get_faker(locale="fr_FR"):
+    if locale not in _faker_instances:
+        _faker_instances[locale] = Faker(locale)
+    return _faker_instances[locale]
+
+
 @register_generator("faker")
 def generate_faker_replacement(
     session: "ReplacementSession",
@@ -104,9 +115,32 @@ def generate_faker_replacement(
     options: Dict[str, Any],
     entity_text: str,
 ) -> str:
-    """Simule (pour l'instant) une génération Faker avec index unique."""
-    provider = options.get("provider", label.lower())
-    return f"{{{{FAKER_{provider.upper()}_{index + 1}}}}}"
+    locale = options.get("locale", "fr_FR")
+    fake = get_faker(locale)
+    
+    # Mapping entre label SpaCy et méthodes Faker
+    provider_map = {
+        "PER": fake.name,
+        "LOC": fake.city, # ou fake.address selon préférence
+        "ORG": fake.company,
+        "EMAIL": fake.email,
+        "PHONE": fake.phone_number,
+        "DATE": fake.date,
+        "IBAN": fake.iban,
+    }
+    
+    # Fallback générique
+    provider_func = provider_map.get(label, lambda: f"FAKE_{label}")
+    
+    # Pour garantir la cohérence (toujours remplacer "Jean Dupont" par le même faux nom)
+    if options.get("consistent", False):
+        Faker.seed(hash(entity_text))
+        result = provider_func()
+        # Reset seed pour ne pas casser l'aléatoire global
+        Faker.seed(None) 
+        return f"{result}_{index}" # On garde l'index si besoin unicité stricte
+    
+    return f"{provider_func()}"
 
 
 class ReplacementSession:
