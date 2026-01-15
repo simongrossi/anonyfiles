@@ -28,7 +28,7 @@ export async function anonymizeFile({ file, config_options, file_type, has_heade
     if (has_header !== undefined) formData.append('has_header', String(has_header));
     // Ajoute ici toute logique spécifique (exclude_entities, etc.)
 
-    const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || '/api/anonymize/';
+    const API_URL = '/api/anonymize/';
 
     const resp = await fetch(API_URL, {
       method: 'POST',

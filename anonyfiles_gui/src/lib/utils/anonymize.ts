@@ -46,7 +46,7 @@ export async function runAnonymization({
     if (isTauri()) {
       throw new Error("Tauri non supporté en mode web !");
     } else {
-      const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || '/api';
+      const API_URL = '/api';
 
       let formData = new FormData();
 
