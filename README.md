@@ -369,14 +369,14 @@ passés à la CLI lorsque ces informations sont disponibles.
 | Priorité | Thème                                            | État          | Commentaire / Lien tâche                 |
 | -------- | ------------------------------------------------ | ------------- | ---------------------------------------- |
 | 1        | Robustesse multi-format (TXT, CSV, DOCX, XLSX)   | ✅ Fait        | Moteur factorisé, détection commune      |
-| 2        | Remplacement positionnel fiable                  | ⚠️ Test/Debug | En cours de vérification                 |
+| 2        | Remplacement positionnel fiable                  | ✅ Fait        | Validé pour PDF et DOCX (conservation format) |
 | 3        | Détection universelle des dates et emails        | ✅ Fait        | Regex avancée + spaCy                    |
 | 4        | Performance / gestion mémoire                    | 🔜 À venir    | Streaming, lazy processing               |
-| 5        | Règles de remplacement par type (YAML)           | ⚠️ Test/Debug | Règles personnalisées en test            |
-| 6        | Mapping codes <-> originaux                      | ⚠️ Test/Debug | Mapping inverse, audit, désanonymisation |
+| 5        | Règles de remplacement par type (YAML)           | ✅ Fait        | Custom rules implémentées et testées     |
+| 6        | Mapping codes <-> originaux                      | ✅ Fait        | Mapping inverse et audit fonctionnels    |
 | 7        | Filtre exclusion (YAML / CLI)                    | ✅ Fait        | Configurable, évite faux positifs        |
-| 8        | Support PDF / JSON                               | ✅ Fait (Bêta)| PDF natif, JSON complet                  |
-| 9        | Désanonymisation CLI (mapping inverse)           | ⚠️ Test/Debug | Tests en cours                           |
+| 8        | Support PDF / JSON                               | ✅ Fait        | PDF natif (fitz), JSON complet           |
+| 9        | Désanonymisation CLI (mapping inverse)           | ✅ Fait        | Commande `deanonymize` opérationnelle    |
 | 10       | GUI avancée (drag & drop, prévisualisation)      | 🚧 En cours   | Tauri/Svelte, UX moderne                 |
 | 11       | Copie, export, gestion multi-fichier dans la GUI | 🚧 En cours   | Copier/coller, sélection, batch          |
 | 12       | Support anglais, espagnol, allemand              | 🔜 À venir    | Modèles spaCy additionnels               |
