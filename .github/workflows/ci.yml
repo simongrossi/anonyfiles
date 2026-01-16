@@ -45,7 +45,7 @@ jobs:
           # Installation du paquet en mode éditable pour les tests
           pip install -e .
           # Outils de qualité et sécurité
-          pip install ruff black bandit safety pip-audit pytest
+          pip install ruff black bandit safety pip-audit pytest pytest-asyncio pypdf
 
       - name: Lint with Ruff
         run: ruff check .
