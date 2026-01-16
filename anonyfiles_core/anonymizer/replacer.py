@@ -143,7 +143,9 @@ def generate_faker_replacement(
     if options.get("consistent", False):
         # Utilisation d'un hash stable (MD5) pour la seed, car hash() est aléatoire par processus
         seed_int = int(
-            hashlib.md5(entity_text.encode("utf-8"), usedforsecurity=False).hexdigest(),
+            hashlib.md5(
+                entity_text.encode("utf-8"), usedforsecurity=False
+            ).hexdigest(),
             16,
         )
         Faker.seed(seed_int)
