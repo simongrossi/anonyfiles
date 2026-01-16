@@ -15,12 +15,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copie des fichiers de dépendances uniquement
-COPY requirements.txt .
-# S'assurer que le package soit installable aussi (si besoin de dépendances internes)
-# Mais ici on installe d'abord requirements.txt
+# Copie du projet complet pour installation via pyproject.toml
+COPY . .
+# Installation des dépendances et du projet via pip install .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir .
 # Si vous devez télécharger le modèle spacy ici pour qu'il soit dans l'image :
 # RUN python -m spacy download fr_core_news_md
 

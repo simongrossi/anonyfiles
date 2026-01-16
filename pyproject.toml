@@ -38,6 +38,21 @@ dependencies = [
     "urllib3>=2.6.0"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio",
+    "ruff",
+    "black",
+    "bandit",
+    "safety",
+    "pip-audit",
+    "pypdf",
+    "build",
+    "types-requests",
+    "types-PyYAML"
+]
+
 [project.scripts]
 anonyfiles-cli = "anonyfiles_cli.main:app"
 

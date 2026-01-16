@@ -184,21 +184,17 @@ git clone https://github.com/simongrossi/anonyfiles.git
 cd anonyfiles
 ```
 
-Chaque dossier possède son propre `requirements.txt`, mais il est recommandé d'utiliser le fichier racine.
-
+Chaque dossier possède sa configuration, mais l'installation se fait à la racine via `pyproject.toml`.
+ 
 **Pour les utilisateurs (installation standard) :**
-Utilise le `pyproject.toml` pour résoudre les dépendances compatibles.
 ```bash
 pip install -e .
 ```
-
-**Pour les développeurs (environnement figé) :**
-Utilise `requirements.txt` pour garantir des versions identiques à la CI.
+ 
+**Pour les développeurs (avec outils de test et qualité) :**
 ```bash
-pip install -r requirements.txt
+pip install -e .[dev]
 ```
-
-> **Note importante :** Le fichier `requirements.txt` à la racine est la référence synchronisée.
 
 ### 📥 Étape post-installation : Modèle NLP
 
@@ -271,7 +267,7 @@ make setup
 Cette commande va :
 
 * Créer les environnements virtuels (`env-cli`, `env-api`, `env-gui`)
-* Installer les dépendances Python standardisées (depuis `requirements.txt`)
+* Installer les dépendances Python standardisées (depuis `pyproject.toml`)
 * Installer les modules npm pour la GUI (si `npm` est disponible)
 * Télécharger le modèle spaCy `fr_core_news_md` dans l'environnement `env-cli`
 
@@ -423,21 +419,13 @@ déploiement via Railway. Copiez-le en `railway.json` puis ajustez les valeurs.
 ## 🤝 Contribuer
 
 * Toute contribution est la bienvenue : bugfix, traduction, documentation, suggestion !
-* Avant de lancer les tests, installez les dépendances dédiées :
-
+* Avant de lancer les tests, installez les dépendances de développement :
+ 
   ```bash
-  pip install -r requirements-test.txt
+  pip install -e .[dev]
   ```
-
-* Les dépendances principales sont définies dans `requirements.in`. Utilisez
-  [pip-tools](https://pypi.org/project/pip-tools/) pour générer un
-  `requirements.txt` figé :
-
-  ```bash
-  pip install pip-tools
-  pip-compile requirements.in
-  pip-compile requirements-test.in  # fige aussi les dépendances de test
-  ```
+ 
+* Le projet utilise `pyproject.toml` pour la gestion des dépendances. Plus de `requirements.txt` à gérer manuellement !
 
 * Merci de créer une issue ou une PR avec un descriptif clair et un code lisible.
 

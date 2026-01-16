@@ -21,13 +21,13 @@ setup:
 
 	@echo "📦 Installation des dépendances pour anonyfiles_cli..."
 	env-cli/bin/pip install --upgrade pip setuptools wheel
-	# Utilisation du requirements.txt racine standardisé
-	env-cli/bin/pip install -r requirements.txt
+	# Installation via pyproject.toml (mode dev)
+	env-cli/bin/pip install -e .[dev]
 
 	@echo "📦 Installation des dépendances pour anonyfiles_api..."
 	env-api/bin/pip install --upgrade pip setuptools wheel
-	# Utilisation du requirements.txt racine standardisé
-	env-api/bin/pip install -r requirements.txt
+	# Installation via pyproject.toml
+	env-api/bin/pip install -e .
 
 	@echo "📦 Installation des dépendances pour anonyfiles_gui (si requirements.txt présent)..."
 	if [ -f anonyfiles_gui/requirements.txt ]; then \

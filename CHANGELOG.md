@@ -15,6 +15,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 - **Sécurité API** : Gestion fine des origines CORS via variable d'environnement `ANONYFILES_CORS_ORIGINS`.
 
 ### Optimisé
+- **Gestion des Dépendances** : Abandon des fichiers `requirements.txt` au profit d'une gestion centralisée dans `pyproject.toml` (avec groupe `dev`).
+- **Scripts d'Installation** : Modernisation de `Dockerfile`, `Makefile` et `setup_envs.ps1` pour utiliser `pip install .` et garantir la cohérence des versions.
 - **Moteur SpaCy** : Utilisation de l'`EntityRuler` pour intégrer les Regex directement dans le pipeline NLP (gain de performance et gestion native des conflits).
 - **Frontend** : Configuration Nginx optimisée pour le reverse-proxy API et Dockerfile frontend allégé.
 - **API Files** : Utilisation de `mimetypes` standard pour une détection robuste des types MIME.
