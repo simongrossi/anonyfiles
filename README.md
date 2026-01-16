@@ -26,7 +26,7 @@ La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API p
 
 ## 🚀 Fonctionnalités principales
 
-* Anonymisation de fichiers : `.txt`, `.csv`, `.docx`, `.xlsx`, `.pdf`, `.json`
+* Anonymisation de fichiers : `.txt`, `.csv`, `.docx` (y compris dans les tableaux), `.xlsx` (multi-feuilles), `.pdf`, `.json`
 * Détection automatique de noms, lieux, organisations, dates, emails, etc.
 * Stratégies configurables : remplacement factice, `[REDACTED]`, codes séquentiels, etc.
 * Mapping complet pour désanonymisation ou audit

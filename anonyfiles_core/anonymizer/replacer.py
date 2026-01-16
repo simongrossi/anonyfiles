@@ -63,6 +63,13 @@ def generate_redaction_replacement(
     Ex: [NOM_MASQUÉ] -> [NOM_MASQUÉ_1]
     """
     base_text = options.get("text", "{{REDACTED}}")
+    
+    # Si le texte contient un placeholder de formatage {}, on l'utilise
+    if "{}" in base_text:
+        # On suppose que l'utilisateur veut l'index ici (base 1 ou 0 selon préférence, ici +1 pour user-friendly)
+        return base_text.format(index + 1)
+
+    # Sinon comportement legacy
     # On insère l'index avant le dernier caractère si c'est un crochet ou une accolade, sinon à la fin
     # Heuristique simple : si finit par "]" ou "}", on insère avant.
     if base_text.endswith("]") or base_text.endswith("}"):

@@ -18,6 +18,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 - **Moteur SpaCy** : Utilisation de l'`EntityRuler` pour intégrer les Regex directement dans le pipeline NLP (gain de performance et gestion native des conflits).
 - **Frontend** : Configuration Nginx optimisée pour le reverse-proxy API et Dockerfile frontend allégé.
 - **API Files** : Utilisation de `mimetypes` standard pour une détection robuste des types MIME.
+- **Processors Bureautique** : Support des fichiers Excel multi-onglets (avec préservation des types `str`) et de l'anonymisation récursive dans les tableaux Word.
 
 ### Corrigé
 - **Docker Build** : Résolution de `ModuleNotFoundError: No module named 'pydantic_settings'` et des problèmes d'installation en mode éditable avec Hot-Reload.
@@ -32,7 +33,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 ## [1.2.1] – 2025-06-08
 
 ### Corrigé
-- La reconstruction des paragraphes dans les documents Word préserve désormais la mise en forme des runs
+- La reconstruction des paragraphes dans les documents Word préserve désormais la mise en forme des runs (et traite les tableaux).
 
 ## [1.2.0] – 2025-06-03
 

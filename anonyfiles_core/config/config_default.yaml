@@ -5,31 +5,44 @@ replacements:
   PER:
     type: codes
     options:
-      prefix: NOM_
+      prefix: NOM
       padding: 3
 
   LOC:
-    type: faker
+    type: codes
     options:
-      locale: fr_FR
-      provider: address
+      prefix: FAKER_ADDRESS
+      padding: 3
 
   ORG:
-    type: redact
+    type: codes
     options:
-      text: "[ENTREPRISE_ANONYME]"
+      prefix: ENTREPRISE_ANONYME
+      padding: 3
 
   DATE:
     type: codes
     options:
-      prefix: DATE_CODE_
+      prefix: DATE_ANONYME
       padding: 3
 
   EMAIL:
-    type: faker
+    type: codes
     options:
-      locale: fr_FR
-      provider: email # Cette ligne est cruciale
+      prefix: EMAIL
+      padding: 3
 
-exclude_entities: # Cette section est cruciale
+  PHONE:
+    type: codes
+    options:
+      prefix: TEL
+      padding: 3
+
+  IBAN:
+    type: codes
+    options:
+      prefix: IBAN
+      padding: 3
+
+exclude_entities:
   - MISC
