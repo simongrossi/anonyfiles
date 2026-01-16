@@ -1,5 +1,6 @@
 # anonyfiles_cli/anonymizer/replacer.py
 import logging
+import hashlib
 from typing import Dict, Any, Callable
 
 from .format_utils import create_placeholder
@@ -134,7 +135,9 @@ def generate_faker_replacement(
     
     # Pour garantir la cohérence (toujours remplacer "Jean Dupont" par le même faux nom)
     if options.get("consistent", False):
-        Faker.seed(hash(entity_text))
+        # Utilisation d'un hash stable (MD5) pour la seed, car hash() est aléatoire par processus
+        seed_int = int(hashlib.md5(entity_text.encode('utf-8')).hexdigest(), 16)
+        Faker.seed(seed_int)
         result = provider_func()
         # Reset seed pour ne pas casser l'aléatoire global
         Faker.seed(None) 

@@ -26,6 +26,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 - **CLI** : Ajout de la commande `anonyfiles-cli logs interactive` (TUI avec Textual) pour la consultation avancée des logs.
 - **Documentation et Alias** : Unification des commandes CLI (`anonyfiles-cli`), ajout de `config init`, et mise à jour massive des READMEs.
 - **Refactoring** : Nettoyage du code, suppression des `if/elif` géants pour les MIME types et les regex, adoption du pattern Registry pour les générateurs (`replacer.py`).
+- **Robustesse API** : Ajout d'un gestionnaire global d'exceptions (500) pour ne plus fuiter les stacktraces au client et garantir des réponses JSON propres.
+- **Documentation** : Synchronisation complète des README et CHANGELOG avec les dernières évolutions techniques (Docker, Faker, Sécurité).
 
 ## [1.2.1] – 2025-06-08
 

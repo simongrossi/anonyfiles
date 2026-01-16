@@ -87,6 +87,95 @@ class AnonyfilesEngine:
             self.entities_exclude,
         )
 
+    def _process_content(self, original_blocks: List[str]):
+        """
+        Logique métier pure d'anonymisation sur des blocs de texte.
+        Retourne un dictionnaire contenant les résultats intermédiaires ou finaux.
+        """
+        # 1. Application des règles personnalisées
+        blocks_after_custom_rules = []
+        if self.custom_rules_processor.custom_rules:
+            logger.debug(
+                "DEBUG (Engine): Application des règles personnalisées sur %s bloc(s).",
+                len(original_blocks),
+            )
+            for block_text in original_blocks:
+                mod_block = self.custom_rules_processor.apply_to_block(block_text)
+                blocks_after_custom_rules.append(mod_block)
+            if self.custom_rules_processor.get_custom_replacements_count() > 0:
+                logger.debug(
+                    "DEBUG (Engine): Nombre total de remplacements personnalisés : %s",
+                    self.custom_rules_processor.get_custom_replacements_count(),
+                )
+        else:
+            blocks_after_custom_rules = original_blocks
+
+        # Vérification si le contenu est vide
+        if not any(block.strip() for block in blocks_after_custom_rules):
+            return {
+                "decision": "empty",
+                "blocks_after_custom": blocks_after_custom_rules
+            }
+
+        # 2. Détection des entités spaCy et regex
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = (
+            self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
+        )
+        logger.debug(
+            "DEBUG (Engine): Entités spaCy uniques détectées : %s",
+            len(unique_spacy_entities),
+        )
+
+        # Vérification si rien à faire
+        if (
+            not unique_spacy_entities
+            and self.custom_rules_processor.get_custom_replacements_count() == 0
+        ):
+            return {
+                "decision": "no_changes",
+                "blocks_after_custom": blocks_after_custom_rules,
+                "unique_spacy_entities": [],
+            }
+
+        # 3. Génération des remplacements
+        replacements_map_spacy, mapping_dict_spacy = (
+            self.replacement_generator.generate_spacy_replacements(
+                unique_spacy_entities, spacy_entities_per_block_with_offsets
+            )
+        )
+
+        # 4. Application des remplacements positionnels
+        truly_final_blocks = []
+        unique_spacy_entities_set = set(unique_spacy_entities) # Opti lookup
+
+        for i, block_text_after in enumerate(blocks_after_custom_rules):
+            entities_in_block = spacy_entities_per_block_with_offsets[i]
+            
+            # Filtrage de sécurité
+            filtered_entities = [
+                ent for ent in entities_in_block
+                if (ent[0], ent[1]) in unique_spacy_entities_set
+            ]
+
+            if block_text_after.strip() and filtered_entities:
+                fully_anonymized = apply_positional_replacements(
+                    block_text_after,
+                    replacements_map_spacy,
+                    filtered_entities,
+                )
+                truly_final_blocks.append(fully_anonymized)
+            else:
+                truly_final_blocks.append(block_text_after)
+
+        return {
+            "decision": "processed",
+            "final_blocks": truly_final_blocks,
+            "unique_spacy_entities": unique_spacy_entities,
+            "spacy_entities_per_block": spacy_entities_per_block_with_offsets,
+            "replacements_map_spacy": replacements_map_spacy,
+            "mapping_dict_spacy": mapping_dict_spacy
+        }
+
     def anonymize(
         self,
         input_path: Path,
@@ -101,191 +190,69 @@ class AnonyfilesEngine:
     ) -> Dict[str, Any]:
         self.audit_logger.reset()
         self.custom_rules_processor.reset()
-        self.writer = AnonymizedFileWriter(
-            dry_run
-        )  # Initialise le writer pour cette exécution
+        self.writer = AnonymizedFileWriter(dry_run)
 
         ext = input_path.suffix.lower()
-
         try:
             processor = FileProcessorFactory.get_processor(ext)
         except ValueError as e:
-            return {
-                "status": "error",
-                "error": str(e),
-                "audit_log": self.audit_logger.summary(),
-                "total_replacements": self.audit_logger.total(),
-            }
+            return self._error_response(e)
 
-        logger.debug(
-            "DEBUG (Engine): Type de processor choisi : %s pour extension %s",
-            type(processor).__name__,
-            ext,
-        )
+        logger.debug(f"DEBUG (Engine): Processing {input_path} with {type(processor).__name__}")
 
         extract_kwargs = {}
-        if (
-            hasattr(processor, "has_header") and "has_header" in kwargs
-        ):  # Pour CsvProcessor
+        if hasattr(processor, "has_header") and "has_header" in kwargs:
             extract_kwargs["has_header"] = kwargs["has_header"]
+        
         original_blocks = processor.extract_blocks(input_path, **extract_kwargs)
+        
+        # Appel Logique Métier
+        result = self._process_content(original_blocks)
+        decision = result["decision"]
 
-        # 1. Application des règles personnalisées
-        blocks_after_custom_rules = []
-        if self.custom_rules_processor.custom_rules:
-            logger.debug(
-                "DEBUG (Engine): Application des règles personnalisées sur %s bloc(s) pour processeur %s.",
-                len(original_blocks),
-                type(processor).__name__,
-            )
-            for block_text in original_blocks:
-                mod_block = self.custom_rules_processor.apply_to_block(block_text)
-                blocks_after_custom_rules.append(mod_block)
-            if self.custom_rules_processor.get_custom_replacements_count() > 0:
-                logger.debug(
-                    "DEBUG (Engine): Nombre total de remplacements personnalisés effectués : %s",
-                    self.custom_rules_processor.get_custom_replacements_count(),
-                )
-        else:
-            blocks_after_custom_rules = original_blocks
-
-        # Vérification si le contenu est vide après règles custom
-        if not any(block.strip() for block in blocks_after_custom_rules):
-            logger.info(
-                "INFO (Engine): Contenu vide après application des règles personnalisées (ou initialement vide)."
-            )
+        # Gestion des sorties selon la décision
+        if decision == "empty":
+            logger.info("INFO (Engine): Contenu vide.")
             if not dry_run and output_path:
-                self.writer.write_anonymized_file(
-                    processor, output_path, [], input_path, **kwargs
-                )
+                self.writer.write_anonymized_file(processor, output_path, [], input_path, **kwargs)
             if mapping_output_path and not dry_run:
-                self.writer.write_mapping_file(
-                    mapping_output_path,
-                    self.custom_rules_processor.get_custom_replacements_mapping(),
-                    {},
-                    [],
-                )
-            return {
-                "status": "success",
-                "message": "Input effectively empty, no spaCy processing.",
-                "entities_detected": [],
-                "audit_log": self.audit_logger.summary(),
-                "total_replacements": self.audit_logger.total(),
-            }
-
-        # 2. Détection des entités spaCy et regex
-        unique_spacy_entities, spacy_entities_per_block_with_offsets = (
-            self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
-        )
-        logger.debug(
-            "DEBUG (Engine): Entités spaCy uniques (après détection et filtres) à traiter : %s",
-            len(unique_spacy_entities),
-        )
-
-        # 3. Génération des remplacements spaCy et journalisation
-        if (
-            not unique_spacy_entities
-            and self.custom_rules_processor.get_custom_replacements_count() == 0
-        ):
-            logger.info(
-                "INFO (Engine): Aucune entité spaCy à anonymiser et aucune règle personnalisée n'a été appliquée."
-            )
+                self.writer.write_mapping_file(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+            return self._success_response("Input empty", [])
+            
+        elif decision == "no_changes":
+            logger.info("INFO (Engine): Aucune modification requise.")
             if not dry_run and output_path:
-                self.writer.write_anonymized_file(
-                    processor,
-                    output_path,
-                    blocks_after_custom_rules,
-                    input_path,
-                    **kwargs,
-                )
+                self.writer.write_anonymized_file(processor, output_path, result["blocks_after_custom"], input_path, **kwargs)
             if mapping_output_path and not dry_run:
-                self.writer.write_mapping_file(
-                    mapping_output_path,
-                    self.custom_rules_processor.get_custom_replacements_mapping(),
-                    {},
-                    [],
-                )
-            return {
-                "status": "success",
-                "message": "No spaCy entities found to anonymize and no custom rules applied.",
-                "entities_detected": [],
-                "audit_log": self.audit_logger.summary(),
-                "total_replacements": self.audit_logger.total(),
-            }
+                self.writer.write_mapping_file(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+            return self._success_response("No changes applied", [])
 
-        replacements_map_spacy, mapping_dict_spacy = (
-            self.replacement_generator.generate_spacy_replacements(
-                unique_spacy_entities, spacy_entities_per_block_with_offsets
-            )
-        )
-
-        # 4. Application des remplacements spaCy positionnels
-        truly_final_blocks_for_processor: List[str] = []
-        for i, block_text_after_custom in enumerate(blocks_after_custom_rules):
-            entities_in_this_block_to_replace = spacy_entities_per_block_with_offsets[i]
-
-            # Filtrer les entités pour s'assurer qu'elles sont dans unique_spacy_entities (par le texte et le label)
-            # Normalement, cela devrait already be the case with the NERProcessor, but security.
-            unique_spacy_entities_set_of_tuples = set(
-                unique_spacy_entities
-            )  # For faster lookup
-            filtered_entities_for_replacement_in_block = [
-                ent_offset
-                for ent_offset in entities_in_this_block_to_replace
-                if (ent_offset[0], ent_offset[1]) in unique_spacy_entities_set_of_tuples
-            ]
-
-            if (
-                block_text_after_custom.strip()
-                and filtered_entities_for_replacement_in_block
-            ):
-                fully_anonymized_block = apply_positional_replacements(
-                    block_text_after_custom,
-                    replacements_map_spacy,
-                    filtered_entities_for_replacement_in_block,
-                )
-                truly_final_blocks_for_processor.append(fully_anonymized_block)
-            else:
-                truly_final_blocks_for_processor.append(block_text_after_custom)
-
-        # 5. Écriture des fichiers de sortie
+        # Cas nominal: processed
         if not dry_run:
             self.writer.write_anonymized_file(
                 processor=processor,
                 output_path=output_path,
-                final_processed_blocks=truly_final_blocks_for_processor,
+                final_processed_blocks=result["final_blocks"],
                 original_input_path=input_path,
-                spacy_entities_per_block_with_offsets=spacy_entities_per_block_with_offsets,  # Necessary for PDF/DOCX
-                **kwargs,  # Pass remaining kwargs (e.g., has_header for CSV/XLSX)
+                spacy_entities_per_block_with_offsets=result["spacy_entities_per_block"],
+                **kwargs
             )
-
             if log_entities_path:
-                self.writer.write_log_entities_file(
-                    log_entities_path, unique_spacy_entities
-                )
-
+                self.writer.write_log_entities_file(log_entities_path, result["unique_spacy_entities"])
             if mapping_output_path:
                 self.writer.write_mapping_file(
                     mapping_output_path,
                     self.custom_rules_processor.get_custom_replacements_mapping(),
-                    mapping_dict_spacy,
-                    unique_spacy_entities,
+                    result["mapping_dict_spacy"],
+                    result["unique_spacy_entities"]
                 )
 
-        total_replacements_logged = self.audit_logger.total()
-        logger.info(
-            "INFO (Engine): Anonymisation terminée. Total des remplacements (custom + spaCy) enregistrés dans l'audit : %s",
-            total_replacements_logged,
+        return self._success_response(
+            "Anonymization complete",
+            result["unique_spacy_entities"],
+            result.get("replacements_map_spacy"),
+            output_path
         )
-
-        return {
-            "status": "success",
-            "entities_detected": unique_spacy_entities,
-            "output_path": str(output_path) if output_path and not dry_run else None,
-            "replacements_applied_spacy": replacements_map_spacy,
-            "audit_log": self.audit_logger.summary(),
-            "total_replacements": total_replacements_logged,
-        }
 
     async def anonymize_async(
         self,
@@ -305,168 +272,78 @@ class AnonyfilesEngine:
         try:
             processor = FileProcessorFactory.get_processor(ext)
         except ValueError as e:
-            return {
-                "status": "error",
-                "error": str(e),
-                "audit_log": self.audit_logger.summary(),
-                "total_replacements": self.audit_logger.total(),
-            }
+            return self._error_response(e)
 
-        logger.debug(
-            "DEBUG (Engine): Type de processor choisi : %s pour extension %s",
-            type(processor).__name__,
-            ext,
-        )
+        logger.debug(f"DEBUG (Engine Async): Processing {input_path} with {type(processor).__name__}")
 
         extract_kwargs = {}
         if hasattr(processor, "has_header") and "has_header" in kwargs:
             extract_kwargs["has_header"] = kwargs["has_header"]
-        original_blocks = await processor.extract_blocks_async(
-            input_path, **extract_kwargs
-        )
+            
+        original_blocks = await processor.extract_blocks_async(input_path, **extract_kwargs)
 
-        blocks_after_custom_rules = []
-        if self.custom_rules_processor.custom_rules:
-            logger.debug(
-                "DEBUG (Engine): Application des règles personnalisées sur %s bloc(s) pour processeur %s.",
-                len(original_blocks),
-                type(processor).__name__,
-            )
-            for block_text in original_blocks:
-                mod_block = self.custom_rules_processor.apply_to_block(block_text)
-                blocks_after_custom_rules.append(mod_block)
-            if self.custom_rules_processor.get_custom_replacements_count() > 0:
-                logger.debug(
-                    "DEBUG (Engine): Nombre total de remplacements personnalisés effectués : %s",
-                    self.custom_rules_processor.get_custom_replacements_count(),
-                )
-        else:
-            blocks_after_custom_rules = original_blocks
+        # Appel Logique Métier (identique au sync)
+        result = self._process_content(original_blocks)
+        decision = result["decision"]
 
-        if not any(block.strip() for block in blocks_after_custom_rules):
-            logger.info(
-                "INFO (Engine): Contenu vide après application des règles personnalisées (ou initialement vide)."
-            )
+        if decision == "empty":
+            logger.info("INFO (Engine Async): Contenu vide.")
             if not dry_run and output_path:
-                await self.writer.write_anonymized_file_async(
-                    processor, output_path, [], input_path, **kwargs
-                )
+                await self.writer.write_anonymized_file_async(processor, output_path, [], input_path, **kwargs)
             if mapping_output_path and not dry_run:
-                await self.writer.write_mapping_file_async(
-                    mapping_output_path,
-                    self.custom_rules_processor.get_custom_replacements_mapping(),
-                    {},
-                    [],
-                )
-            return {
-                "status": "success",
-                "message": "Input effectively empty, no spaCy processing.",
-                "entities_detected": [],
-                "audit_log": self.audit_logger.summary(),
-                "total_replacements": self.audit_logger.total(),
-            }
-
-        unique_spacy_entities, spacy_entities_per_block_with_offsets = (
-            self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
-        )
-        logger.debug(
-            "DEBUG (Engine): Entités spaCy uniques (après détection et filtres) à traiter : %s",
-            len(unique_spacy_entities),
-        )
-
-        if (
-            not unique_spacy_entities
-            and self.custom_rules_processor.get_custom_replacements_count() == 0
-        ):
-            logger.info(
-                "INFO (Engine): Aucune entité spaCy à anonymiser et aucune règle personnalisée n'a été appliquée."
-            )
+                await self.writer.write_mapping_file_async(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+            return self._success_response("Input empty", [])
+        
+        elif decision == "no_changes":
+            logger.info("INFO (Engine Async): Aucune modification requise.")
             if not dry_run and output_path:
-                await self.writer.write_anonymized_file_async(
-                    processor,
-                    output_path,
-                    blocks_after_custom_rules,
-                    input_path,
-                    **kwargs,
-                )
+                await self.writer.write_anonymized_file_async(processor, output_path, result["blocks_after_custom"], input_path, **kwargs)
             if mapping_output_path and not dry_run:
-                await self.writer.write_mapping_file_async(
-                    mapping_output_path,
-                    self.custom_rules_processor.get_custom_replacements_mapping(),
-                    {},
-                    [],
-                )
-            return {
-                "status": "success",
-                "message": "No spaCy entities found to anonymize and no custom rules applied.",
-                "entities_detected": [],
-                "audit_log": self.audit_logger.summary(),
-                "total_replacements": self.audit_logger.total(),
-            }
+                await self.writer.write_mapping_file_async(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+            return self._success_response("No changes applied", [])
 
-        replacements_map_spacy, mapping_dict_spacy = (
-            self.replacement_generator.generate_spacy_replacements(
-                unique_spacy_entities, spacy_entities_per_block_with_offsets
-            )
-        )
-
-        truly_final_blocks_for_processor: List[str] = []
-        for i, block_text_after_custom in enumerate(blocks_after_custom_rules):
-            entities_in_this_block_to_replace = spacy_entities_per_block_with_offsets[i]
-            unique_spacy_entities_set_of_tuples = set(unique_spacy_entities)
-            filtered_entities_for_replacement_in_block = [
-                ent_offset
-                for ent_offset in entities_in_this_block_to_replace
-                if (ent_offset[0], ent_offset[1]) in unique_spacy_entities_set_of_tuples
-            ]
-
-            if (
-                block_text_after_custom.strip()
-                and filtered_entities_for_replacement_in_block
-            ):
-                fully_anonymized_block = apply_positional_replacements(
-                    block_text_after_custom,
-                    replacements_map_spacy,
-                    filtered_entities_for_replacement_in_block,
-                )
-                truly_final_blocks_for_processor.append(fully_anonymized_block)
-            else:
-                truly_final_blocks_for_processor.append(block_text_after_custom)
-
+        # Cas nominal
         if not dry_run:
             await self.writer.write_anonymized_file_async(
                 processor=processor,
                 output_path=output_path,
-                final_processed_blocks=truly_final_blocks_for_processor,
+                final_processed_blocks=result["final_blocks"],
                 original_input_path=input_path,
-                spacy_entities_per_block_with_offsets=spacy_entities_per_block_with_offsets,
-                **kwargs,
+                spacy_entities_per_block_with_offsets=result["spacy_entities_per_block"],
+                **kwargs
             )
-
             if log_entities_path:
-                await self.writer.write_log_entities_file_async(
-                    log_entities_path, unique_spacy_entities
-                )
-
+                await self.writer.write_log_entities_file_async(log_entities_path, result["unique_spacy_entities"])
             if mapping_output_path:
                 await self.writer.write_mapping_file_async(
                     mapping_output_path,
                     self.custom_rules_processor.get_custom_replacements_mapping(),
-                    mapping_dict_spacy,
-                    unique_spacy_entities,
+                    result["mapping_dict_spacy"],
+                    result["unique_spacy_entities"]
                 )
 
-        total_replacements_logged = self.audit_logger.total()
-        logger.info(
-            "INFO (Engine): Anonymisation terminée. Total des remplacements (custom + spaCy) enregistrés dans l'audit : %s",
-            total_replacements_logged,
+        return self._success_response(
+            "Anonymization complete",
+            result["unique_spacy_entities"],
+            result.get("replacements_map_spacy"),
+            output_path
         )
 
+    def _error_response(self, error):
+        return {
+            "status": "error",
+            "error": str(error),
+            "audit_log": self.audit_logger.summary(),
+            "total_replacements": self.audit_logger.total(),
+        }
+
+    def _success_response(self, message, entities, replacements=None, output_path=None):
         return {
             "status": "success",
-            "entities_detected": unique_spacy_entities,
-            "output_path": str(output_path) if output_path and not dry_run else None,
-            "replacements_applied_spacy": replacements_map_spacy,
+            "message": message,
+            "entities_detected": entities,
+            "output_path": str(output_path) if output_path else None,
+            "replacements_applied_spacy": replacements,
             "audit_log": self.audit_logger.summary(),
-            "total_replacements": total_replacements_logged,
+            "total_replacements": self.audit_logger.total(),
         }

@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# Python / Environment
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Configuration / Secrets
+.env
+.env.local
+config/local_*.yaml
+
+# Project specific
+anonyfiles_gui/
+tests/
+docs/
+jobs/
+tmp/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/

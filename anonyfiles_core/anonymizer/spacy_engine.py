@@ -4,7 +4,8 @@ import spacy
 import re
 import logging
 from functools import lru_cache
-from dateutil.parser import parse
+from functools import lru_cache
+from anonyfiles_cli.exceptions import ConfigurationError
 from anonyfiles_cli.exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,9 @@ DATE_REGEX = (
     r"(?:le\s+\d{1,2}(?:er)?\s+[a-zA-Zéûîôâ]+\s+\d{4})"  # le 1er janvier 2020
     r")\b"
 )
-PHONE_REGEX = r"\b(?:\+33|0)[1-9](?:[\s.-]?\d{2}){4}\b"
+# TODO: Intégrer libphonenumber pour une validation internationale plus fine
+# Utilise actuellement une regex française/générique
+PHONE_REGEX = r"\b(?:\+33|0|[+]\d{1,3})[1-9](?:[\s.-]?\d{2}){4}\b"
 IBAN_REGEX = r"\b[A-Z]{2}\d{2}[ ]?(?:\d[ ]?){12,26}\b"
 
 
@@ -62,11 +65,25 @@ def _load_spacy_model_cached(model_name: str):
 
 
 def is_valid_date(text):
-    try:
-        parse(text, fuzzy=False)
+    """
+    Validation simple pour filtrer les faux positifs 'DATE' détectés par NER
+    (ex: '1.2', '12,50', 'Chapitre 3').
+    On s'assure qu'il y a au moins un séparateur de date (/,-) ou une mention d'année/mois.
+    """
+    # Si ça matche notre regex stricte, c'est bon
+    if re.search(DATE_REGEX, text, re.IGNORECASE):
         return True
-    except:
+    
+    # Sinon, on vérifie quelques heuristiques basiques
+    # Doit contenir au moins un chiffre
+    if not re.search(r'\d', text):
         return False
+        
+    # Éviter les nombres à virgule ou point isolés (faux positifs fréquents)
+    if re.match(r'^\d+[.,]\d+$', text.strip()):
+        return False
+
+    return True
 
 
 class SpaCyEngine:

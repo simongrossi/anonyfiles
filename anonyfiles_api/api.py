@@ -1,6 +1,7 @@
 # anonyfiles_api/api.py
 
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -37,6 +38,25 @@ app = FastAPI(root_path="/api")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Gestionnaire global pour capturer les erreurs inattendues (500)
+    et retourner une réponse JSON propre sans fuiter la stacktrace.
+    """
+    import inspect
+    # Récupérer le nom de la fonction vue qui a planté si possible (pour le log)
+    # Note: c'est imparfait dans un middleware global mais on loggue l'URL
+    logger.error(
+        f"ERREUR INTERNE NON GÉRÉE sur {request.method} {request.url.path}: {exc}",
+        exc_info=True
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"status": "error", "message": "Une erreur interne est survenue. Consultez les logs serveur."},
+    )
 
 
 # Middleware pour renseigner le contexte de logging
