@@ -34,8 +34,8 @@ dependencies = [
     "chardet>=5.0.0",
     "textual>=0.70.0",
     "python-dateutil>=2.8.0",
-    "requests>=2.32.3",
-    "urllib3>=2.3.0"
+    "requests>=2.32.4",
+    "urllib3>=2.6.0"
 ]
 
 [project.scripts]
