@@ -1,9 +1,17 @@
-
 from pathlib import Path
 
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
-from textual.widgets import Header, Footer, Button, DataTable, Input, Label, Static, RichLog
+from textual.widgets import (
+    Header,
+    Footer,
+    Button,
+    DataTable,
+    Input,
+    Label,
+    Static,
+    RichLog,
+)
 from rich.text import Text
 
 
@@ -12,14 +20,14 @@ class LogViewer(Static):
     Widget principal affichant les logs.
     Utilise RichLog pour un affichage coloré et performant.
     """
-    
+
     def compose(self) -> ComposeResult:
         # Textual 7.0.2 compat : markup=True par défaut pour RichLog ? Vérifions.
         yield RichLog(highlight=True, markup=True, id="log_display")
 
     def append_log(self, line: str):
         rich_log = self.query_one(RichLog)
-        
+
         # Coloration syntaxique basique en fonction du contenu
         text = Text(line)
         if "ERROR" in line or "CRITICAL" in line:
@@ -30,23 +38,23 @@ class LogViewer(Static):
             text.stylize("green")
         elif "DEBUG" in line:
             text.stylize("dim cyan")
-            
+
         rich_log.write(text)
-        
+
     def clear(self):
         self.query_one(RichLog).clear()
 
 
 class LogControlPanel(Static):
     """Barre latérale ou supérieure pour les contrôles."""
-    
+
     def compose(self) -> ComposeResult:
         yield Label("Filtre (Regex):")
         yield Input(placeholder="Ex: ERROR|CRITICAL", id="filter_input")
         yield Horizontal(
             Button("Recharger", id="btn_reload", variant="primary"),
             Button("Effacer", id="btn_clear", variant="error"),
-            classes="button-row"
+            classes="button-row",
         )
         yield Label("Fichiers récents:", classes="mt-2")
         yield DataTable(id="files_table", cursor_type="row")
@@ -120,14 +128,22 @@ class LogsApp(App):
         table = self.query_one(DataTable)
         table.clear(columns=True)
         table.add_columns("Nom", "Taille")
-        
+
         if not self.log_dir.exists():
             return
-            
-        files = sorted(self.log_dir.glob("*.log"), key=lambda f: f.stat().st_mtime, reverse=True)
+
+        files = sorted(
+            self.log_dir.glob("*.log"), key=lambda f: f.stat().st_mtime, reverse=True
+        )
         # Ajoutons aussi les jsonl ou autres formats si nécessaires
-        files.extend(sorted(self.log_dir.glob("*.jsonl"), key=lambda f: f.stat().st_mtime, reverse=True))
-        
+        files.extend(
+            sorted(
+                self.log_dir.glob("*.jsonl"),
+                key=lambda f: f.stat().st_mtime,
+                reverse=True,
+            )
+        )
+
         # Tri global
         files = sorted(files, key=lambda f: f.stat().st_mtime, reverse=True)
 
@@ -138,7 +154,7 @@ class LogsApp(App):
     def load_file(self, file_path: Path, filter_text: str = ""):
         viewer = self.query_one(LogViewer)
         viewer.clear()
-        
+
         if not file_path.exists():
             viewer.append_log(f"[bold red]Fichier {file_path} introuvable.[/]")
             return
@@ -146,18 +162,22 @@ class LogsApp(App):
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-                
+
             lines = content.splitlines()
             count = 0
             for line in lines:
-                if not filter_text or filter_text.lower() in line.lower(): # Simple case-insensitive search
+                if (
+                    not filter_text or filter_text.lower() in line.lower()
+                ):  # Simple case-insensitive search
                     # Regex support could be added here if Input regex is valid
                     viewer.append_log(line)
                     count += 1
-            
+
             if count == 0:
-                viewer.append_log(f"[yellow]Aucune ligne ne correspond au filtre '{filter_text}'[/]")
-                
+                viewer.append_log(
+                    f"[yellow]Aucune ligne ne correspond au filtre '{filter_text}'[/]"
+                )
+
         except Exception as e:
             viewer.append_log(f"[bold red]Erreur de lecture: {e}[/]")
 
@@ -192,6 +212,7 @@ class LogsApp(App):
 
     def action_clear_logs(self) -> None:
         self.query_one(LogViewer).clear()
+
 
 if __name__ == "__main__":
     # Test autonome

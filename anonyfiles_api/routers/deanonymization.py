@@ -194,13 +194,17 @@ def run_deanonymization_job_sync(
         log_run_event(
             logger=CLIUsageLogger,
             run_id=job_id,
-            input_file=str(input_path)
-            if input_path and input_path.exists()
-            else "Non défini/Non trouvé",
+            input_file=(
+                str(input_path)
+                if input_path and input_path.exists()
+                else "Non défini/Non trouvé"
+            ),
             output_file="",
-            mapping_file=str(mapping_path)
-            if mapping_path and mapping_path.exists()
-            else "Non défini/Non trouvé",
+            mapping_file=(
+                str(mapping_path)
+                if mapping_path and mapping_path.exists()
+                else "Non défini/Non trouvé"
+            ),
             log_entities_file="",
             entities_detected=[],
             total_replacements=0,

@@ -6,6 +6,7 @@ import logging
 import aiofiles
 
 from .base_processor import BaseProcessor
+
 # from .utils import apply_positional_replacements # Probablement plus nécessaire ici directement
 
 logger = logging.getLogger(__name__)

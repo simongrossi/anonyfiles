@@ -12,7 +12,6 @@ from ..utils.default_paths import get_default_output_dir
 logger = logging.getLogger(__name__)
 
 
-
 # Correction de la sérialisation YAML pour supporter les objets Path
 def path_representer(dumper, data):
     return dumper.represent_scalar("tag:yaml.org,2002:str", str(data))

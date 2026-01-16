@@ -63,7 +63,7 @@ def generate_redaction_replacement(
     Ex: [NOM_MASQUÉ] -> [NOM_MASQUÉ_1]
     """
     base_text = options.get("text", "{{REDACTED}}")
-    
+
     # Si le texte contient un placeholder de formatage {}, on l'utilise
     if "{}" in base_text:
         # On suppose que l'utilisateur veut l'index ici (base 1 ou 0 selon préférence, ici +1 pour user-friendly)
@@ -104,10 +104,9 @@ def generate_placeholder_replacement(
         return f"{format_str}_{index + 1}"
 
 
-
-
 # Cache pour éviter de recréer l'objet Faker à chaque appel
 _faker_instances = {}
+
 
 def get_faker(locale="fr_FR"):
     if locale not in _faker_instances:
@@ -125,31 +124,31 @@ def generate_faker_replacement(
 ) -> str:
     locale = options.get("locale", "fr_FR")
     fake = get_faker(locale)
-    
+
     # Mapping entre label SpaCy et méthodes Faker
     provider_map = {
         "PER": fake.name,
-        "LOC": fake.city, # ou fake.address selon préférence
+        "LOC": fake.city,  # ou fake.address selon préférence
         "ORG": fake.company,
         "EMAIL": fake.email,
         "PHONE": fake.phone_number,
         "DATE": fake.date,
         "IBAN": fake.iban,
     }
-    
+
     # Fallback générique
     provider_func = provider_map.get(label, lambda: f"FAKE_{label}")
-    
+
     # Pour garantir la cohérence (toujours remplacer "Jean Dupont" par le même faux nom)
     if options.get("consistent", False):
         # Utilisation d'un hash stable (MD5) pour la seed, car hash() est aléatoire par processus
-        seed_int = int(hashlib.md5(entity_text.encode('utf-8')).hexdigest(), 16)
+        seed_int = int(hashlib.md5(entity_text.encode("utf-8")).hexdigest(), 16)
         Faker.seed(seed_int)
         result = provider_func()
         # Reset seed pour ne pas casser l'aléatoire global
-        Faker.seed(None) 
-        return f"{result}_{index}" # On garde l'index si besoin unicité stricte
-    
+        Faker.seed(None)
+        return f"{result}_{index}"  # On garde l'index si besoin unicité stricte
+
     return f"{provider_func()}"
 
 

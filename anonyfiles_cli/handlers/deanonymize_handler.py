@@ -182,9 +182,11 @@ class DeanonymizeHandler:
                 logger=CLIUsageLogger,
                 run_id=run_id,  # Utilisez l'ID généré au début
                 input_file=str(input_file),
-                output_file=str(output_path)
-                if output_path and not dry_run
-                else "DRY_RUN_NO_OUTPUT",
+                output_file=(
+                    str(output_path)
+                    if output_path and not dry_run
+                    else "DRY_RUN_NO_OUTPUT"
+                ),
                 mapping_file=str(mapping_csv),
                 log_entities_file="",
                 entities_detected=report_data.get("distinct_codes_in_text_list", []),
@@ -192,9 +194,11 @@ class DeanonymizeHandler:
                 audit_log=report_data.get(
                     "warnings_generated_during_deanonymization", []
                 ),
-                status="success"
-                if not report_data.get("warnings_generated_during_deanonymization")
-                else "success_with_warnings",
+                status=(
+                    "success"
+                    if not report_data.get("warnings_generated_during_deanonymization")
+                    else "success_with_warnings"
+                ),
                 error=None,
             )
             # AJOUTEZ CETTE LIGNE POUR AFFICHER L'ID DU JOB

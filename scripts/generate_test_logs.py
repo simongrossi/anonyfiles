@@ -1,4 +1,3 @@
-
 import random
 import time
 from datetime import datetime, timedelta
@@ -59,9 +58,7 @@ MESSAGES = {
 
 
 def generate_log_line(format_type: str, timestamp: datetime) -> str:
-    level = random.choices(
-        LEVELS, weights=[50, 20, 10, 15, 5], k=1
-    )[0]
+    level = random.choices(LEVELS, weights=[50, 20, 10, 15, 5], k=1)[0]
     component = random.choice(COMPONENTS)
     msg_template = random.choice(MESSAGES[level])
 
@@ -131,16 +128,20 @@ def main():
 
     args = parser.parse_args()
     output_path = Path(args.output)
-    
+
     # Création du dossier parent si nécessaire
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Génération de logs dans {output_path} (Format: {args.format})...")
 
-    current_time = datetime.now() - timedelta(hours=24)  # Start 24h ago for static generation
+    current_time = datetime.now() - timedelta(
+        hours=24
+    )  # Start 24h ago for static generation
 
     if args.live:
-        print(f"Mode LIVE activé ({args.rate} logs/sec). Appuyez sur CTRL+C pour arrêter.")
+        print(
+            f"Mode LIVE activé ({args.rate} logs/sec). Appuyez sur CTRL+C pour arrêter."
+        )
         try:
             with open(output_path, "a", encoding="utf-8") as f:
                 while True:

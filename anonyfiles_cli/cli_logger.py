@@ -32,10 +32,7 @@ class CLIUsageLogger:
         try:
             now = datetime.datetime.now(datetime.timezone.utc)
             log_dir = (
-                cls.LOG_BASE_DIR
-                / str(now.year)
-                / f"{now.month:02d}"
-                / f"{now.day:02d}"
+                cls.LOG_BASE_DIR / str(now.year) / f"{now.month:02d}" / f"{now.day:02d}"
             )
             log_dir.mkdir(parents=True, exist_ok=True)
             return log_dir / "cli_audit_log.jsonl"
@@ -44,7 +41,8 @@ class CLIUsageLogger:
             # pour ne pas bloquer l'application.
             if cls.VERBOSE:
                 logger.warning(
-                    "[CLIUsageLogger] Impossible de créer/accéder au dossier de logs: %s", e
+                    "[CLIUsageLogger] Impossible de créer/accéder au dossier de logs: %s",
+                    e,
                 )
             return None
 

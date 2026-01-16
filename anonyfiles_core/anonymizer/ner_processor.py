@@ -41,12 +41,12 @@ class NERProcessor:
         2. Une liste de listes de tuples (entity_text, label, start_char, end_char) par bloc,
            incluant les offsets pour le remplacement positionnel.
         """
-        all_unique_entities_across_blocks: Dict[
-            str, Tuple[str, str]
-        ] = {}  # {entity_text: (label, source_type)}
-        spacy_entities_per_block_with_offsets: List[
-            List[Tuple[str, str, int, int]]
-        ] = []
+        all_unique_entities_across_blocks: Dict[str, Tuple[str, str]] = (
+            {}
+        )  # {entity_text: (label, source_type)}
+        spacy_entities_per_block_with_offsets: List[List[Tuple[str, str, int, int]]] = (
+            []
+        )
 
         regex_sources = {
             "EMAIL": EMAIL_REGEX,
@@ -58,9 +58,9 @@ class NERProcessor:
         PRIORITY_REGEX_LABELS = {"EMAIL", "DATE", "PHONE", "IBAN"}
 
         for block_text in text_blocks:
-            detected_entities_for_this_block: List[
-                Tuple[str, str, int, int]
-            ] = []  # Cette variable est celle qui est remplie
+            detected_entities_for_this_block: List[Tuple[str, str, int, int]] = (
+                []
+            )  # Cette variable est celle qui est remplie
 
             if block_text.strip():
                 doc = self.spacy_engine.nlp_doc(block_text)

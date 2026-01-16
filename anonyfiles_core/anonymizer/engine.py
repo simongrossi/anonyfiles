@@ -114,7 +114,7 @@ class AnonyfilesEngine:
         if not any(block.strip() for block in blocks_after_custom_rules):
             return {
                 "decision": "empty",
-                "blocks_after_custom": blocks_after_custom_rules
+                "blocks_after_custom": blocks_after_custom_rules,
             }
 
         # 2. Détection des entités spaCy et regex
@@ -146,14 +146,15 @@ class AnonyfilesEngine:
 
         # 4. Application des remplacements positionnels
         truly_final_blocks = []
-        unique_spacy_entities_set = set(unique_spacy_entities) # Opti lookup
+        unique_spacy_entities_set = set(unique_spacy_entities)  # Opti lookup
 
         for i, block_text_after in enumerate(blocks_after_custom_rules):
             entities_in_block = spacy_entities_per_block_with_offsets[i]
-            
+
             # Filtrage de sécurité
             filtered_entities = [
-                ent for ent in entities_in_block
+                ent
+                for ent in entities_in_block
                 if (ent[0], ent[1]) in unique_spacy_entities_set
             ]
 
@@ -173,7 +174,7 @@ class AnonyfilesEngine:
             "unique_spacy_entities": unique_spacy_entities,
             "spacy_entities_per_block": spacy_entities_per_block_with_offsets,
             "replacements_map_spacy": replacements_map_spacy,
-            "mapping_dict_spacy": mapping_dict_spacy
+            "mapping_dict_spacy": mapping_dict_spacy,
         }
 
     def anonymize(
@@ -198,14 +199,16 @@ class AnonyfilesEngine:
         except ValueError as e:
             return self._error_response(e)
 
-        logger.debug(f"DEBUG (Engine): Processing {input_path} with {type(processor).__name__}")
+        logger.debug(
+            f"DEBUG (Engine): Processing {input_path} with {type(processor).__name__}"
+        )
 
         extract_kwargs = {}
         if hasattr(processor, "has_header") and "has_header" in kwargs:
             extract_kwargs["has_header"] = kwargs["has_header"]
-        
+
         original_blocks = processor.extract_blocks(input_path, **extract_kwargs)
-        
+
         # Appel Logique Métier
         result = self._process_content(original_blocks)
         decision = result["decision"]
@@ -214,17 +217,35 @@ class AnonyfilesEngine:
         if decision == "empty":
             logger.info("INFO (Engine): Contenu vide.")
             if not dry_run and output_path:
-                self.writer.write_anonymized_file(processor, output_path, [], input_path, **kwargs)
+                self.writer.write_anonymized_file(
+                    processor, output_path, [], input_path, **kwargs
+                )
             if mapping_output_path and not dry_run:
-                self.writer.write_mapping_file(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+                self.writer.write_mapping_file(
+                    mapping_output_path,
+                    self.custom_rules_processor.get_custom_replacements_mapping(),
+                    {},
+                    [],
+                )
             return self._success_response("Input empty", [])
-            
+
         elif decision == "no_changes":
             logger.info("INFO (Engine): Aucune modification requise.")
             if not dry_run and output_path:
-                self.writer.write_anonymized_file(processor, output_path, result["blocks_after_custom"], input_path, **kwargs)
+                self.writer.write_anonymized_file(
+                    processor,
+                    output_path,
+                    result["blocks_after_custom"],
+                    input_path,
+                    **kwargs,
+                )
             if mapping_output_path and not dry_run:
-                self.writer.write_mapping_file(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+                self.writer.write_mapping_file(
+                    mapping_output_path,
+                    self.custom_rules_processor.get_custom_replacements_mapping(),
+                    {},
+                    [],
+                )
             return self._success_response("No changes applied", [])
 
         # Cas nominal: processed
@@ -234,24 +255,28 @@ class AnonyfilesEngine:
                 output_path=output_path,
                 final_processed_blocks=result["final_blocks"],
                 original_input_path=input_path,
-                spacy_entities_per_block_with_offsets=result["spacy_entities_per_block"],
-                **kwargs
+                spacy_entities_per_block_with_offsets=result[
+                    "spacy_entities_per_block"
+                ],
+                **kwargs,
             )
             if log_entities_path:
-                self.writer.write_log_entities_file(log_entities_path, result["unique_spacy_entities"])
+                self.writer.write_log_entities_file(
+                    log_entities_path, result["unique_spacy_entities"]
+                )
             if mapping_output_path:
                 self.writer.write_mapping_file(
                     mapping_output_path,
                     self.custom_rules_processor.get_custom_replacements_mapping(),
                     result["mapping_dict_spacy"],
-                    result["unique_spacy_entities"]
+                    result["unique_spacy_entities"],
                 )
 
         return self._success_response(
             "Anonymization complete",
             result["unique_spacy_entities"],
             result.get("replacements_map_spacy"),
-            output_path
+            output_path,
         )
 
     async def anonymize_async(
@@ -274,13 +299,17 @@ class AnonyfilesEngine:
         except ValueError as e:
             return self._error_response(e)
 
-        logger.debug(f"DEBUG (Engine Async): Processing {input_path} with {type(processor).__name__}")
+        logger.debug(
+            f"DEBUG (Engine Async): Processing {input_path} with {type(processor).__name__}"
+        )
 
         extract_kwargs = {}
         if hasattr(processor, "has_header") and "has_header" in kwargs:
             extract_kwargs["has_header"] = kwargs["has_header"]
-            
-        original_blocks = await processor.extract_blocks_async(input_path, **extract_kwargs)
+
+        original_blocks = await processor.extract_blocks_async(
+            input_path, **extract_kwargs
+        )
 
         # Appel Logique Métier (identique au sync)
         result = self._process_content(original_blocks)
@@ -289,17 +318,35 @@ class AnonyfilesEngine:
         if decision == "empty":
             logger.info("INFO (Engine Async): Contenu vide.")
             if not dry_run and output_path:
-                await self.writer.write_anonymized_file_async(processor, output_path, [], input_path, **kwargs)
+                await self.writer.write_anonymized_file_async(
+                    processor, output_path, [], input_path, **kwargs
+                )
             if mapping_output_path and not dry_run:
-                await self.writer.write_mapping_file_async(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+                await self.writer.write_mapping_file_async(
+                    mapping_output_path,
+                    self.custom_rules_processor.get_custom_replacements_mapping(),
+                    {},
+                    [],
+                )
             return self._success_response("Input empty", [])
-        
+
         elif decision == "no_changes":
             logger.info("INFO (Engine Async): Aucune modification requise.")
             if not dry_run and output_path:
-                await self.writer.write_anonymized_file_async(processor, output_path, result["blocks_after_custom"], input_path, **kwargs)
+                await self.writer.write_anonymized_file_async(
+                    processor,
+                    output_path,
+                    result["blocks_after_custom"],
+                    input_path,
+                    **kwargs,
+                )
             if mapping_output_path and not dry_run:
-                await self.writer.write_mapping_file_async(mapping_output_path, self.custom_rules_processor.get_custom_replacements_mapping(), {}, [])
+                await self.writer.write_mapping_file_async(
+                    mapping_output_path,
+                    self.custom_rules_processor.get_custom_replacements_mapping(),
+                    {},
+                    [],
+                )
             return self._success_response("No changes applied", [])
 
         # Cas nominal
@@ -309,24 +356,28 @@ class AnonyfilesEngine:
                 output_path=output_path,
                 final_processed_blocks=result["final_blocks"],
                 original_input_path=input_path,
-                spacy_entities_per_block_with_offsets=result["spacy_entities_per_block"],
-                **kwargs
+                spacy_entities_per_block_with_offsets=result[
+                    "spacy_entities_per_block"
+                ],
+                **kwargs,
             )
             if log_entities_path:
-                await self.writer.write_log_entities_file_async(log_entities_path, result["unique_spacy_entities"])
+                await self.writer.write_log_entities_file_async(
+                    log_entities_path, result["unique_spacy_entities"]
+                )
             if mapping_output_path:
                 await self.writer.write_mapping_file_async(
                     mapping_output_path,
                     self.custom_rules_processor.get_custom_replacements_mapping(),
                     result["mapping_dict_spacy"],
-                    result["unique_spacy_entities"]
+                    result["unique_spacy_entities"],
                 )
 
         return self._success_response(
             "Anonymization complete",
             result["unique_spacy_entities"],
             result.get("replacements_map_spacy"),
-            output_path
+            output_path,
         )
 
     def _error_response(self, error):

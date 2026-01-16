@@ -125,17 +125,21 @@ def init_config(
         ):
             console.console.print("Initialisation annulée.")
             raise typer.Exit(ExitCodes.USER_CANCEL)
-        
+
         # Suppression de l'existante si confirmée ou forcée
         try:
             os.remove(user_config_path)
         except Exception as e:
-            console.console.print(f"[red]Erreur lors de la suppression de l'ancienne config : {e}[/red]")
+            console.console.print(
+                f"[red]Erreur lors de la suppression de l'ancienne config : {e}[/red]"
+            )
             raise typer.Exit(ExitCodes.GENERAL_ERROR)
 
     try:
         ConfigManager.create_default_user_config()
-        console.console.print(f"✨ Configuration initialisée dans [green]{user_config_path}[/green]")
+        console.console.print(
+            f"✨ Configuration initialisée dans [green]{user_config_path}[/green]"
+        )
     except Exception as e:
         console.handle_error(e, "config_init_command")
         raise typer.Exit(ExitCodes.CONFIG_ERROR)

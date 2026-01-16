@@ -17,7 +17,7 @@ app = typer.Typer(help="Gestion et analyse des fichiers de logs.")
 def list_logs():
     """Lister les fichiers de logs disponibles."""
     log_dir = get_default_log_dir()
-    
+
     if not log_dir.exists():
         console.print(f"[yellow]Le dossier de logs {log_dir} n'existe pas encore.[/]")
         return
@@ -26,7 +26,7 @@ def list_logs():
     if not files:
         console.print("[yellow]Aucun fichier de log trouvé.[/]")
         return
-        
+
     console.print(f"[bold]Fichiers de logs dans {log_dir} :[/]")
     for log_file in sorted(files):
         size_kb = log_file.stat().st_size / 1024
@@ -39,12 +39,14 @@ def interactive_viewer():
     try:
         from anonyfiles_cli.tui import LogsApp
     except ImportError:
-        console.print("[bold red]Erreur:[/bold red] Textual n'est pas installé. Veuillez l'installer avec :")
+        console.print(
+            "[bold red]Erreur:[/bold red] Textual n'est pas installé. Veuillez l'installer avec :"
+        )
         console.print("pip install textual")
         raise typer.Exit(code=1)
 
     log_dir = get_default_log_dir()
-    
+
     # Créer le dossier s'il n'existe pas pour éviter le crash de l'app
     if not log_dir.exists():
         try:
@@ -59,10 +61,14 @@ def interactive_viewer():
 
 
 @app.command("clear")
-def clear_logs(force: bool = typer.Option(False, "--force", "-f", help="Forcer la suppression sans confirmation")):
+def clear_logs(
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Forcer la suppression sans confirmation"
+    )
+):
     """Supprimer tous les fichiers de logs."""
     log_dir = get_default_log_dir()
-    
+
     if not log_dir.exists():
         console.print("[yellow]Rien à supprimer.[/]")
         return
@@ -73,7 +79,9 @@ def clear_logs(force: bool = typer.Option(False, "--force", "-f", help="Forcer l
         return
 
     if not force:
-        confirm = typer.confirm(f"Voulez-vous vraiment supprimer {len(files)} fichiers de logs ?")
+        confirm = typer.confirm(
+            f"Voulez-vous vraiment supprimer {len(files)} fichiers de logs ?"
+        )
         if not confirm:
             console.print("Annulé.")
             return

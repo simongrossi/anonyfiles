@@ -119,8 +119,10 @@ class ConsoleDisplay:
                 )
                 self.console.print(Panel(msg, title=title, border_style="red"))
             else:
-                self.console.print(f"⚙️  [yellow]Erreur de configuration:[/yellow] {error}")
-            
+                self.console.print(
+                    f"⚙️  [yellow]Erreur de configuration:[/yellow] {error}"
+                )
+
             CLIUsageLogger.log_error(context, error, command=command_name, args=params)
         elif isinstance(error, FileIOError):
             self.console.print(f"📂 [red]Erreur fichier:[/red] {error}")

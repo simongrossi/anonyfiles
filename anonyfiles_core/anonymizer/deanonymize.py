@@ -41,7 +41,7 @@ class Deanonymizer:
                 # label_field and source_field are not seemingly used in the immediate logic below?
                 # However, check if they are used later. If not, remove assignments.
                 # Assuming ruff is correct and they are truly unused.
-                # But wait, lines 45-50 are doing work (next(...)). If I remove assignment, I should simple call next() if side effect needed, or remove completely if not needed to advance iterator. 
+                # But wait, lines 45-50 are doing work (next(...)). If I remove assignment, I should simple call next() if side effect needed, or remove completely if not needed to advance iterator.
                 # These seem to be lookups for column names. If result is not used, lookups are useless.
                 pass
 
@@ -169,9 +169,11 @@ class Deanonymizer:
             "replacements_unknown_kept_count": attempted_replacements_info[
                 "unknown_kept"
             ],
-            "coverage_percentage": f"{(len(codes_in_mapping_that_were_referenced) / len(all_distinct_codes_found_in_text) * 100):.1f}%"
-            if all_distinct_codes_found_in_text
-            else "0%",
+            "coverage_percentage": (
+                f"{(len(codes_in_mapping_that_were_referenced) / len(all_distinct_codes_found_in_text) * 100):.1f}%"
+                if all_distinct_codes_found_in_text
+                else "0%"
+            ),
             "dry_run": dry_run,
             "strict_mode": self.strict,
         }

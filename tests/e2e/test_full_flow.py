@@ -67,9 +67,9 @@ def test_full_anonymization_flow(setup_test_env):
     )
 
     # 3. Vérifications fichiers
-    assert result["status"] == "success", (
-        f"Le moteur a retourné une erreur : {result.get('error')}"
-    )
+    assert (
+        result["status"] == "success"
+    ), f"Le moteur a retourné une erreur : {result.get('error')}"
     assert output_pdf_path.exists(), "Le fichier PDF anonymisé n'a pas été créé."
     assert mapping_path.exists(), "Le fichier de mapping n'a pas été créé."
 

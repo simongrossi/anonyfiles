@@ -48,11 +48,14 @@ async def global_exception_handler(request: Request, exc: Exception):
     """
     logger.error(
         f"ERREUR INTERNE NON GÉRÉE sur {request.method} {request.url.path}: {exc}",
-        exc_info=True
+        exc_info=True,
     )
     return JSONResponse(
         status_code=500,
-        content={"status": "error", "message": "Une erreur interne est survenue. Consultez les logs serveur."},
+        content={
+            "status": "error",
+            "message": "Une erreur interne est survenue. Consultez les logs serveur.",
+        },
     )
 
 
@@ -77,7 +80,9 @@ async def startup_event():
     try:
         # Chargement de la configuration via Pydantic
         # La validation stricte assure que si le YAML est invalide ou corrompu, l'app crashera (Fail Fast)
-        logger.info("Validation de la configuration de l'application (chargée au démarrage)...")
+        logger.info(
+            "Validation de la configuration de l'application (chargée au démarrage)..."
+        )
         # app_config est déjà instancié globalement
 
         # Stocker l'objet config typé (ou convertir en dict si le reste du code attend un dict)
@@ -100,7 +105,11 @@ async def startup_event():
 
 # Le reste du fichier (middleware, inclusion des routeurs, endpoint racine)
 # Gestion des origines CORS
-origins = [o.strip() for o in app_config.cors_origins.split(",")] if app_config.cors_origins else []
+origins = (
+    [o.strip() for o in app_config.cors_origins.split(",")]
+    if app_config.cors_origins
+    else []
+)
 if not origins:
     origins = ["http://localhost:3000", "tauri://localhost"]  # Restrictif par défaut
 
@@ -128,9 +137,10 @@ async def read_root():
 if __name__ == "__main__":
     import uvicorn
     import os
-    # SÉCURITÉ : Par défaut 127.0.0.1 (local uniquement). 
+
+    # SÉCURITÉ : Par défaut 127.0.0.1 (local uniquement).
     # Docker passera HOST=0.0.0.0 via les variables d'environnement.
     host = os.getenv("HOST", "127.0.0.1")
     port = int(os.getenv("PORT", 8000))
-    
+
     uvicorn.run(app, host=host, port=port)

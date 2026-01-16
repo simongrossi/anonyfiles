@@ -59,9 +59,6 @@ def _load_spacy_model_cached(model_name: str):
             ) from e2
 
 
-
-
-
 def is_valid_date(text):
     """
     Validation simple pour filtrer les faux positifs 'DATE' détectés par NER
@@ -71,14 +68,14 @@ def is_valid_date(text):
     # Si ça matche notre regex stricte, c'est bon
     if re.search(DATE_REGEX, text, re.IGNORECASE):
         return True
-    
+
     # Sinon, on vérifie quelques heuristiques basiques
     # Doit contenir au moins un chiffre
-    if not re.search(r'\d', text):
+    if not re.search(r"\d", text):
         return False
-        
+
     # Éviter les nombres à virgule ou point isolés (faux positifs fréquents)
-    if re.match(r'^\d+[.,]\d+$', text.strip()):
+    if re.match(r"^\d+[.,]\d+$", text.strip()):
         return False
 
     return True
@@ -88,24 +85,24 @@ class SpaCyEngine:
     def __init__(self, model="fr_core_news_md"):
         # Utilise la fonction de chargement mise en cache
         self.nlp = _load_spacy_model_cached(model)
-        
+
         # Configuration de l'EntityRuler si pas déjà présent
         if "entity_ruler" not in self.nlp.pipe_names:
             # On ajoute le ruler AVANT le NER ("ner") pour que les regex aient la priorité
             ruler = self.nlp.add_pipe("entity_ruler", before="ner")
-            
+
             patterns = [
                 {"label": "EMAIL", "pattern": [{"TEXT": {"REGEX": EMAIL_REGEX}}]},
                 {"label": "PHONE", "pattern": [{"TEXT": {"REGEX": PHONE_REGEX}}]},
                 {"label": "IBAN", "pattern": [{"TEXT": {"REGEX": IBAN_REGEX}}]},
                 # Pour DATE, on s'appuie principalement sur spaCy NER ou une règle plus complexe si besoin
-                # {"label": "DATE", "pattern": [{"TEXT": {"REGEX": DATE_REGEX}}]}, 
+                # {"label": "DATE", "pattern": [{"TEXT": {"REGEX": DATE_REGEX}}]},
             ]
             ruler.add_patterns(patterns)
-            
+
             # Note: Si DATE via Regex est critique et que la Regex est compatible spaCy ("TEXT" match token unique),
             # on peut l'ajouter. Sinon, le NER s'en charge généralement bien.
-            
+
     def detect_entities(self, text, enabled_labels=None):
         """
         Détecte les entités spaCy et par regex (via EntityRuler), selon les labels activés.
@@ -116,19 +113,19 @@ class SpaCyEngine:
 
         # doc contient maintenant TOUT (NER + Regex) sans conflit géré par le pipeline
         doc = self.nlp(text)
-        
+
         # Filtrage simple
         entities = []
         for ent in doc.ents:
             if ent.label_ not in enabled_labels:
                 continue
-            
+
             # Validation supplémentaire pour réduire les faux positifs sur les dates
             if ent.label_ == "DATE" and not is_valid_date(ent.text):
                 continue
-                
+
             entities.append((ent.text, ent.label_))
-        
+
         return entities
 
     def nlp_doc(self, text):
