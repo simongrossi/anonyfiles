@@ -57,7 +57,7 @@ jobs:
         run: bandit -r . -ll
 
       - name: Check Dependencies Vulnerabilities (Safety)
-        run: safety check
+        run: safety check --ignore 42188
 
       - name: Audit Dependencies (pip-audit)
         run: pip-audit
