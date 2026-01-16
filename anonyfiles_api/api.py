@@ -126,3 +126,14 @@ app.include_router(websocket_status.router)
 @app.get("/", tags=["Racine"])
 async def read_root():
     return {"message": "Bienvenue à l'API Anonyfiles"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    # SÉCURITÉ : Par défaut 127.0.0.1 (local uniquement). 
+    # Docker passera HOST=0.0.0.0 via les variables d'environnement.
+    host = os.getenv("HOST", "127.0.0.1")
+    port = int(os.getenv("PORT", 8000))
+    
+    uvicorn.run(app, host=host, port=port)

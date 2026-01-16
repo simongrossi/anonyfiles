@@ -3,21 +3,26 @@ version: '3.8'
 services:
   # Service API (Backend Python)
   api:
-    build: . # Utilise le Dockerfile existant à la racine
-    ports:
-      - "8000:8000"
+    build: .
+    # SÉCURITÉ : Port 8000 retiré pour ne pas exposer l'API directement sur Internet.
+    # Elle n'est accessible que par le service 'web' via le réseau interne Docker.
+    expose:
+      - "8000"
     volumes:
-      - .:/app # Optionnel : pour le développement (hot-reload si configuré)
-      - /app/anonyfiles.egg-info # Prevent Windows egg-info from breaking Linux install
+      # SÉCURITÉ : Montage en lecture seule (:ro) pour empêcher la persistance de backdoors
+      - .:/app:ro
+      - /app/anonyfiles.egg-info
+      # Exception indispensable : le dossier jobs doit rester inscriptible
+      - ./jobs:/app/jobs
     environment:
+      # Docker a besoin d'écouter sur 0.0.0.0 à l'INTERIEUR du conteneur
       - HOST=0.0.0.0
       - PYTHONPATH=/app
-      # Force l'utilisation du fichier de config présent dans le dossier monté
       - ANONYFILES_CONFIG_PATH=/app/anonyfiles_core/config/config.yaml
 
-  # Service Frontend (Interface Web)
+  # Service Frontend & Reverse Proxy (Nginx)
   web:
-    build: ./anonyfiles_gui # Utilise le nouveau Dockerfile créé à l'étape 1
+    build: ./anonyfiles_gui
     ports:
       - "3000:80" # Accessible via http://localhost:3000
     depends_on:

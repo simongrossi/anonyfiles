@@ -20,6 +20,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 - **API Files** : Utilisation de `mimetypes` standard pour une détection robuste des types MIME.
 - **Processors Bureautique** : Support des fichiers Excel multi-onglets (avec préservation des types `str`) et de l'anonymisation récursive dans les tableaux Word.
 - **Standardisation des Sorties** : Harmonisation de tous les remplacements (PER, LOC, ARG, DATE...) vers le format unique indexé `{{TAG_001}}` pour une meilleure réversibilité.
+- **Sécurité Infra** : API isolée du réseau public (port 8000 non exposé, routage interne uniquement) et code source monté en lecture seule (`:ro`) pour empêcher toute persistance.
+- **Reverse Proxy Sécurisé** : Configuration Nginx durcie avec headers de sécurité (X-Forwarded-For, Proto) et point d'entrée unique sur :3000.
+- **Audit CI Automatisé** : Ajout de `pip-audit` dans le pipeline GitHub Actions pour bloquer le build en cas de détection de CVEs connues dans les dépendances.
+- **Sécurité Locale** : L'exécution directe de l'API (`python api.py`) écoute désormais par défaut sur `127.0.0.1` pour éviter l'exposition accidentelle sur le réseau local.
 
 ### Corrigé
 - **Docker Build** : Résolution de `ModuleNotFoundError: No module named 'pydantic_settings'` et des problèmes d'installation en mode éditable avec Hot-Reload.

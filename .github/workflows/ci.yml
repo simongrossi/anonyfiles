@@ -1,36 +1,187 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
+    branches: [ main ]
+
+env:
+  # Personnalisez ici le registre si différent de GHCR
+  REGISTRY: ghcr.io
+  # Nom de l'image (par défaut : owner/repo)
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # -------------------------------------------------------------
+  # 1. TEST & AUDIT
+  #    Exécute les tests, linter et audits de sécurité sur plusieurs versions de Python.
+  # -------------------------------------------------------------
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Adaptez la matrice selon les versions supportées
+        python-version: ["3.10", "3.11", "3.12"]
+    
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip' # Cache automatique des dépendances pip
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-test.txt
-          python -m pip install ruff black bandit safety
+          python -m pip install build
+          # Installation des dépendances du projet
+          # Adaptez si vous utilisez poetry (ex: poetry install)
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+          # Installation du paquet en mode éditable pour les tests
+          pip install -e .
+          # Outils de qualité et sécurité
+          pip install ruff black bandit safety pip-audit pytest
 
-      - name: Linting (Ruff)
+      - name: Lint with Ruff
         run: ruff check .
 
-      - name: Formatting (Black)
+      - name: Check formatting with Black
         run: black --check .
 
-      - name: Security SAST (Bandit)
+      - name: Security Scan (SAST) with Bandit
         run: bandit -r . -ll
 
-      - name: Dependency Vulnerabilities (Safety)
+      - name: Check Dependencies Vulnerabilities (Safety)
         run: safety check
 
-      - name: Run tests
+      - name: Audit Dependencies (pip-audit)
+        run: pip-audit
+
+      - name: Download spaCy model
+        # Nécessaire pour les tests qui utilisent le modèle FR
+        run: python -m spacy download fr_core_news_md
+
+      - name: Run Tests
         run: pytest -q tests
+
+  # -------------------------------------------------------------
+  # 2. BUILD WHEEL
+  #    Construit le paquet Python distribuable (.whl, .tar.gz).
+  # -------------------------------------------------------------
+  build_wheel:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tool
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build Package
+        # Construit wheel et sdist dans le dossier dist/
+        run: python -m build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-dist
+          path: dist/*
+          retention-days: 1 # On garde court pour économiser le stockage
+
+  # -------------------------------------------------------------
+  # 3. DOCKER BUILD & PUSH
+  #    Uniquement sur les tags 'v*'. Pousse l'image sur GHCR.
+  # -------------------------------------------------------------
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    # Condition : ne s'exécute que si c'est un tag de version (v1.0.0, etc.)
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        # Permet le build multi-arch (ex: linux/amd64, linux/arm64)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ !contains(github.ref, '-') }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Support multi-arch si nécessaire (ici amd64 et arm64)
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -------------------------------------------------------------
+  # 4. GITHUB RELEASE
+  #    Crée une release officielle et y attache les wheels.
+  # -------------------------------------------------------------
+  release:
+    needs: [build_wheel, docker]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    permissions:
+      contents: write # Nécessaire pour créer la release
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Récupère les artefacts construits par le job build_wheel
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-dist
+          path: dist
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          # Génère automatiquement les notes de release basées sur les PRs mergées
+          generate_release_notes: true
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+          draft: false
+          prerelease: false
