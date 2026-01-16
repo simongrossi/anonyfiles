@@ -4,8 +4,6 @@ import spacy
 import re
 import logging
 from functools import lru_cache
-from functools import lru_cache
-from anonyfiles_cli.exceptions import ConfigurationError
 from anonyfiles_cli.exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)

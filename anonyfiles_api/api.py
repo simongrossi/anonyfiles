@@ -46,9 +46,6 @@ async def global_exception_handler(request: Request, exc: Exception):
     Gestionnaire global pour capturer les erreurs inattendues (500)
     et retourner une réponse JSON propre sans fuiter la stacktrace.
     """
-    import inspect
-    # Récupérer le nom de la fonction vue qui a planté si possible (pour le log)
-    # Note: c'est imparfait dans un middleware global mais on loggue l'URL
     logger.error(
         f"ERREUR INTERNE NON GÉRÉE sur {request.method} {request.url.path}: {exc}",
         exc_info=True

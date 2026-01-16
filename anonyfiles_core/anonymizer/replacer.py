@@ -1,7 +1,7 @@
-# anonyfiles_cli/anonymizer/replacer.py
 import logging
 import hashlib
 from typing import Dict, Any, Callable
+from faker import Faker
 
 from .format_utils import create_placeholder
 
@@ -104,7 +104,7 @@ def generate_placeholder_replacement(
         return f"{format_str}_{index + 1}"
 
 
-from faker import Faker
+
 
 # Cache pour éviter de recréer l'objet Faker à chaque appel
 _faker_instances = {}

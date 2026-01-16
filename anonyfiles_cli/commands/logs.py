@@ -1,11 +1,8 @@
-
 import logging
-from pathlib import Path
-from typing import Optional
 import typer
 from rich.console import Console
+from pathlib import Path
 
-from anonyfiles_cli.managers.config_manager import ConfigManager
 from anonyfiles_cli.utils.default_paths import get_default_log_dir
 
 # Initialisation du logger et de la console
@@ -41,7 +38,7 @@ def interactive_viewer():
     """Lancer l'interface TUI interactive pour explorer les logs."""
     try:
         from anonyfiles_cli.tui import LogsApp
-    except ImportError as e:
+    except ImportError:
         console.print("[bold red]Erreur:[/bold red] Textual n'est pas installé. Veuillez l'installer avec :")
         console.print("pip install textual")
         raise typer.Exit(code=1)

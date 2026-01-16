@@ -1,17 +1,10 @@
 
 from pathlib import Path
-from datetime import datetime
-import json
-import asyncio
 
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical
-from textual.widgets import Header, Footer, Button, DataTable, Input, Label, Static, Log, RichLog
-from textual.binding import Binding
-from textual.reactive import reactive
-from textual.screen import Screen
+from textual.containers import Horizontal
+from textual.widgets import Header, Footer, Button, DataTable, Input, Label, Static, RichLog
 from rich.text import Text
-from rich import box
 
 
 class LogViewer(Static):
