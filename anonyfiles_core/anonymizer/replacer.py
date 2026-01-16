@@ -142,7 +142,12 @@ def generate_faker_replacement(
     # Pour garantir la cohérence (toujours remplacer "Jean Dupont" par le même faux nom)
     if options.get("consistent", False):
         # Utilisation d'un hash stable (MD5) pour la seed, car hash() est aléatoire par processus
-        seed_int = int(hashlib.md5(entity_text.encode("utf-8")).hexdigest(), 16)
+        seed_int = int(
+            hashlib.md5(
+                entity_text.encode("utf-8"), usedforsecurity=False
+            ).hexdigest(),
+            16,
+        )
         Faker.seed(seed_int)
         result = provider_func()
         # Reset seed pour ne pas casser l'aléatoire global

@@ -23,7 +23,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 - **Sécurité Infra** : API isolée du réseau public (port 8000 non exposé, routage interne uniquement) et code source monté en lecture seule (`:ro`) pour empêcher toute persistance.
 - **Reverse Proxy Sécurisé** : Configuration Nginx durcie avec headers de sécurité (X-Forwarded-For, Proto) et point d'entrée unique sur :3000.
 - **Audit CI Automatisé** : Ajout de `pip-audit` dans le pipeline GitHub Actions pour bloquer le build en cas de détection de CVEs connues dans les dépendances.
+- **Audit CI Automatisé** : Ajout de `pip-audit` dans le pipeline GitHub Actions pour bloquer le build en cas de détection de CVEs connues dans les dépendances.
 - **Sécurité Locale** : L'exécution directe de l'API (`python api.py`) écoute désormais par défaut sur `127.0.0.1` pour éviter l'exposition accidentelle sur le réseau local.
+- **Pipeline CI/CD Complet** : Workflow GitHub Actions incluant Tests (Python 3.11), Linting (Ruff), Formatage (Black), Audit Sécurité (Bandit/Safety/Pip-audit), Build (Wheel) et Publication Docker automatique sur tags.
 
 ### Corrigé
 - **Docker Build** : Résolution de `ModuleNotFoundError: No module named 'pydantic_settings'` et des problèmes d'installation en mode éditable avec Hot-Reload.
@@ -34,6 +36,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 - **Refactoring** : Nettoyage du code, suppression des `if/elif` géants pour les MIME types et les regex, adoption du pattern Registry pour les générateurs (`replacer.py`).
 - **Robustesse API** : Ajout d'un gestionnaire global d'exceptions (500) pour ne plus fuiter les stacktraces au client et garantir des réponses JSON propres.
 - **Documentation** : Synchronisation complète des README et CHANGELOG avec les dernières évolutions techniques (Docker, Faker, Sécurité).
+- **Sécurité du Code** : Correction des vulnérabilités remontées par Bandit (MD5 hashing explicite, protection contre l'injection shell, gestion des chemins temporaires).
+- **Qualité du Code** : Mise en conformité stricte avec `black` et `ruff` sur l'ensemble du codebase.
 
 ## [1.2.1] – 2025-06-08
 

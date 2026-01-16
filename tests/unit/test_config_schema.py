@@ -5,7 +5,7 @@ def test_validate_config_allows_extra_fields(tmp_path):
     cfg = {
         "spacy_model": "fr_core_news_md",
         "replacements": {},
-        "default_output_dir": "/tmp",
+        "default_output_dir": str(tmp_path),
         "backup_original": True,
         "compression": False,
     }

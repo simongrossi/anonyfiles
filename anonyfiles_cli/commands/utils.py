@@ -224,6 +224,6 @@ def generate_completion(
     script = get_completion_script(
         prog_name="anonyfiles_cli",
         complete_var="_ANONYFILES_CLI_COMPLETE",
-        shell=shell,
+        shell=shell,  # nosec B604 - Usage contrôlé pour l'autocomplétion
     )
     typer.echo(script)
