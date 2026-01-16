@@ -19,6 +19,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 - **Frontend** : Configuration Nginx optimisée pour le reverse-proxy API et Dockerfile frontend allégé.
 - **API Files** : Utilisation de `mimetypes` standard pour une détection robuste des types MIME.
 - **Processors Bureautique** : Support des fichiers Excel multi-onglets (avec préservation des types `str`) et de l'anonymisation récursive dans les tableaux Word.
+- **Standardisation des Sorties** : Harmonisation de tous les remplacements (PER, LOC, ARG, DATE...) vers le format unique indexé `{{TAG_001}}` pour une meilleure réversibilité.
 
 ### Corrigé
 - **Docker Build** : Résolution de `ModuleNotFoundError: No module named 'pydantic_settings'` et des problèmes d'installation en mode éditable avec Hot-Reload.
