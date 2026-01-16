@@ -1,7 +1,7 @@
 import logging
 import typer
 from rich.console import Console
-from pathlib import Path
+
 
 from anonyfiles_cli.utils.default_paths import get_default_log_dir
 
