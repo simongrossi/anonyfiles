@@ -48,7 +48,10 @@ class ReplacementSession:
         # Ex: si options={"prefix": "PERSONNE"}, et label="PER", inner_tag="PERSONNE"
         # Si pas de prefix dans les options, on prend un tag par défaut basé sur le label.
         default_inner_tags = {
-            # Labels spaCy standards (français)
+            # Labels spaCy standards — défauts français, surchargeable via
+            # replacement_rules dans la config (clé "replacements").
+            # Exemple pour des tags anglais :
+            #   config["replacements"]["PER"] = {"type": "codes", "options": {"prefix": "PERSON"}}
             "PER": "NOM",
             "LOC": "LIEU",
             "ORG": "ENTREPRISE",
