@@ -9,12 +9,20 @@ class ReplacementGenerator:
     """
     Génère les mappings de remplacement pour les entités spaCy détectées
     et les journalise dans l'audit logger.
+
+    La ReplacementSession interne est stateful : une même entité reçoit
+    toujours le même token à travers tous les appels à generate_spacy_replacements().
+    Appeler reset_session() pour repartir d'une session vierge.
     """
     def __init__(self, config: Dict[str, Any], audit_logger: AuditLogger):
         self.config = config
         self.audit_logger = audit_logger
         self.replacement_rules_spacy_config = self.config.get("replacements", {})
         self.session = ReplacementSession()
+
+    def reset_session(self):
+        """Remet la session de remplacement à zéro (nouvelle session vierge)."""
+        self.session.reset()
 
     def generate_spacy_replacements(
         self, 

@@ -14,12 +14,28 @@ class ReplacementSession:
     """
     Gère la génération des codes anonymes pour les entités détectées.
     Fournit le mapping {entity_text: code} (pas de label en clé).
+
+    La session est STATEFUL : les appels successifs à generate_replacements()
+    partagent le même espace de codes. Une entité déjà vue reçoit toujours
+    le même token, même à travers plusieurs appels (batch multi-textes/multi-fichiers).
+
+    Appeler reset() pour repartir d'une session vierge.
     """
 
     def __init__(self):
-        self.entity_to_code = {}
-        self.code_to_entity = {}
+        # Mapping principal (entité originale → token)
+        self.entity_to_code: dict = {}
+        # Mapping inverse (token → entité originale), utile pour la réversibilité
+        self.code_to_entity: dict = {}
+        # Compteurs par label pour la numérotation séquentielle
+        self._label_counters: dict = {}
         # self.faker_instance = Faker('fr_FR') # Exemple
+
+    def reset(self):
+        """Réinitialise complètement la session (nouvelle session vierge)."""
+        self.entity_to_code.clear()
+        self.code_to_entity.clear()
+        self._label_counters.clear()
 
     def _generate_code(self, label: str, index: int, options: dict = None) -> str:
         """
@@ -32,15 +48,26 @@ class ReplacementSession:
         # Ex: si options={"prefix": "PERSONNE"}, et label="PER", inner_tag="PERSONNE"
         # Si pas de prefix dans les options, on prend un tag par défaut basé sur le label.
         default_inner_tags = {
+            # Labels spaCy standards (français)
             "PER": "NOM",
             "LOC": "LIEU",
-            "ORG": "ENTREPRISE", # Changé pour être plus distinctif que ORG
+            "ORG": "ENTREPRISE",
             "EMAIL": "EMAIL",
             "DATE": "DATE",
-            "MISC": "DIVERS",    # Changé pour être plus distinctif que DATA
+            "MISC": "DIVERS",
             "PHONE": "TEL",
-            "IBAN": "IBAN_ID"
-            # Ajoutez d'autres labels que vous gérez fréquemment
+            "IBAN": "IBAN_ID",
+            # Labels sécurité / cyber (via custom_rules ou modèle NER dédié)
+            "HOSTNAME": "HOST",
+            "IP_ADDRESS": "IP",
+            "IP_PRIVE": "IP",
+            "CVE": "CVE",
+            "MAC_ADDRESS": "MAC",
+            "SERVICE": "SVC",
+            "FIREWALL_RULE": "RULE",
+            "SUBNET": "SUBNET",
+            "PORT": "PORT",
+            "TOKEN": "TOKEN",
         }
         
         inner_tag = options.get("prefix", default_inner_tags.get(label, label.upper()))
@@ -56,71 +83,64 @@ class ReplacementSession:
         """
         Prend une liste de tuples (entity_text, label) et génère le mapping {entity_text: code}.
         Retourne: (replacements_map, mapping_dict)
+
+        La session est stateful : entity_to_code et _label_counters persistent entre
+        les appels successifs. Une entité déjà vue reçoit toujours le même token.
+        Appeler reset() pour repartir d'une session vierge.
         """
         replacements = {}
         mapping = {}
-        entity_seen = {} 
-        label_counters = {} 
 
         if not replacement_rules:
             replacement_rules = {}
 
         for entity_text, label in unique_spacy_entities:
-            if entity_text in entity_seen:
-                code = entity_seen[entity_text]
+            if entity_text in self.entity_to_code:
+                # Entité déjà vue dans cette session → réutilise le token existant
+                code = self.entity_to_code[entity_text]
             else:
-                current_label_index = label_counters.get(label, 0)
+                current_label_index = self._label_counters.get(label, 0)
                 rule = replacement_rules.get(label)
-                
+
                 if rule and isinstance(rule, dict):
-                    rule_options = rule.get("options", {}) 
+                    rule_options = rule.get("options", {})
                     rule_type = rule.get("type")
 
                     if rule_type == "redact":
-                        # Le texte de 'redact' est maintenant directement le marqueur souhaité
-                        # Ex: "{{ORGANISATION_MASQUÉE}}"
-                        code = rule_options.get("text", "{{REDACTED}}") # Marqueur par défaut pour redact
+                        code = rule_options.get("text", "{{REDACTED}}")
                     elif rule_type == "placeholder":
-                        # Le format du placeholder est maintenant directement le marqueur, potentiellement avec la valeur originale
-                        # Ex: "{{LIEU:{}}}" ou "{{DATE_CONFIDENTIELLE}}"
-                        format_str = rule_options.get("format", "{{{}}}".format(label.upper())) # Placeholder par défaut: "{{LABEL}}" ou "{{LABEL:valeur}}" si format_str inclut "{}"
+                        format_str = rule_options.get("format", "{{{}}}".format(label.upper()))
                         try:
                             code = format_str.format(entity_text)
                         except Exception as e:
-                            logger.warning( #
-                                "Erreur de formatage du placeholder pour l'entité '%s' avec le format '%s': %s. Utilisation du format simple.", #
-                                entity_text, #
-                                format_str, #
-                                e, #
+                            logger.warning(
+                                "Erreur de formatage du placeholder pour l'entité '%s' avec le format '%s': %s. Utilisation du format simple.",
+                                entity_text, format_str, e,
                             )
-                            # Fallback si le format_str est complexe et attendu pour inclure entity_text
-                            # mais que entity_text cause un souci ou si le format est juste un tag sans {}
-                            if "{}" in format_str: # Si le format attendait une valeur
+                            if "{}" in format_str:
                                 code = format_str.replace("{}", "[VALEUR_ORIGINALE_ERREUR_FORMAT]")
-                            else: # Si le format est juste un tag fixe
+                            else:
                                 code = format_str
                     elif rule_type == "codes":
                         code = self._generate_code(label, current_label_index, rule_options)
-                        label_counters[label] = current_label_index + 1 
+                        self._label_counters[label] = current_label_index + 1
                     elif rule_type == "faker":
-                        # L'implémentation de Faker devrait aussi générer des chaînes au format {{TAG:ValeurFake}}
-                        # ou simplement la valeur Fake si le but n'est pas d'indiquer que c'est un remplacement.
-                        # Pour l'instant, on garde un marqueur clair.
-                        provider = rule_options.get("provider", label.lower()) # ex: "name", "address"
-                        code = f"{{{{FAKER_{provider.upper()}}}}}" # Placeholder simple
+                        provider = rule_options.get("provider", label.lower())
+                        code = f"{{{{FAKER_{provider.upper()}}}}}"
                     else:
-                        logger.warning( #
-                            "Type de règle '%s' inconnu pour label '%s'. Utilisation de la génération de code par défaut.", #
-                            rule_type, #
-                            label, #
+                        logger.warning(
+                            "Type de règle '%s' inconnu pour label '%s'. Utilisation de la génération de code par défaut.",
+                            rule_type, label,
                         )
-                        code = self._generate_code(label, current_label_index, rule_options) # Utilise rule_options si dispo
-                        label_counters[label] = current_label_index + 1
-                else: # Pas de règle spécifique ou règle malformée
-                    code = self._generate_code(label, current_label_index) # Utilise les options par défaut de _generate_code
-                    label_counters[label] = current_label_index + 1
-                
-                entity_seen[entity_text] = code
+                        code = self._generate_code(label, current_label_index, rule_options)
+                        self._label_counters[label] = current_label_index + 1
+                else:
+                    code = self._generate_code(label, current_label_index)
+                    self._label_counters[label] = current_label_index + 1
+
+                # Enregistrement dans la session
+                self.entity_to_code[entity_text] = code
+                self.code_to_entity[code] = entity_text
 
             replacements[entity_text] = code
             mapping[entity_text] = code
