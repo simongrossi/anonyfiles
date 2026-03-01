@@ -57,6 +57,11 @@ class AnonyfilesEngine:
             else:
                 self.entities_exclude.add(label)
 
+        # Labels supplémentaires (ex: entités AnonyNER cyber) injectés directement
+        # sans passer par les clés GUI. Format: ["IP_ADDRESS", "CVE", "HOSTNAME", ...]
+        for label in self.config.get("extra_labels", []):
+            self.enabled_labels.add(label)
+
         if exclude_entities_cli:
             for e_list in exclude_entities_cli:
                  for e in e_list.split(","):
