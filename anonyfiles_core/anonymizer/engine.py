@@ -1,10 +1,20 @@
 # anonyfiles_cli/anonymizer/engine.py
 
 import csv
+import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
 import logging
 import asyncio
+
+# Remplace les tokens {{...}} par des espaces de même longueur avant passage au NER.
+# Évite que les accolades produites par les custom rules créent des faux positifs NER.
+_CUSTOM_TOKEN_RE = re.compile(r'\{\{[^{}]+\}\}')
+
+
+def _sanitize_for_ner(text: str) -> str:
+    """Remplace {{TOKEN}} par des espaces de même longueur — préserve les offsets."""
+    return _CUSTOM_TOKEN_RE.sub(lambda m: ' ' * len(m.group()), text)
 
 from .spacy_engine import SpaCyEngine
 from .replacer import ReplacementSession
@@ -159,7 +169,11 @@ class AnonyfilesEngine:
             }
 
         # 2. Détection des entités spaCy et regex
-        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
+        # Sanitisation : les tokens {{...}} sont remplacés par des espaces de même longueur
+        # pour éviter que le NER classifie des spans adjacents comme faux positifs.
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks(
+            [_sanitize_for_ner(b) for b in blocks_after_custom_rules]
+        )
         logger.debug(
             "DEBUG (Engine): Entités spaCy uniques (après détection et filtres) à traiter : %s",
             len(unique_spacy_entities),
@@ -184,7 +198,7 @@ class AnonyfilesEngine:
             unique_spacy_entities, spacy_entities_per_block_with_offsets
         )
 
-        # 4. Application des remplacements spaCy positionnels
+        # 4. Application des remplacements spaCy positionnels (sur texte original non sanitisé)
         truly_final_blocks_for_processor: List[str] = []
         for i, block_text_after_custom in enumerate(blocks_after_custom_rules):
             entities_in_this_block_to_replace = spacy_entities_per_block_with_offsets[i]
@@ -309,7 +323,9 @@ class AnonyfilesEngine:
                 "total_replacements": self.audit_logger.total(),
             }
 
-        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks(
+            [_sanitize_for_ner(b) for b in blocks_after_custom_rules]
+        )
         logger.debug(
             "DEBUG (Engine): Entités spaCy uniques (après détection et filtres) à traiter : %s",
             len(unique_spacy_entities),
@@ -422,7 +438,11 @@ class AnonyfilesEngine:
             }
 
         # 2. Détection des entités spaCy et regex
-        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks([block_after_custom_rules])
+        # Sanitisation préalable : les tokens {{...}} produits par les custom rules
+        # sont remplacés par des espaces de même longueur avant le NER.
+        # Cela évite que les accolades créent de faux positifs sur les spans adjacents.
+        # Les offsets retournés sont valides dans block_after_custom_rules (même longueur).
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = self.ner_processor.detect_entities_in_blocks([_sanitize_for_ner(block_after_custom_rules)])
 
         if not unique_spacy_entities and self.custom_rules_processor.get_custom_replacements_count() == 0:
             return block_after_custom_rules, {
@@ -437,7 +457,8 @@ class AnonyfilesEngine:
             unique_spacy_entities, spacy_entities_per_block_with_offsets
         )
 
-        # 4. Application des remplacements spaCy positionnels
+        # 4. Application des remplacements spaCy positionnels sur le texte original
+        # (non sanitisé — les tokens {{...}} sont préservés dans la sortie)
         final_text = apply_positional_replacements(
             block_after_custom_rules,
             replacements_map_spacy,
