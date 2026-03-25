@@ -1,5 +1,6 @@
 # anonyfiles_cli/anonymizer/engine.py
 
+import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import logging
@@ -7,8 +8,6 @@ import logging
 from .spacy_engine import SpaCyEngine
 from .utils import apply_positional_replacements
 from .audit import AuditLogger
-
-# Import des nouveaux modules
 from .custom_rules_processor import CustomRulesProcessor
 from .ner_processor import NERProcessor
 from .file_processor_factory import FileProcessorFactory
@@ -16,6 +15,15 @@ from .replacement_generator import ReplacementGenerator
 from .writer import AnonymizedFileWriter
 
 logger = logging.getLogger(__name__)
+
+# Remplace les tokens {{...}} par des espaces de même longueur avant passage au NER.
+# Évite que les accolades produites par les custom rules créent des faux positifs NER.
+_CUSTOM_TOKEN_RE = re.compile(r'\{\{[^{}]+\}\}')
+
+
+def _sanitize_for_ner(text: str) -> str:
+    """Remplace {{TOKEN}} par des espaces de même longueur — préserve les offsets."""
+    return _CUSTOM_TOKEN_RE.sub(lambda m: ' ' * len(m.group()), text)
 
 
 class AnonyfilesEngine:
@@ -118,8 +126,13 @@ class AnonyfilesEngine:
             }
 
         # 2. Détection des entités spaCy et regex
+        # Sanitisation : les tokens {{...}} sont remplacés par des espaces de même longueur
+        # pour éviter que les accolades créent des faux positifs NER sur les spans adjacents.
+        # Les offsets retournés restent valides dans blocks_after_custom_rules (même longueur).
         unique_spacy_entities, spacy_entities_per_block_with_offsets = (
-            self.ner_processor.detect_entities_in_blocks(blocks_after_custom_rules)
+            self.ner_processor.detect_entities_in_blocks(
+                [_sanitize_for_ner(b) for b in blocks_after_custom_rules]
+            )
         )
         logger.debug(
             "DEBUG (Engine): Entités spaCy uniques détectées : %s",
