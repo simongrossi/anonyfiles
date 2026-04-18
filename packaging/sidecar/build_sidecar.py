@@ -22,6 +22,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Force UTF-8 stdout so non-ASCII log lines don't crash on Windows cp1252.
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DIST_DIR = REPO_ROOT / "packaging" / "sidecar" / "dist"
@@ -128,7 +135,7 @@ def build(model: str, clean: bool) -> Path:
         "unittest",
         str(ENTRY),
     ]
-    print("→", " ".join(cmd), flush=True)
+    print("->", " ".join(cmd), flush=True)
     subprocess.check_call(cmd, cwd=REPO_ROOT)
 
     produced_dir = DIST_DIR / base_name
@@ -158,7 +165,7 @@ def build(model: str, clean: bool) -> Path:
     if exe_path.exists() and os.name != "nt":
         exe_path.chmod(0o755)
 
-    print(f"✅ Sidecar ({model}) écrit dans {final_dir}")
+    print(f"[OK] Sidecar ({model}) ecrit dans {final_dir}")
     return final_dir
 
 
@@ -183,7 +190,7 @@ def main() -> None:
         try:
             print(f"Cible (info): {rust_triple()}")
         except RuntimeError as exc:
-            print(f"(rustc non détecté: {exc})")
+            print(f"(rustc non detecte: {exc})")
 
     build(model=args.model, clean=args.clean)
 
