@@ -22,7 +22,7 @@ Et comme je suis curieux et passionné, je me suis dit : autant en profiter pour
 * **`anonyfiles_cli`** : outil en ligne de commande s’appuyant sur `anonyfiles_core` pour traiter les fichiers localement.
 * **`anonyfiles_api`** : API REST (FastAPI) qui utilise également `anonyfiles_core` afin d’exposer les mêmes fonctionnalités à distance.
 
-La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API pour offrir une interface graphique.
+La GUI Tauri 2 (dans `anonyfiles_gui`) parle HTTP à l'API. En mode desktop autonome, elle embarque l'API comme **sidecar PyInstaller** et la spawne automatiquement au démarrage (rien à lancer à la main).
 
 ## 🚀 Fonctionnalités principales
 
@@ -67,15 +67,7 @@ Ce document décrit le chemin complet d'une requête depuis le client jusqu'au s
 - **anonyfiles_core** : moteur d'anonymisation commun.
 - **anonyfiles_cli** : outil en ligne de commande utilisant `anonyfiles_core`.
 - **anonyfiles_api** : API FastAPI qui réutilise également `anonyfiles_core`.
-- **anonyfiles_gui** : interface graphique Tauri qui s'appuie sur la CLI.
-
-Extrait du `README.md` montrant cette organisation :
-
-```text
-* `anonyfiles_cli` : outil en ligne de commande s’appuyant sur `anonyfiles_core` pour traiter les fichiers localement.
-* `anonyfiles_api` : API REST (FastAPI) qui utilise également `anonyfiles_core` afin d’exposer les mêmes fonctionnalités à distance.
-La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API pour offrir une interface graphique.
-```
+- **anonyfiles_gui** : interface graphique Tauri 2 qui parle HTTP à l'API. En mode desktop autonome, l'API est embarquée comme sidecar PyInstaller ; sur déploiement serveur (Docker, Railway), c'est un `uvicorn` classique.
 
 ## Flux complet d'une requête d'anonymisation
 
@@ -116,11 +108,12 @@ graph TD
 
     CLI["anonyfiles_cli"] -->|utilise| CORE
     API["anonyfiles_api"] -->|utilise| CORE
-    GUI["anonyfiles_gui"] -->|appelle la CLI| CLI
-    GUI -. optionnel .-> API
+    GUI["anonyfiles_gui"] -->|HTTP| API
+    SIDECAR["anonyfiles-api<br/>sidecar PyInstaller"] -.->|embarque| API
+    GUI -.->|desktop autonome| SIDECAR
 ```
 
-La CLI et l’API partagent le même moteur (`anonyfiles_core`). La GUI interagit principalement avec la CLI pour réaliser l’anonymisation localement mais peut aussi appeler l’API si un serveur distant est disponible.
+La CLI et l'API partagent le même moteur (`anonyfiles_core`). La GUI parle HTTP à l'API en toutes circonstances : en desktop autonome elle spawne le sidecar PyInstaller au démarrage, en mode web elle pointe vers l'API servie par Docker / nginx.
 
 
 ### Utilisation commune du cœur
@@ -163,6 +156,24 @@ docker build -t anonyfiles . && docker run -p 8000:8000 anonyfiles
 ```
 Une fois lancé :
 👉 Ouvrez **[http://localhost:8000/docs](http://localhost:8000/docs)** pour tester l'API via l'interface interactive Swagger.
+
+### 🖥️ Application desktop autonome
+
+Pour produire une app macOS / Windows / Linux qui contient tout (GUI + API + modèle spaCy), sans dépendance externe :
+
+```bash
+make desktop
+```
+
+Cela enchaîne :
+
+1. `make env-pkg` — venv dédié avec `anonyfiles[packaging]` (PyInstaller) + modèle `fr_core_news_md`.
+2. `python packaging/sidecar/build_sidecar.py` — PyInstaller produit `anonyfiles-api-<triple>` dans `anonyfiles_gui/src-tauri/binaries/`.
+3. `cd anonyfiles_gui && npm install && npm run tauri build` — bundle Tauri qui embarque le sidecar.
+
+Sorties dans `anonyfiles_gui/src-tauri/target/release/bundle/` : `.app` + `.dmg` (macOS), `.msi` + `.exe` (Windows), `.AppImage` + `.deb` (Linux). Taille ~400 Mo à cause du modèle spaCy.
+
+La CI `desktop-build.yml` produit ces artifacts automatiquement sur tag `v*` pour les 4 cibles (macOS ARM, macOS Intel, Windows, Linux).
 
 ---
 

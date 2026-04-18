@@ -111,7 +111,12 @@ origins = (
     else []
 )
 if not origins:
-    origins = ["http://localhost:3000", "tauri://localhost"]  # Restrictif par défaut
+    origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "tauri://localhost",
+        "http://tauri.localhost",
+    ]  # Restrictif par défaut
 
 app.add_middleware(
     CORSMiddleware,

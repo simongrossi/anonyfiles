@@ -16,6 +16,7 @@
   } from '../stores/anonymizationStore';
   import { customReplacementRules } from '../stores/customRulesStore';
   import { runAnonymization } from '../utils/anonymize';
+  import { debug, debugError } from '../utils/api';
   import {
     fileType,
     fileName,
@@ -94,7 +95,7 @@
         customReplacementRules: get(customReplacementRules)
       });
     } catch (e) {
-      console.error("Erreur dans anonymisation:", e);
+      debugError("Erreur dans anonymisation:", e);
       // errorMessage.set(e.message || 'Une erreur inattendue est survenue.');
     }
   }
@@ -130,7 +131,7 @@
         resetAll();
       }
     } else {
-      console.warn("Tentative de suppression sans currentJobId");
+      debug("Tentative de suppression sans currentJobId");
     }
   }
 </script>

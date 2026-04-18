@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { open } from '@tauri-apps/api/dialog';
+  import { open } from '@tauri-apps/plugin-dialog';
   export let exportDir: string;
   export let onDirChange: (dir: string) => void;
 

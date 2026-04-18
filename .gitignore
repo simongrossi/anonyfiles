@@ -63,3 +63,14 @@ full_commits.txt
 *.egg-info/
 /anonyfiles_outputs
 sync.ffs_db
+
+# Desktop packaging (sidecar)
+/env-pkg
+/packaging/sidecar/build/
+/packaging/sidecar/dist/
+/packaging/sidecar/*.spec
+/anonyfiles_gui/src-tauri/sidecar/anonyfiles-api/
+/anonyfiles_gui/src-tauri/jobs/
+
+# Claude Code local state
+/.claude/

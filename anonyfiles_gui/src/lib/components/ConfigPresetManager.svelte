@@ -1,15 +1,12 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { open, save } from '@tauri-apps/api/dialog';
-  import { readTextFile, writeFile } from '@tauri-apps/api/fs';
-  import { invoke } from '@tauri-apps/api/tauri';
+  import { open, save } from '@tauri-apps/plugin-dialog';
+  import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+  import { invoke } from '@tauri-apps/api/core';
   import { parse, stringify } from 'yaml';
+  import { debugError } from '$lib/utils/api';
+  import { isTauri } from '$lib/utils/runtime';
 
   let status: string | null = null;
-
-  function isTauri(): boolean {
-    return typeof window !== 'undefined' && typeof (window as any).__TAURI_IPC__ === 'function';
-  }
 
   async function exportConfig() {
     if (!isTauri()) return;
@@ -18,11 +15,11 @@
       const yaml = stringify(config);
       const filePath = await save({ filters: [{ name: 'YAML', extensions: ['yaml', 'yml'] }] });
       if (filePath) {
-        await writeFile({ path: filePath as string, contents: yaml });
+        await writeTextFile(filePath as string, yaml);
         status = '✅ Configuration exportée';
       }
     } catch (e) {
-      console.error(e);
+      debugError(e);
       status = 'Erreur lors de l\'export';
     }
   }
@@ -38,7 +35,7 @@
         status = '✅ Configuration importée';
       }
     } catch (e) {
-      console.error(e);
+      debugError(e);
       status = 'Erreur lors de l\'import';
     }
   }

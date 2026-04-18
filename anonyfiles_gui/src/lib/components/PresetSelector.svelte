@@ -2,6 +2,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { customReplacementRules } from '$lib/stores/customRulesStore';
+  import { debugError } from '$lib/utils/api';
+  import { isTauri } from '$lib/utils/runtime';
 
   let presets: string[] = [];
   let selectedPreset: string | null = null;
@@ -10,40 +12,36 @@
   let error: string | null = null;
   let successMessage: string | null = null;
 
-  function isTauriEnvironment(): boolean {
-    return typeof window !== 'undefined' && typeof (window as any).__TAURI_IPC__ === 'function';
-  }
-
   onMount(async () => {
-    if (!isTauriEnvironment()) {
+    if (!isTauri()) {
       error = "Fonctionnalité disponible uniquement en version bureau (Tauri)";
       return;
     }
 
     loading = true;
     try {
-      const { invoke } = await import('@tauri-apps/api/tauri');
+      const { invoke } = await import('@tauri-apps/api/core');
       presets = await invoke<string[]>('list_presets');
     } catch (err) {
       error = 'Erreur lors du chargement des presets';
-      console.error(err);
+      debugError(err);
     } finally {
       loading = false;
     }
   });
 
   async function applyPreset(preset: string | null) {
-    if (!preset || !isTauriEnvironment()) return;
+    if (!preset || !isTauri()) return;
 
     selectedPreset = preset;
     successMessage = null;
     try {
-      const { readTextFile } = await import('@tauri-apps/api/fs');
+      const { readTextFile } = await import('@tauri-apps/plugin-fs');
       const { join } = await import('@tauri-apps/api/path');
       const presetPath = await join('public', 'wordlist_presets', preset);
       presetContent = await readTextFile(presetPath);
     } catch (err) {
-      console.error('Erreur lors du chargement du preset :', err);
+      debugError('Erreur lors du chargement du preset :', err);
       presetContent = null;
     }
   }
@@ -57,7 +55,7 @@
         successMessage = `✅ ${parsed.length} règle(s) ajoutée(s) depuis le preset.`;
       }
     } catch (err) {
-      console.error('Erreur lors de l’injection du preset :', err);
+      debugError('Erreur lors de l’injection du preset :', err);
     }
   }
 

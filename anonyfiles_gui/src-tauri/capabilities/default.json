@@ -5,8 +5,10 @@
   "windows": [
     "main"
   ],
- "permissions": [
-  "core:default",
-  "log:default"
-]
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "fs:default",
+    "clipboard-manager:default"
+  ]
 }

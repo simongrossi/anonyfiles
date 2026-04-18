@@ -24,24 +24,23 @@ fonctionnalités que la CLI mais via des endpoints REST.
 
 - Python 3.11+
 - [pip](https://pip.pypa.io/)
-- Dépendances listées dans `requirements.txt` (racine du projet ou local)
+- Modèle spaCy `fr_core_news_md`
 
 ---
 
 ## ⚡ Installation
 
-Depuis la racine du projet :
+Le projet utilise `pyproject.toml` comme source unique de dépendances. Depuis la racine du repo :
 
 ```bash
-cd anonyfiles_api
-pip install -r ../requirements.txt
+pip install -e .
+python -m spacy download fr_core_news_md
 ```
 
-Ou installation indépendante :
+Extras disponibles :
 
-```bash
-pip install -r requirements.txt  # installe également anonyfiles_core
-```
+- `pip install -e ".[dev]"` — pytest, ruff, black, bandit, safety, pip-audit
+- `pip install -e ".[packaging]"` — PyInstaller (pour builder l'API comme sidecar desktop)
 
 ---
 
@@ -51,12 +50,23 @@ pip install -r requirements.txt  # installe également anonyfiles_core
 uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Sous Windows (si les imports échouent) :
+Ou via le module standalone (même entry point que le sidecar desktop) :
 
-```dos
-pip install -e .
-uvicorn anonyfiles_api.api:app --reload --host 0.0.0.0 --port 8000
+```bash
+python -m anonyfiles_api --host 127.0.0.1 --port 8000
 ```
+
+## 📦 Modes de déploiement
+
+Cette API est lancée de 3 manières selon le contexte, mais **le code est identique** :
+
+| Mode | Lancement | Docs |
+|---|---|---|
+| Serveur (Docker, Railway, systemd) | `uvicorn anonyfiles_api.api:app` | [`../deploy/README.md`](../deploy/README.md) |
+| Web (via docker-compose) | nginx → uvicorn dans le même compose | [`../guide_installation_anonyfiles.md`](../guide_installation_anonyfiles.md) |
+| Desktop autonome | binaire PyInstaller spawné par Tauri | [`../anonyfiles_architecture.md`](../anonyfiles_architecture.md) |
+
+Le entry point PyInstaller est [`anonyfiles_api/__main__.py`](__main__.py), qui parse `--host`/`--port` et lance `uvicorn.run(app, ...)`.
 
 ---
 

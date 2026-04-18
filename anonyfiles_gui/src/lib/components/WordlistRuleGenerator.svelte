@@ -1,10 +1,11 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/WordlistRuleGenerator.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/tauri';
+  import { invoke } from '@tauri-apps/api/core';
   import { customReplacementRules } from '$lib/stores/customRulesStore';
   import { v4 as uuidv4 } from 'uuid';
   import { get } from 'svelte/store';
+  import { debugError } from '$lib/utils/api';
 
   let prefix = 'WORD_';
   let fixedReplacement = '';
@@ -20,7 +21,7 @@
     try {
       availablePresets = await invoke('list_presets');
     } catch (error) {
-      console.error('Erreur lors du chargement des presets:', error);
+      debugError('Erreur lors du chargement des presets:', error);
     }
   });
 
@@ -46,7 +47,7 @@
         fileContent = json.filter(Boolean);
         uploadedFileName = selectedPreset;
       } catch (error) {
-        console.error(`Erreur chargement du preset ${selectedPreset}:`, error);
+        debugError(`Erreur chargement du preset ${selectedPreset}:`, error);
       }
     }
   }

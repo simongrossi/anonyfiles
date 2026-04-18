@@ -1,5 +1,6 @@
 # anonyfiles_api/core_config.py
 import logging
+import os
 import sys
 import yaml
 from pathlib import Path
@@ -34,7 +35,22 @@ CONFIG_TEMPLATE_PATH = (
     / "config"
     / "config.yaml"
 )
-JOBS_DIR = Path("jobs")
+def _resolve_jobs_dir() -> Path:
+    """Résout le dossier jobs.
+
+    Priorité :
+    1. `ANONYFILES_JOBS_DIR` (le shell natif Tauri le pointe vers un dossier
+       utilisateur écrivable en desktop mode, et Docker peut aussi le surcharger).
+    2. `./jobs` relatif au CWD (comportement historique pour uvicorn lancé
+       depuis la racine du repo ou un conteneur).
+    """
+    env_value = os.environ.get("ANONYFILES_JOBS_DIR")
+    if env_value:
+        return Path(env_value).expanduser().resolve()
+    return Path("jobs")
+
+
+JOBS_DIR = _resolve_jobs_dir()
 BASE_INPUT_STEM_FOR_JOB_FILES = "input"
 DEFAULT_RATE_LIMIT = "100/minute"
 

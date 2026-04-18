@@ -6,6 +6,58 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [1.4.2] – 2026-04-18
+
+### Corrigé
+- **Desktop macOS : `.app` qui ne lançait pas le sidecar depuis Finder** (timeout `API not ready after 60000ms: TypeError: Load failed`). Trois causes conjuguées :
+  1. **Signature ad-hoc corrompue** par les fichiers `.DS_Store` créés par Finder dans le dossier `sidecar/` au moindre browse, et par le fait que Tauri ne re-signe pas le bundle après insertion des resources. Fix : post-build hook (`codesign --force --deep --sign -`) dans le `Makefile` et le workflow CI. Le script `build_sidecar.py` supprime aussi les `.DS_Store` avant copie.
+  2. **`JOBS_DIR = Path("jobs")` relatif au CWD** : quand le `.app` est lancé depuis Finder, le CWD est `/` (read-only). Le sidecar crashait sur `OSError: [Errno 30] Read-only file system: 'jobs'`. Fix : `core_config.py` lit désormais `ANONYFILES_JOBS_DIR` en priorité, et `main.rs` injecte cette variable pointant vers `app.path().app_data_dir() + "/jobs"` (≈ `~/Library/Application Support/io.anonyfiles.gui/jobs` sur macOS) avant de spawner le sidecar.
+  3. L'échec silencieux de ces deux points empêchait tout process enfant d'apparaître — le frontend n'avait aucun /api/health à joindre.
+
+### Vérifié
+- End-to-end via `open anonyfiles_gui.app` (équivalent double-clic Finder) : port détecté en 2 s, `/api/health 200 OK`, round-trip anonymisation complet, `jobs/` créé dans le user data dir.
+
+## [1.4.1] – 2026-04-18
+
+### Optimisé
+- **Démarrage desktop × 12 plus rapide** : PyInstaller bascule de `--onefile` vers `--onedir`. L'extraction de 120 Mo vers `/tmp` à chaque lancement est éliminée. Temps mesurés sur macOS Apple Silicon (warm start) :
+  - Avant (onefile) : /api/health ~12 s
+  - Après (onedir) : /api/health ~1 s, cycle anonymisation complet (spaCy inclus) ~3 s
+  Premier lancement après installation reste plus long (~30-50 s) à cause du scan Gatekeeper sur les fichiers non signés.
+- **Bundle sidecar allégé** : exclusion explicite de `textual`, `rich`, `IPython`, `matplotlib`, `pytest`, `tkinter` (non utilisés côté API). Gain ~15-20 Mo sur le bundle.
+- **Option `MODEL` pour le bundle** : `make sidecar MODEL=sm` (ou `make desktop MODEL=sm`) bundle `fr_core_news_sm` (15 Mo) au lieu de `md` (45 Mo). Précision moindre sur noms rares mais chargement encore plus rapide. Défaut `md` inchangé.
+
+### Modifié
+- **Tauri `externalBin` → `bundle.resources`** : le sidecar est désormais distribué sous forme de dossier (`src-tauri/sidecar/anonyfiles-api/`) via le système de resources de Tauri 2. Nécessité imposée par le passage à `--onedir`. Le code Rust résout le chemin via `app.path().resolve(..., BaseDirectory::Resource)` et lance le binaire via `tauri_plugin_shell`.
+- **Cleanup explicite du sidecar** : `main.rs` tracke le `CommandChild` dans `Mutex<Option>>` et le `kill()` sur `WindowEvent::CloseRequested` + `RunEvent::ExitRequested` pour éviter tout zombie.
+- **Capability `shell:allow-execute` retirée** : le sidecar est spawné depuis Rust (setup hook), pas depuis le frontend. Pas besoin de permission côté JS.
+
+## [1.4.0] – 2026-04-18
+
+### Ajouté
+- **Desktop autonome** : l'app Tauri embarque désormais l'API FastAPI via un sidecar PyInstaller (`packaging/sidecar/build_sidecar.py`). Le `.app` / `.exe` / `.AppImage` est self-contained — plus besoin de lancer `uvicorn` manuellement.
+- **Cibles Makefile** : `make env-pkg`, `make sidecar`, `make desktop` pour builder le bundle desktop en local.
+- **CI desktop** : nouveau workflow `.github/workflows/desktop-build.yml` produit des artifacts macOS (ARM+Intel), Windows, Linux sur tag `v*`.
+- **Entry point API standalone** : `anonyfiles_api/__main__.py` (`python -m anonyfiles_api --port N`) utilisé par le sidecar.
+- **Extras packaging** : `pyproject.toml` expose `[packaging]` (PyInstaller) à côté de `[dev]`.
+- **Overlay cold-start** : la GUI affiche « Démarrage du moteur NER… » tant que `/api/health` ne répond pas, pour couvrir les ~15-25 s de chargement spaCy au 1er lancement du sidecar.
+
+### Modifié
+- **Tauri 1.6 → Tauri 2** : migration complète (Cargo.toml, tauri.conf.json au nouveau schéma, capabilities scopées, API JS `@tauri-apps/api@2` + plugins `dialog` / `fs` / `clipboard-manager` / `shell`).
+- **Découverte de port dynamique** : `main.rs` choisit un port libre via `portpicker` au démarrage et l'expose au frontend via la commande Tauri `get_api_port`. La GUI résout `API_BASE` en async au runtime (via `getApiBase()` dans `src/lib/utils/api.ts`).
+- **CORS backend** : ajout de `http://tauri.localhost` et `http://localhost:5173` aux origines par défaut.
+- **GUI centralisée** : nouveau `src/lib/utils/api.ts` exporte `apiUrl()`, `pollJob()`, `waitForApiReady()`, `debug()`. Tous les call sites passent par là au lieu d'ad-hoc `fetch`.
+
+### Corrigé
+- **GUI / désanonymisation** : URL de polling cassée (template literal contenant du HTML parasite de rendu mathématique dans `src/lib/utils/deanonymize.ts`) et double préfixe `/api/api/` dans `DeAnonymizer.svelte`.
+- **GUI / logique Tauri inversée** : `if (isTauri()) throw new Error("Tauri non supporté en mode web")` produisait un crash immédiat en desktop. Retiré.
+- **GUI / polling infini** : `while (true)` remplacé par `pollJob()` avec timeout (5 min), backoff exponentiel et respect de `Retry-After` sur HTTP 429.
+- **GUI / console.log en prod** : tous les `console.log` / `console.error` gatés derrière `import.meta.env.DEV` (helper `debug()` / `debugError()`).
+- **Rust / bug latent** : `main.rs` faisait `mod presets;` alors que le fichier s'appelait `preset.rs`. Compilation Tauri jamais passée côté desktop. Renommé en `presets.rs`.
+- **API / config.yaml sous PyInstaller** : le bundle sidecar embarque désormais `anonyfiles_core/config/` (warning `Fichier de configuration YAML non trouvé` éliminé).
+- **Code mort supprimé** : `anonyfiles_gui/src/lib/utils/anonyfilesBackend.ts` (jamais importé) et la fonction scaffold `submitAnonymizationRequest` dans `CustomRulesManager.svelte`.
+- **.env.example** : réaligné sur `VITE_ANONYFILES_API_URL` (seule variable effectivement lue par le code).
+
 ## [1.3.0] – 2026-01-16
 
 ### Ajouté

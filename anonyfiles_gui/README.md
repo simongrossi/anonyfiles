@@ -20,31 +20,46 @@ développée en Svelte, Rust et Tauri pour une expérience utilisateur moderne e
 
 ## 🛠️ Prérequis & Installation
 
-- [Node.js](https://nodejs.org/)  
-- [Rust](https://www.rust-lang.org/tools/install)  
-- [Tauri CLI](https://tauri.app/v1/guides/getting-started/prerequisites/)  
-- [Python 3.9+](https://www.python.org/downloads/) avec le projet [anonyfiles_cli](https://github.com/simongrossi/anonyfiles) installé et accessible dans le `PATH`  
+- [Node.js 20+](https://nodejs.org/) & npm
+- [Rust stable](https://www.rust-lang.org/tools/install) & Cargo
+- Python 3.11+ (pour builder le sidecar qui embarque l'API)
+
+Deux scénarios d'installation, à choisir selon ce que tu veux faire :
+
+### Lancement en dev (Tauri dev)
+
+Le build du sidecar est un préalable une fois, puis `npm run tauri dev` utilise le binaire produit :
 
 ```sh
+# depuis la racine du repo
+make sidecar                  # produit anonyfiles-api-<triple> dans src-tauri/binaries/
 cd anonyfiles_gui
 npm install
-npm run tauri dev
+npm run tauri dev             # ouvre la fenêtre, spawne le sidecar au démarrage
 ```
+
+Alternative : lancer un `uvicorn` externe sur le port 8000 et pointer la GUI vers lui via `VITE_ANONYFILES_API_URL=http://127.0.0.1:8000`. Plus rapide pour itérer sur l'API sans rebuilder le sidecar à chaque fois.
+
+### Application autonome distribuable
+
+Depuis la racine du repo :
+
+```sh
+make desktop
+```
+
+Produit un `.app` / `.dmg` / `.msi` / `.exe` / `.AppImage` / `.deb` dans `src-tauri/target/release/bundle/` selon la plateforme. Voir [`guide_installation_anonyfiles.md`](../guide_installation_anonyfiles.md#-application-desktop-autonome) pour les détails.
 
 ---
 
 ## 💡 Utilisation
 
-Lancez l’application :
+- Glissez-déposez un fichier texte (.txt, .csv) ou collez du texte brut dans la zone dédiée
+- Sélectionnez les entités à anonymiser selon vos besoins
+- Cliquez sur "Anonymiser"
+- Copiez ou enregistrez le texte anonymisé
 
-```sh
-npm run tauri dev
-```
-
-- Glissez-déposez un fichier texte (.txt, .csv) ou collez du texte brut dans la zone dédiée  
-- Sélectionnez les entités à anonymiser selon vos besoins  
-- Cliquez sur "Anonymiser"  
-- Copiez ou enregistrez le texte anonymisé  
+Au tout premier lancement, un overlay « Démarrage du moteur NER… » reste affiché ~15-25 s pendant le chargement du modèle spaCy par le sidecar.
 
 ---
 
@@ -54,10 +69,15 @@ npm run tauri dev
 
 ---
 
-## 🤖 Intégration avec le CLI
+## 🤖 Architecture
 
-La GUI exploite le moteur Python (`anonyfiles_cli`) via une commande Rust/Tauri.  
-Veillez à ce que `anonyfiles_cli` (et Python) soit installé et accessible dans votre environnement système (`PATH`).
+La GUI (Svelte + TypeScript) ne contient aucun code NLP. Toute l'anonymisation passe par HTTP vers l'API FastAPI (`anonyfiles_api`), exactement comme la version web.
+
+En mode **desktop**, Tauri (`src-tauri/src/main.rs`) spawne le sidecar `anonyfiles-api-<triple>` (binaire PyInstaller contenant FastAPI + uvicorn + spaCy + modèle FR) sur un port libre choisi aléatoirement, puis expose ce port au frontend via la commande Tauri `get_api_port`. Le sidecar est tué automatiquement à la fermeture de la fenêtre.
+
+En mode **web**, la GUI (servie par nginx dans le compose Docker) pointe vers l'API distante définie par `VITE_ANONYFILES_API_URL`.
+
+Voir [`src-tauri/README.md`](src-tauri/README.md) pour le détail Rust et [`anonyfiles_architecture.md`](../anonyfiles_architecture.md) pour la vue d'ensemble.
 
 ---
 

@@ -23,7 +23,7 @@ Le projet est organisé en quatre composantes principales :
    Serveur FastAPI exposant le Core via HTTP de manière **asynchrone**.
 
 4. **`anonyfiles_gui` (Desktop)**  
-   Application Tauri (Rust + Svelte) pilotant le CLI en Sidecar.
+   Application Tauri 2 (Rust + Svelte) qui embarque l'API FastAPI en **sidecar** (binaire PyInstaller). Le frontend parle HTTP à `127.0.0.1:<port-aléatoire>` exactement comme le fait le mode web — un seul contrat d'API pour les 3 modes de déploiement.
 
 ---
 
@@ -32,18 +32,20 @@ Le projet est organisé en quatre composantes principales :
 ```mermaid
 graph TD
     subgraph Python
-        CORE[anonyfiles_core<br>(Moteur NLP & Logique)]
-        CLI[anonyfiles_cli<br>(Interface CLI)]
-        API[anonyfiles_api<br>(FastAPI REST)]
+        CORE[anonyfiles_core<br>Moteur NLP & Logique]
+        CLI[anonyfiles_cli<br>Interface CLI]
+        API[anonyfiles_api<br>FastAPI REST]
     end
 
     subgraph Desktop
-        GUI[anonyfiles_gui<br>(Rust + Svelte)]
+        GUI[anonyfiles_gui<br>Rust + Svelte]
+        SIDECAR[anonyfiles-api<br>PyInstaller bundle]
     end
 
     CLI -->|Importe| CORE
     API -->|Importe| CORE
-    GUI -->|Exécute| CLI
+    GUI -->|HTTP 127.0.0.1:PORT| SIDECAR
+    SIDECAR -.->|embarque| API
 ```
 
 ---
@@ -104,12 +106,28 @@ Avantages :
 
 Construite avec :
 
-- **Frontend** → Svelte
-- **Backend** → Rust (Tauri)
+- **Frontend** → Svelte + TypeScript
+- **Shell natif** → Rust (Tauri 2)
+- **Moteur NLP** → sidecar PyInstaller contenant FastAPI + uvicorn + spaCy + le modèle FR
 
-Elle **n’intègre pas Python** mais pilote la CLI comme un **Sidecar** :
+Trois modes de déploiement partagent exactement le même code API :
 
-→ Permet d’éviter la distribution d’un runtime Python
+| Mode | Comment l'API est lancée |
+|---|---|
+| Docker / PaaS | `uvicorn anonyfiles_api.api:app` (déjà en place dans Dockerfile, Procfile, nixpacks) |
+| Web | même image Docker derrière un reverse-proxy nginx |
+| Desktop autonome | binaire PyInstaller `anonyfiles-api-<triple>` spawné par Tauri au démarrage |
+
+**Cinématique desktop** :
+
+1. Au démarrage de la fenêtre, `main.rs` pioche un port TCP libre (`portpicker`)
+2. Il spawne le sidecar avec `--port N --host 127.0.0.1` via `tauri-plugin-shell`
+3. Le port est exposé au frontend par la commande Tauri `get_api_port`
+4. `src/lib/utils/api.ts` résout `API_BASE = http://127.0.0.1:N` en mode desktop, `VITE_ANONYFILES_API_URL` en mode web
+5. Pendant le cold-start (~15-25 s, chargement du modèle spaCy), un overlay bloque l'UI et `App.svelte` poll `/api/health` jusqu'à 200 OK
+6. À la fermeture, `tauri-plugin-shell` tue le sidecar proprement
+
+Le bundle final contient le binaire sidecar (~120 Mo), le modèle spaCy embarqué, et la webview système. Aucune dépendance Python / Rust requise sur la machine cible.
 
 ---
 

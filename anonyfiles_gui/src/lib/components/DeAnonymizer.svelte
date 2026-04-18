@@ -1,16 +1,16 @@
 <script lang="ts">
   import FileDropZone from './FileDropZone.svelte';
   import { onDestroy } from 'svelte';
+  import { apiUrl, pollJob, debug } from '$lib/utils/api';
 
   let inputFile: File | null = null;
   let mappingFile: File | null = null;
   let outputText: string = "";
   let isLoading: boolean = false;
   let errorMessage: string = "";
-  let report: string[] = []; // Pour les messages/avertissements
+  let report: string[] = [];
   let permissive: boolean = false;
-  let jobId: string | null = null;
-  let pollingInterval: ReturnType<typeof setInterval> | null = null;
+  let abortController: AbortController | null = null;
 
   function resetAll() {
     inputFile = null;
@@ -19,10 +19,9 @@
     errorMessage = "";
     report = [];
     isLoading = false;
-    jobId = null;
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      pollingInterval = null;
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
     }
   }
 
@@ -30,21 +29,21 @@
     const file = event.detail?.file;
     const zoneIdFromEvent = event.detail?.zoneId;
 
-    console.log(`DeAnonymizer: Fichier reçu - Zone: '${zoneIdFromEvent}', Nom:`, file?.name); // Log essentiel
+    debug(`DeAnonymizer: Fichier reçu - Zone: '${zoneIdFromEvent}', Nom:`, file?.name);
 
     if (!file) {
       if (zoneIdFromEvent === 'input-file-zone') inputFile = null;
       if (zoneIdFromEvent === 'mapping-file-zone') mappingFile = null;
       return;
     }
-    errorMessage = ""; 
+    errorMessage = "";
     if (zoneIdFromEvent === 'input-file-zone') {
       inputFile = file;
     } else if (zoneIdFromEvent === 'mapping-file-zone') {
       if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
         mappingFile = file;
       } else {
-        mappingFile = null; 
+        mappingFile = null;
         errorMessage = "Le fichier de mapping doit être un fichier .csv";
       }
     }
@@ -56,84 +55,52 @@
       isLoading = false;
       return;
     }
-    
+
     errorMessage = "";
     outputText = "";
     report = [];
     isLoading = true;
-    jobId = null; 
-    if (pollingInterval) clearInterval(pollingInterval);
+    if (abortController) abortController.abort();
+    abortController = new AbortController();
+    const signal = abortController.signal;
 
     try {
-      const API_URL = import.meta.env.VITE_ANONYFILES_API_URL || 'http://localhost:8000/api';
-      
       const formData = new FormData();
       formData.append('file', inputFile, inputFile.name);
       formData.append('mapping', mappingFile, mappingFile.name);
       formData.append('permissive', String(permissive));
 
-      const deanonymizeEndpoint = `${API_URL}/api/deanonymize/`; 
-      console.log("DeAnonymizer: Appel API:", deanonymizeEndpoint); 
+      const deanonymizeEndpoint = await apiUrl('deanonymize/');
+      debug("DeAnonymizer: Appel API:", deanonymizeEndpoint);
 
-      const response = await fetch(deanonymizeEndpoint, { method: 'POST', body: formData });
+      const response = await fetch(deanonymizeEndpoint, { method: 'POST', body: formData, signal });
       const data = await response.json();
 
       if (!response.ok) throw new Error(data?.detail || data?.error || `Erreur HTTP ${response.status}`);
-      
-      jobId = data.job_id;
+
+      const jobId = data.job_id;
       if (!jobId) throw new Error(data?.error || "job_id absent de la réponse API.");
 
-      pollingInterval = setInterval(async () => {
-        const currentJobIdForPoll = jobId; 
-        if (!currentJobIdForPoll) {
-            if(pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = null;
-            return;
-        }
-        try {
-            const statusEndpoint = `${API_URL}/api/deanonymize_status/${currentJobIdForPoll}`;
-            const statusResp = await fetch(statusEndpoint);
-            
-            if (!statusResp.ok) {
-                const errorText = await statusResp.text();
-                errorMessage = `Erreur ${statusResp.status} suivi job: ${errorText.substring(0,100)}`; // Limiter la taille
-                if (statusResp.status === 404 && pollingInterval) clearInterval(pollingInterval); // Arrêter si job non trouvé
-                return; 
-            }
-            const statusData = await statusResp.json();
+      const statusData = await pollJob<{
+        status: string;
+        deanonymized_text?: string;
+        audit_log?: string[];
+        error?: string;
+      }>(await apiUrl(`deanonymize_status/${jobId}`), { signal });
 
-            if (statusData.status === "finished") {
-              if(pollingInterval) clearInterval(pollingInterval);
-              pollingInterval = null;
-              outputText = statusData.deanonymized_text || "";
-              report = statusData.audit_log || []; 
-              isLoading = false;
-              jobId = null; 
-            } else if (statusData.status === "error") {
-              if(pollingInterval) clearInterval(pollingInterval);
-              pollingInterval = null;
-              errorMessage = statusData.error || 'Erreur traitement désanonymisation.';
-              isLoading = false;
-              jobId = null; 
-            }
-        } catch (pollError: any) {
-            errorMessage = `Erreur communication (polling): ${pollError.message.substring(0,100)}`;
-            if(pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = null;
-            isLoading = false;
-            jobId = null;
-        }
-      }, 2500);
-    } catch (e: any) {
-      errorMessage = e.message || "Erreur lancement désanonymisation.";
+      outputText = statusData.deanonymized_text || "";
+      report = statusData.audit_log || [];
       isLoading = false;
-      if (pollingInterval) clearInterval(pollingInterval);
-      jobId = null;
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        errorMessage = e.message || "Erreur lancement désanonymisation.";
+      }
+      isLoading = false;
     }
   }
 
   onDestroy(() => {
-    if (pollingInterval) clearInterval(pollingInterval);
+    if (abortController) abortController.abort();
   });
 </script>
 

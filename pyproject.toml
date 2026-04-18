@@ -52,6 +52,9 @@ dev = [
     "types-requests",
     "types-PyYAML"
 ]
+packaging = [
+    "pyinstaller>=6.0.0"
+]
 
 [project.scripts]
 anonyfiles-cli = "anonyfiles_cli.main:app"

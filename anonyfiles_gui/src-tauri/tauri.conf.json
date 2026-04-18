@@ -1,17 +1,18 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "anonyfiles_gui",
+  "version": "0.1.0",
+  "identifier": "io.anonyfiles.gui",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:5173",
-    "distDir": "../dist"
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
   },
-  "package": {
-    "productName": "anonyfiles_gui",
-    "version": "0.1.0"
-  },
-  "tauri": {
+  "app": {
     "windows": [
       {
+        "label": "main",
         "title": "anonyfiles_gui",
         "width": 900,
         "height": 1000,
@@ -19,6 +20,24 @@
         "fullscreen": false,
         "center": true
       }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "resources": [
+      "../public/presets/**/*",
+      "sidecar/**/*"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
     ]
   }
 }

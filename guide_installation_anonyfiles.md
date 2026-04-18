@@ -4,7 +4,8 @@ Anonyfiles est conçu pour être modulaire. Vous pouvez l'installer de plusieurs
 
 1. **Docker** : Pour tester l'API sans rien installer sur votre machine.
 2. **Standard (Pip)** : Pour utiliser la CLI ou développer (Python).
-3. **Interface Graphique (GUI)** : Pour une utilisation bureautique (Desktop).
+3. **Interface Graphique (GUI) en dev** : Tauri dev, depuis les sources.
+4. **Application desktop autonome** : `.app` / `.exe` / `.AppImage` self-contained (embarque l'API en sidecar).
 
 ---
 
@@ -46,13 +47,16 @@ cd anonyfiles
 
 ### 3. Installation des dépendances
 
-Vous pouvez installer le projet avec les dépendances figées (recommandé) :
+Le projet utilise `pyproject.toml` (setuptools) comme source unique de vérité pour les dépendances.
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
-(Le fichier requirements.txt à la racine installe tout le nécessaire pour le Core, la CLI et l'API).
+Extras disponibles :
+
+- `pip install -e ".[dev]"` — pytest, ruff, black, bandit, safety, pip-audit (pour les contributeurs)
+- `pip install -e ".[packaging]"` — PyInstaller (pour builder le sidecar desktop)
 
 ### 4. Téléchargement du modèle de langue (Indispensable)
 
@@ -72,35 +76,79 @@ anonyfiles-cli --help
 
 ---
 
-## 🖥️ Installation de l'Interface Graphique (GUI)
+## 🖥️ Installation de l'Interface Graphique (GUI) — mode développement
 
-L'interface graphique nécessite des outils supplémentaires pour être compilée (Rust et Node.js).
+Cette section est pour contribuer à la GUI ou la lancer en mode dev. Pour une app packagée prête à distribuer, voir la section suivante.
 
 ### Prérequis GUI
 
-- Node.js (v18+) & npm.
-- Rust & Cargo (Voir guide d'installation Rust).
-- La CLI Python doit être installée et accessible dans le PATH.
+- Node.js 20+ & npm
+- Rust stable & Cargo ([rustup](https://rustup.rs/))
+- Les dépendances Python + le modèle spaCy installés (voir installation standard ci-dessus) — la GUI va spawner l'API en sidecar, qui n'existe encore que comme venv Python à ce stade.
 
 ### Installation et Lancement
 
-Allez dans le dossier de la GUI :
-
 ```bash
 cd anonyfiles_gui
-```
-
-Installez les dépendances JavaScript :
-
-```bash
 npm install
-```
-
-Lancez l'application en mode développement :
-
-```bash
 npm run tauri dev
 ```
+
+L'app Tauri spawne elle-même le binaire sidecar au démarrage. Pour que ça marche en dev, il faut **que le sidecar ait été buildé au moins une fois** — voir section suivante. Si `src-tauri/binaries/anonyfiles-api-<votre-triple>` n'existe pas, Tauri affiche une erreur au lancement.
+
+Alternative si tu ne veux pas builder le sidecar : lance `uvicorn anonyfiles_api.api:app --port 8000` à côté et pointe `VITE_ANONYFILES_API_URL=http://127.0.0.1:8000` — la GUI détecte qu'elle tourne en web et utilise cette URL.
+
+---
+
+## 📦 Application desktop autonome
+
+Cette section produit un `.app` (macOS) / `.exe` ou `.msi` (Windows) / `.AppImage` ou `.deb` (Linux) qui contient **tout** (GUI + moteur NLP + modèle spaCy + API). L'utilisateur final n'a rien à installer.
+
+### Prérequis build
+
+- Node.js 20+, Rust stable, Python 3.11+
+- Sous Linux : `libwebkit2gtk-4.1-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, `libgtk-3-dev`, `build-essential`, `curl`, `wget`, `file` (voir `.github/workflows/desktop-build.yml` pour la liste exacte)
+
+### Build via Makefile (recommandé)
+
+```bash
+make desktop                   # modèle md (précision max, ~45 Mo de modèle)
+make desktop MODEL=sm          # modèle sm (bundle ~30 Mo plus léger)
+```
+
+Sous le capot :
+
+1. `make env-pkg` crée `env-pkg/` (venv Python 3.11+) et installe `anonyfiles[packaging]` + le modèle `fr_core_news_<MODEL>`
+2. `make sidecar` lance `python packaging/sidecar/build_sidecar.py --model $(MODEL)` qui appelle PyInstaller en mode **`--onedir`** et dépose le dossier `anonyfiles-api/` dans `anonyfiles_gui/src-tauri/sidecar/`
+3. `cd anonyfiles_gui && npm install && npm run tauri build` produit le bundle final, qui embarque le sidecar via `bundle.resources`
+
+Pour cibler un Python spécifique : `make env-pkg PYTHON=/opt/homebrew/bin/python3.12`.
+
+**Pourquoi `--onedir` et pas `--onefile` ?** onefile extrait ~120 Mo dans `/tmp` à chaque lancement (≈20-30 s de cold start). onedir décompresse une fois à l'installation et démarre ensuite en ~1 s (mesuré sur macOS Apple Silicon).
+
+### Sorties
+
+Tout dans `anonyfiles_gui/src-tauri/target/release/bundle/` :
+
+| Plateforme | Fichiers |
+|---|---|
+| macOS | `macos/anonyfiles_gui.app`, `dmg/anonyfiles_gui_<version>_<arch>.dmg` |
+| Windows | `msi/anonyfiles_gui_<version>_<arch>_en-US.msi`, `nsis/anonyfiles_gui_<version>_<arch>-setup.exe` |
+| Linux | `appimage/anonyfiles_gui_<version>_<arch>.AppImage`, `deb/anonyfiles_gui_<version>_<arch>.deb` |
+
+Taille ~500-550 Mo dossier décompressé (onedir). Cold start **~1-3 s en warm** (2e lancement et suivants), premier lancement après installation plus long (~30-50 s sur macOS à cause du scan Gatekeeper sur binaires non signés — voir section signature).
+
+### CI / release
+
+Pousser un tag `v*` sur GitHub déclenche le workflow `desktop-build.yml` qui produit les 4 artifacts (macOS ARM, macOS Intel, Windows, Linux) et les attache à la release. Le workflow `ci.yml` (tests + wheel Python + image Docker) reste déclenché indépendamment.
+
+### Signature de code (non inclus)
+
+Les binaires produits sont **non signés**. Au premier lancement :
+- macOS : Gatekeeper affiche « développeur non identifié » → clic droit → Ouvrir
+- Windows : SmartScreen affiche un avertissement → « Informations supplémentaires » → « Exécuter quand même »
+
+Pour une distribution publique, il faut un Apple Developer ID ($99/an) + notarisation macOS, et un certificat EV code signing Windows (~$300/an). Hors scope de ce guide.
 
 ---
 
@@ -128,6 +176,12 @@ Lancer un test CLI :
 
 ```bash
 make cli
+```
+
+Builder le sidecar desktop puis l'app Tauri :
+
+```bash
+make desktop
 ```
 
 Note Debian/Ubuntu : Si nécessaire, lancez `sudo make install-deps-debian` pour installer les paquets système manquants.

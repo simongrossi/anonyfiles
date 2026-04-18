@@ -1,6 +1,5 @@
 <script lang="ts">
   import { customReplacementRules } from '../stores/customRulesStore';
-  import { get } from 'svelte/store'; // Important pour récupérer la valeur du store
 
   let newPattern = '';
   let newReplacement = '';
@@ -30,71 +29,6 @@
   function toggleRegex() {
     isRegex = !isRegex;
   }
-
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  // NOUVEAU/MODIFIÉ : Fonction d'envoi à l'API (à intégrer à votre logique existante)
-  // Assurez-vous d'appeler cette fonction lorsque vous soumettez le formulaire
-  // Par exemple, si vous avez un bouton "Anonymiser" qui déclenche l'envoi.
-  // J'ai mis des placeholders pour 'yourFileBlob', 'yourFileName', 'yourConfigOptions' etc.
-  // Adaptez ces variables à la manière dont vous les gérez dans votre composant.
-  async function submitAnonymizationRequest(
-    yourFileBlob: Blob,
-    yourFileName: string,
-    yourConfigOptions: any, // Remplacez 'any' par le type réel de vos options de configuration
-    yourFileType: string,
-    yourHasHeader: boolean | null
-  ) {
-    const rules = get(customReplacementRules); // Récupère le tableau des règles du store
-    console.log("Règles personnalisées au moment de l'envoi:", rules); // Log pour vérifier
-
-    let rulesJsonString = '';
-    if (rules && rules.length > 0) {
-      rulesJsonString = JSON.stringify(rules);
-      console.log("Règles personnalisées stringifiées (pour envoi):", rulesJsonString); // Log
-    } else {
-      console.log("Aucune règle personnalisée à stringifier ou tableau vide."); // Log
-      // Si la liste est vide, on peut l'envoyer comme une chaîne vide ou "[]",
-      // mais le backend gère déjà 'None' ou chaîne vide. L'envoyer comme une chaîne vide est le plus simple.
-      rulesJsonString = '[]';
-    }
-
-
-    const formData = new FormData();
-    formData.append('file', yourFileBlob, yourFileName);
-    formData.append('config_options', JSON.stringify(yourConfigOptions)); // N'oubliez pas de stringifier les objets config
-    formData.append('custom_replacement_rules', rulesJsonString);
-    formData.append('file_type', yourFileType);
-    if (yourHasHeader !== null) {
-      formData.append('has_header', String(yourHasHeader)); // Convertir en chaîne
-    }
-
-    try {
-      const response = await fetch('/api/anonymize/', { // Assurez-vous que le chemin est correct
-        method: 'POST',
-        body: formData,
-        // Le Content-Type est automatiquement défini par FormData en 'multipart/form-data'
-        // N'ajoutez PAS manuellement 'Content-Type': 'application/json' ici !
-      });
-
-      const result = await response.json();
-      console.log('API Response:', result);
-
-      if (response.ok) {
-        // Gérer le succès, par exemple afficher le job_id
-        alert(`Anonymisation lancée ! Job ID: ${result.job_id}`);
-        // Rediriger ou mettre à jour l'interface pour suivre le statut
-      } else {
-        // Gérer les erreurs de l'API
-        alert(`Erreur de l'API: ${result.detail || 'Erreur inconnue'}`);
-      }
-
-    } catch (error) {
-      console.error('Erreur lors de l\'appel API:', error);
-      alert('Une erreur réseau est survenue lors de l\'anonymisation.');
-    }
-  }
-  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
 </script>
 
 <style>

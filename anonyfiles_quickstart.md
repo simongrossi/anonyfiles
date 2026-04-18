@@ -55,15 +55,27 @@ Une fois le serveur lancé :
 
 ## 3️⃣ Via l'Interface Graphique (GUI)
 
-Pour utilisateurs préférant le clic et le Drag & Drop.
+Pour utilisateurs préférant le clic et le Drag & Drop. Deux manières de la lancer :
 
-### Lancement
+### Mode développement (Tauri dev)
 
 Depuis `anonyfiles_gui` :
 
 ```bash
 npm run tauri dev
 ```
+
+La GUI spawne elle-même le sidecar API embarqué — **aucun `uvicorn` à lancer à la main**. Un overlay « Démarrage du moteur NER… » s'affiche pendant ~15-25 s au premier lancement (chargement du modèle spaCy), puis l'UI devient active.
+
+### Application packagée (desktop autonome)
+
+Pour générer un `.app` / `.exe` / `.AppImage` self-contained :
+
+```bash
+make desktop
+```
+
+Détails de la chaîne de build → voir [`guide_installation_anonyfiles.md`](guide_installation_anonyfiles.md#-application-desktop-autonome).
 
 ### Utilisation
 

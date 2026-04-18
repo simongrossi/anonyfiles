@@ -1,4 +1,4 @@
-.PHONY: setup install-deps-debian spacy-models cli api gui clean test-api dev systemd-install systemd-start systemd-stop systemd-status
+.PHONY: setup install-deps-debian spacy-models cli api gui clean test-api dev systemd-install systemd-start systemd-stop systemd-status sidecar desktop env-pkg
 
 install-deps-debian:
 	@echo "🔧 [Debian/Ubuntu Only] Installation des dépendances système..."
@@ -105,3 +105,40 @@ systemd-stop:
 
 systemd-status:
 	sudo systemctl status anonyfiles-api.service
+
+# --- Packaging desktop ---
+# Venv dédié au packaging PyInstaller (Python 3.11+).
+# Override PYTHON pour pointer un Python 3.11+ spécifique, ex :
+#   make env-pkg PYTHON=/opt/homebrew/bin/python3.12
+#
+# Choix du modèle spaCy (md par défaut, ~62 Mo ; sm pour ~20 Mo) :
+#   make sidecar MODEL=sm
+#   make desktop MODEL=sm
+PYTHON ?= python3
+MODEL  ?= md
+SPACY_MODEL_VERSION = 3.8.0
+SPACY_MODEL_WHEEL = https://github.com/explosion/spacy-models/releases/download/fr_core_news_$(MODEL)-$(SPACY_MODEL_VERSION)/fr_core_news_$(MODEL)-$(SPACY_MODEL_VERSION)-py3-none-any.whl
+
+env-pkg:
+	@echo "🔧 Création de env-pkg pour le packaging (PyInstaller + API)..."
+	$(PYTHON) -m venv env-pkg
+	env-pkg/bin/pip install --upgrade pip setuptools wheel
+	env-pkg/bin/pip install -e ".[packaging]"
+	env-pkg/bin/pip install $(SPACY_MODEL_WHEEL)
+
+sidecar: env-pkg
+	@echo "📦 Build du sidecar anonyfiles-api (modèle=$(MODEL)) via PyInstaller..."
+	env-pkg/bin/python packaging/sidecar/build_sidecar.py --clean --model $(MODEL)
+
+desktop: sidecar
+	@echo "🖥️  Build du bundle desktop Tauri (embarque le sidecar)..."
+	cd anonyfiles_gui && npm install && npm run tauri build
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		APP=anonyfiles_gui/src-tauri/target/release/bundle/macos/anonyfiles_gui.app; \
+		if [ -d "$$APP" ]; then \
+			echo "🔏 Nettoyage .DS_Store + re-signature ad-hoc du .app..."; \
+			find "$$APP" -name '.DS_Store' -delete; \
+			codesign --force --deep --sign - "$$APP"; \
+			spctl --assess --type execute --verbose "$$APP" || true; \
+		fi; \
+	fi
