@@ -35,6 +35,8 @@ CONFIG_TEMPLATE_PATH = (
     / "config"
     / "config.yaml"
 )
+
+
 def _resolve_jobs_dir() -> Path:
     """Résout le dossier jobs.
 

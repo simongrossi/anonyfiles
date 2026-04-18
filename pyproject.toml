@@ -62,3 +62,11 @@ anonyfiles-cli = "anonyfiles_cli.main:app"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["anonyfiles_*"]
+
+[tool.black]
+target-version = ["py311"]
+line-length = 88
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88

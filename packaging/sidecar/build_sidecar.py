@@ -181,7 +181,9 @@ def main() -> None:
         choices=sorted(KNOWN_MODELS),
         help="Modèle spaCy à bundler (défaut: md). 'sm' pour un bundle ~30 Mo plus léger.",
     )
-    parser.add_argument("--clean", action="store_true", help="Wipe dist/ et build/ avant.")
+    parser.add_argument(
+        "--clean", action="store_true", help="Wipe dist/ et build/ avant."
+    )
     args = parser.parse_args()
 
     if args.triple:

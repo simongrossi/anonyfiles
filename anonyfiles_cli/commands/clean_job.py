@@ -123,7 +123,8 @@ def list_jobs(
 
         if not runs_base_dir.is_dir():
             console.console.print(
-                f"ℹ️ Le répertoire des jobs '{runs_base_dir}' n'existe pas.", style="dim"
+                f"ℹ️ Le répertoire des jobs '{runs_base_dir}' n'existe pas.",
+                style="dim",
             )
             raise typer.Exit()
 

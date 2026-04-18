@@ -18,12 +18,12 @@ logger = logging.getLogger(__name__)
 
 # Remplace les tokens {{...}} par des espaces de même longueur avant passage au NER.
 # Évite que les accolades produites par les custom rules créent des faux positifs NER.
-_CUSTOM_TOKEN_RE = re.compile(r'\{\{[^{}]+\}\}')
+_CUSTOM_TOKEN_RE = re.compile(r"\{\{[^{}]+\}\}")
 
 
 def _sanitize_for_ner(text: str) -> str:
     """Remplace {{TOKEN}} par des espaces de même longueur — préserve les offsets."""
-    return _CUSTOM_TOKEN_RE.sub(lambda m: ' ' * len(m.group()), text)
+    return _CUSTOM_TOKEN_RE.sub(lambda m: " " * len(m.group()), text)
 
 
 class AnonyfilesEngine:

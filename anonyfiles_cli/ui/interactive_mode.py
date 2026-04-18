@@ -6,7 +6,6 @@ import typer
 
 from .console_display import ConsoleDisplay
 
-
 ENTITY_CHOICES = [
     ("PER", "Personnes"),
     ("ORG", "Organisations"),
