@@ -32,9 +32,7 @@ output_files/
 .env
 *.swp
 anonyfiles_gui/anonyfiles_outputs/mappings/anonyfiles_input_mapping_20250519-133245.csv
-anonyfiles_gui/package-lock.json
 *.csv
-anonyfiles_gui/src-tauri/Cargo.lock
 /jobs
 /env-api
 /env-cli/bin
@@ -44,10 +42,6 @@ anonyfiles_gui/vite.config.ts.timestamp-1747823884434-7fdef95d5992.mjs
 anonyfiles_gui/railway.json
 anonyfiles_cli/railway.json
 anonyfiles_api/railway.json
-anonyfiles_gui/src-tauri/Cargo.lock
-anonyfiles_gui/package-lock.json
-anonyfiles_gui/src-tauri/Cargo.lock
-anonyfiles_gui/package-lock.json
 anonyfiles_cli/test_outputs_exemple_txt/exemple_anonymized.txt
 /anonyfiles_cli/env-cli
 /anonyfiles_cli/logs
