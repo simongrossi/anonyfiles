@@ -36,9 +36,22 @@ class Job:
             async with aiofiles.open(self.status_file_path, "r", encoding="utf-8") as f:
                 content = await f.read()
             return json.loads(content)
-        except Exception as e:
+        except OSError as e:
             logger.error(
-                f"Tâche {self.job_id}: Impossible de lire/parser status.json - {e}",
+                f"Tâche {self.job_id}: I/O impossible sur status.json ({type(e).__name__}): {e}",
+                exc_info=True,
+            )
+            return None
+        except UnicodeDecodeError as e:
+            # Fichier status.json non UTF-8 (ex. mojibake hérité d'un sidecar Windows cp1252).
+            logger.error(
+                f"Tâche {self.job_id}: status.json n'est pas valide en UTF-8: {e}",
+                exc_info=True,
+            )
+            return None
+        except json.JSONDecodeError as e:
+            logger.error(
+                f"Tâche {self.job_id}: status.json illisible (JSON corrompu): {e}",
                 exc_info=True,
             )
             return None
@@ -80,9 +93,17 @@ class Job:
         try:
             async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
                 return await f.read()
-        except Exception as e:
+        except OSError as e:
             logger.error(
-                f"Tâche {self.job_id}: Erreur de lecture du fichier {file_path.name}: {e}",
+                f"Tâche {self.job_id}: I/O lecture impossible sur {file_path.name} "
+                f"({type(e).__name__}): {e}",
+                exc_info=True,
+            )
+            return None
+        except UnicodeDecodeError as e:
+            # Typique des fichiers produits par un sidecar Windows avec encodage cp1252.
+            logger.error(
+                f"Tâche {self.job_id}: {file_path.name} n'est pas en UTF-8: {e}",
                 exc_info=True,
             )
             return None
@@ -95,9 +116,10 @@ class Job:
                 json.dump({"status": "pending", "error": None}, f)
             logger.info(f"Tâche {self.job_id}: Statut initial 'pending' écrit.")
             return True
-        except Exception as e:
+        except OSError as e:
             logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut initial: {e}",
+                f"Tâche {self.job_id}: Impossible d'écrire le statut initial "
+                f"({type(e).__name__}): {e}",
                 exc_info=True,
             )
             return False
@@ -110,9 +132,10 @@ class Job:
                 await f.write(json.dumps({"status": "pending", "error": None}))
             logger.info(f"Tâche {self.job_id}: Statut initial 'pending' écrit.")
             return True
-        except Exception as e:
+        except OSError as e:
             logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut initial: {e}",
+                f"Tâche {self.job_id}: Impossible d'écrire le statut initial "
+                f"({type(e).__name__}): {e}",
                 exc_info=True,
             )
             return False
@@ -124,9 +147,10 @@ class Job:
                 json.dump({"status": "error", "error": error_message}, f)
             logger.info(f"Tâche {self.job_id}: Statut d'erreur écrit: {error_message}")
             return True
-        except Exception as e:
+        except OSError as e:
             logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut d'erreur '{error_message}': {e}",
+                f"Tâche {self.job_id}: Impossible d'écrire le statut d'erreur "
+                f"'{error_message}' ({type(e).__name__}): {e}",
                 exc_info=True,
             )
             return False
@@ -138,9 +162,10 @@ class Job:
                 await f.write(json.dumps({"status": "error", "error": error_message}))
             logger.info(f"Tâche {self.job_id}: Statut d'erreur écrit: {error_message}")
             return True
-        except Exception as e:
+        except OSError as e:
             logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut d'erreur '{error_message}': {e}",
+                f"Tâche {self.job_id}: Impossible d'écrire le statut d'erreur "
+                f"'{error_message}' ({type(e).__name__}): {e}",
                 exc_info=True,
             )
             return False
@@ -157,9 +182,10 @@ class Job:
                 f"Tâche {self.job_id}: Statut 'finished' et journal d'audit écrits."
             )
             return True
-        except Exception as e:
+        except OSError as e:
             logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut 'finished'/journal d'audit: {e}",
+                f"Tâche {self.job_id}: Impossible d'écrire le statut 'finished'/journal d'audit "
+                f"({type(e).__name__}): {e}",
                 exc_info=True,
             )
             # Try to report the error
@@ -182,9 +208,10 @@ class Job:
                 f"Tâche {self.job_id}: Statut 'finished' et journal d'audit écrits."
             )
             return True
-        except Exception as e:
+        except OSError as e:
             logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut 'finished'/journal d'audit: {e}",
+                f"Tâche {self.job_id}: Impossible d'écrire le statut 'finished'/journal d'audit "
+                f"({type(e).__name__}): {e}",
                 exc_info=True,
             )
             await self.set_status_as_error_async(

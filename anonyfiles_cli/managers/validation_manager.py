@@ -1,12 +1,16 @@
 # anonyfiles_cli/managers/validation_manager.py
 
-import json
 import yaml
 import logging  # Ajout de l'import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
 import typer
 from cerberus import Validator
+
+from anonyfiles_core.anonymizer.engine_options import (
+    CustomRulesParseError,
+    parse_custom_replacement_rules,
+)
 
 from ..exceptions import ConfigurationError, FileIOError
 
@@ -84,44 +88,34 @@ class ValidationManager:
     def parse_custom_replacements(
         custom_replacements_json: Optional[str],
     ) -> List[Dict[str, Union[str, bool]]]:
+        """Parse et valide la chaîne JSON des règles de remplacement personnalisées.
+
+        Délègue le parsing de base au helper partagé (`engine_options`), puis
+        applique les contraintes plus strictes propres au CLI (champs requis,
+        typage de ``isRegex``).
         """
-        Parse et valide la chaîne JSON des règles de remplacement personnalisées.
-        :param custom_replacements_json: Chaîne JSON des règles.
-        :return: Liste des règles parsées.
-        :raises ConfigurationError: Si la chaîne JSON est invalide ou mal formée.
-        """
-        if not custom_replacements_json:
-            return []
         try:
-            parsed = json.loads(custom_replacements_json)
-            if not isinstance(parsed, list):
+            parsed = parse_custom_replacement_rules(
+                custom_replacements_json, strict=True
+            )
+        except CustomRulesParseError as exc:
+            raise ConfigurationError(str(exc))
+
+        for i, rule in enumerate(parsed):
+            if not isinstance(rule, dict):
                 raise ConfigurationError(
-                    f"Le format JSON des règles personnalisées est invalide: doit être une liste. Reçu: {type(parsed)}"
+                    f"Règle personnalisée à l'index {i} est invalide: doit être un objet JSON. Reçu: {type(rule)}"
+                )
+            if "pattern" not in rule or "replacement" not in rule:
+                raise ConfigurationError(
+                    f"Règle personnalisée à l'index {i} est invalide: 'pattern' et 'replacement' sont requis. Règle: {rule}"
+                )
+            if "isRegex" in rule and not isinstance(rule["isRegex"], bool):
+                raise ConfigurationError(
+                    f"Règle personnalisée à l'index {i}: 'isRegex' doit être un booléen."
                 )
 
-            for i, rule in enumerate(parsed):
-                if not isinstance(rule, dict):
-                    raise ConfigurationError(
-                        f"Règle personnalisée à l'index {i} est invalide: doit être un objet JSON. Reçu: {type(rule)}"
-                    )
-                if "pattern" not in rule or "replacement" not in rule:
-                    raise ConfigurationError(
-                        f"Règle personnalisée à l'index {i} est invalide: 'pattern' et 'replacement' sont requis. Règle: {rule}"
-                    )
-                if "isRegex" in rule and not isinstance(rule["isRegex"], bool):
-                    raise ConfigurationError(
-                        f"Règle personnalisée à l'index {i}: 'isRegex' doit être un booléen."
-                    )
-
-            return parsed
-        except json.JSONDecodeError as e:
-            raise ConfigurationError(
-                f"JSON invalide pour les règles personnalisées: {e}"
-            )
-        except Exception as e:
-            raise ConfigurationError(
-                f"Une erreur inattendue est survenue lors du parsing des règles personnalisées: {e}"
-            )
+        return parsed
 
     @staticmethod
     def check_overwrite(paths_to_check: List[Path], force: bool):

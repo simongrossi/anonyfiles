@@ -19,6 +19,11 @@ from typing import Optional  # Ajouté pour la cohérence du typage
 
 # Importer Job depuis job_utils (JOBS_DIR est géré à l'intérieur de Job ou core_config)
 from ..job_utils import Job
+from ..upload_utils import (
+    UploadTooLargeError,
+    safe_upload_filename,
+    stream_upload_to_path,
+)
 
 # MODIFICATION ICI: Importer SEULEMENT logger depuis core_config.
 # BASE_CONFIG n'est plus défini globalement dans core_config.py.
@@ -35,21 +40,6 @@ from anonyfiles_core.anonymizer.run_logger import log_run_event
 from anonyfiles_cli.cli_logger import CLIUsageLogger  # Utilisé pour log_run_event
 
 router = APIRouter()
-
-
-# Utilisé pour télécharger les fichiers en streaming
-async def _iter_uploadfile_chunks(
-    upload_file: UploadFile, chunk_size: int = 1024 * 1024
-):
-    """Yield chunks from an UploadFile without loading it all into memory."""
-    while True:
-        chunk = await upload_file.read(chunk_size)
-        if not chunk:
-            break
-        yield chunk
-
-
-# 'logger' est maintenant importé depuis core_config
 
 
 def run_deanonymization_job_sync(
@@ -243,38 +233,59 @@ async def deanonymize_file_endpoint(
 
     await run_in_threadpool(job_dir.mkdir, parents=True, exist_ok=True)
 
-    input_filename = (
-        Path(file.filename).name if file.filename else "input_file_to_deanonymize"
+    input_filename = safe_upload_filename(
+        file.filename,
+        fallback_stem="input_file_to_deanonymize",
+        fallback_suffix="",
     )
-    mapping_filename = (
-        Path(mapping.filename).name if mapping.filename else "mapping_file.csv"
+    mapping_filename = safe_upload_filename(
+        mapping.filename,
+        fallback_stem="mapping_file",
+        fallback_suffix=".csv",
     )
 
     input_path = job_dir / input_filename
     mapping_path = job_dir / mapping_filename
 
+    max_upload_bytes: Optional[int] = None
+    settings = getattr(request.app.state, "settings", None)
+    if settings is not None and getattr(settings, "max_upload_size_mb", None):
+        max_upload_bytes = int(settings.max_upload_size_mb) * 1024 * 1024
+
+    def _write_error_status(message: str) -> None:
+        error_payload = {
+            "status": "error",
+            "error": message,
+            "original_input_name": input_filename,
+        }
+        with open(current_job.status_file_path, "w", encoding="utf-8") as f_status:
+            json.dump(error_payload, f_status)
+
     try:
-        async with aiofiles.open(input_path, "wb") as buffer:
-            async for chunk in _iter_uploadfile_chunks(file):
-                await buffer.write(chunk)
+        await stream_upload_to_path(file, input_path, max_bytes=max_upload_bytes)
         logger.info(
             f"Tâche {job_id}: Fichier d'entrée '{input_filename}' sauvegardé dans '{input_path}'"
         )
-    except Exception as e_save_input:
+    except UploadTooLargeError as e_size:
+        logger.warning(
+            f"Tâche {job_id}: Upload d'entrée refusé (> {e_size.max_bytes} octets)."
+        )
+        _write_error_status(
+            f"Fichier trop volumineux: limite de {e_size.max_bytes} octets dépassée."
+        )
+        await file.close()
+        raise HTTPException(
+            status_code=413,
+            detail=f"Fichier trop volumineux (limite: {e_size.max_bytes} octets).",
+        )
+    except OSError as e_save_input:
         logger.error(
             f"Tâche {job_id}: Échec de la sauvegarde du fichier d'entrée '{input_filename}': {e_save_input}",
             exc_info=True,
         )
-        # Écrire le statut d'erreur en incluant original_input_name
-        error_payload = {
-            "status": "error",
-            "error": f"Impossible de sauvegarder le fichier d'entrée: {input_filename}",
-            "original_input_name": input_filename,
-        }
-        with open(
-            current_job.status_file_path, "w", encoding="utf-8"
-        ) as f_status:  # Assurer que job_dir existe
-            json.dump(error_payload, f_status)
+        _write_error_status(
+            f"Impossible de sauvegarder le fichier d'entrée: {input_filename}"
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Impossible de sauvegarder le fichier d'entrée: {input_filename}",
@@ -283,24 +294,30 @@ async def deanonymize_file_endpoint(
         await file.close()
 
     try:
-        async with aiofiles.open(mapping_path, "wb") as buffer:
-            async for chunk in _iter_uploadfile_chunks(mapping):
-                await buffer.write(chunk)
+        await stream_upload_to_path(mapping, mapping_path, max_bytes=max_upload_bytes)
         logger.info(
             f"Tâche {job_id}: Fichier de mapping '{mapping_filename}' sauvegardé dans '{mapping_path}'"
         )
-    except Exception as e_save_mapping:
+    except UploadTooLargeError as e_size:
+        logger.warning(
+            f"Tâche {job_id}: Upload mapping refusé (> {e_size.max_bytes} octets)."
+        )
+        _write_error_status(
+            f"Mapping trop volumineux: limite de {e_size.max_bytes} octets dépassée."
+        )
+        await mapping.close()
+        raise HTTPException(
+            status_code=413,
+            detail=f"Mapping trop volumineux (limite: {e_size.max_bytes} octets).",
+        )
+    except OSError as e_save_mapping:
         logger.error(
             f"Tâche {job_id}: Échec de la sauvegarde du fichier de mapping '{mapping_filename}': {e_save_mapping}",
             exc_info=True,
         )
-        error_payload = {
-            "status": "error",
-            "error": f"Impossible de sauvegarder le fichier de mapping: {mapping_filename}",
-            "original_input_name": input_filename,
-        }  # Utiliser input_filename ici aussi
-        with open(current_job.status_file_path, "w", encoding="utf-8") as f_status:
-            json.dump(error_payload, f_status)
+        _write_error_status(
+            f"Impossible de sauvegarder le fichier de mapping: {mapping_filename}"
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Impossible de sauvegarder le fichier de mapping: {mapping_filename}",

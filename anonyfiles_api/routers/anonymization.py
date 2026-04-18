@@ -15,13 +15,24 @@ from typing import Optional, Any, Dict
 from pathlib import Path
 import json
 import uuid
-import aiofiles
 import aiofiles.os as aio_os
 
-from ..core_config import logger, set_job_id
+from pydantic import ValidationError
+
+from ..core_config import logger, set_job_id, AnonymizationOptions
 from ..job_utils import Job, BASE_INPUT_STEM_FOR_JOB_FILES
+from ..upload_utils import (
+    UploadTooLargeError,
+    safe_upload_filename,
+    stream_upload_to_path,
+)
 
 from anonyfiles_core.anonymizer.run_logger import log_run_event
+from anonyfiles_core.anonymizer.engine_options import (
+    build_exclude_entities,
+    build_processor_kwargs,
+    parse_custom_replacement_rules,
+)
 from anonyfiles_cli.cli_logger import CLIUsageLogger
 from anonyfiles_core import AnonyfilesEngine
 from anonyfiles_core.anonymizer.file_utils import (
@@ -33,51 +44,13 @@ from anonyfiles_core.anonymizer.file_utils import (
 router = APIRouter()
 
 
-async def _iter_uploadfile_chunks(
-    upload_file: UploadFile, chunk_size: int = 1024 * 1024
-):
-    """Yield chunks from an UploadFile without loading it all into memory."""
-    while True:
-        chunk = await upload_file.read(chunk_size)
-        if not chunk:
-            break
-        yield chunk
-
-
 def _prepare_engine_options(
     config_options: dict, custom_rules: Optional[list]
 ) -> Dict[str, Any]:
-    """Create options for :class:`AnonyfilesEngine` from the request payload.
-
-    Args:
-        config_options: Dictionary of anonymization options coming from the
-            client.
-        custom_rules: Optional list of custom replacement rules.
-
-    Returns:
-        A dictionary with keys ``exclude_entities_cli`` and
-        ``custom_replacement_rules`` ready to be passed to the engine.
-    """
-
-    exclude_entities = []
-    if not config_options.get("anonymizePersons", True):
-        exclude_entities.append("PER")
-    if not config_options.get("anonymizeLocations", True):
-        exclude_entities.append("LOC")
-    if not config_options.get("anonymizeOrgs", True):
-        exclude_entities.append("ORG")
-    if not config_options.get("anonymizeEmails", True):
-        exclude_entities.append("EMAIL")
-    if not config_options.get("anonymizeDates", True):
-        exclude_entities.append("DATE")
-    if not config_options.get("anonymizePhones", True):
-        exclude_entities.append("PHONE")
-    if not config_options.get("anonymizeIbans", True):
-        exclude_entities.append("IBAN")
-    if not config_options.get("anonymizeAddresses", True):
-        exclude_entities.append("ADDRESS")
-    if not config_options.get("anonymizeMisc", True if not custom_rules else False):
-        exclude_entities.append("MISC")
+    """Create options for :class:`AnonyfilesEngine` from the request payload."""
+    exclude_entities = build_exclude_entities(
+        config_options, has_custom_rules=bool(custom_rules)
+    )
     return {
         "exclude_entities_cli": exclude_entities,
         "custom_replacement_rules": custom_rules,
@@ -87,21 +60,8 @@ def _prepare_engine_options(
 def _prepare_processor_kwargs(
     input_path: Path, has_header: Optional[bool]
 ) -> Dict[str, Any]:
-    """Build keyword arguments for the engine processor.
-
-    Args:
-        input_path: Path to the uploaded file.
-        has_header: Optional flag specifying whether a CSV file contains a
-            header row.
-
-    Returns:
-        Dictionary of parameters to forward to the engine processing function.
-    """
-
-    processor_kwargs = {}
-    if input_path.suffix.lower() == ".csv" and has_header is not None:
-        processor_kwargs["has_header"] = has_header
-    return processor_kwargs
+    """Build keyword arguments for the engine processor."""
+    return build_processor_kwargs(input_path, has_header=has_header)
 
 
 def _execute_engine_anonymization(
@@ -409,18 +369,39 @@ async def anonymize_file_endpoint(
 
     await aio_os.makedirs(current_job.job_dir, exist_ok=True)
 
-    file_extension = Path(file.filename).suffix if file.filename else ".tmp"
+    safe_name = safe_upload_filename(
+        file.filename,
+        fallback_stem=BASE_INPUT_STEM_FOR_JOB_FILES,
+        fallback_suffix=".tmp",
+    )
+    file_extension = Path(safe_name).suffix or ".tmp"
     input_filename_for_job = f"{BASE_INPUT_STEM_FOR_JOB_FILES}{file_extension}"
     input_path_for_job = current_job.job_dir / input_filename_for_job
 
+    max_upload_bytes: Optional[int] = None
+    settings = getattr(request.app.state, "settings", None)
+    if settings is not None and getattr(settings, "max_upload_size_mb", None):
+        max_upload_bytes = int(settings.max_upload_size_mb) * 1024 * 1024
+
     try:
-        async with aiofiles.open(input_path_for_job, "wb") as buffer:
-            async for chunk in _iter_uploadfile_chunks(file):
-                await buffer.write(chunk)
+        await stream_upload_to_path(
+            file, input_path_for_job, max_bytes=max_upload_bytes
+        )
         logger.info(
             f"Tâche {job_id}: Fichier '{input_filename_for_job}' (orig: {file.filename}) téléversé."
         )
-    except Exception as e_upload:
+    except UploadTooLargeError as e_size:
+        logger.warning(
+            f"Tâche {job_id}: Upload refusé (taille > {e_size.max_bytes} octets)."
+        )
+        await current_job.set_status_as_error_async(
+            f"Fichier trop volumineux: limite de {e_size.max_bytes} octets dépassée."
+        )
+        raise HTTPException(
+            status_code=413,
+            detail=f"Fichier trop volumineux (limite: {e_size.max_bytes} octets).",
+        )
+    except OSError as e_upload:
         logger.error(
             f"Tâche {job_id}: Erreur de téléversement '{input_filename_for_job}': {e_upload}",
             exc_info=True,
@@ -441,7 +422,7 @@ async def anonymize_file_endpoint(
         )
 
     try:
-        config_opts_dict = json.loads(config_options)
+        config_opts_raw = json.loads(config_options)
     except json.JSONDecodeError as e_json_conf:
         error_msg = f"JSON invalide pour config_options: {str(e_json_conf)}"
         logger.error(f"Tâche {job_id}: {error_msg}", exc_info=True)
@@ -450,31 +431,38 @@ async def anonymize_file_endpoint(
         )
         raise HTTPException(status_code=400, detail=error_msg)
 
-    custom_rules_list = []  # Initialiser à une liste vide par défaut, pas None
-    if custom_replacement_rules and custom_replacement_rules.strip():
-        logger.info(
-            f"Tâche {job_id}: Tentative de parsing des règles personnalisées. Chaîne reçue: '{custom_replacement_rules}'"
-        )  # LOG DÉBUG
-        try:
-            parsed_rules = json.loads(custom_replacement_rules)
-            if isinstance(parsed_rules, list):
-                custom_rules_list = parsed_rules
-                logger.info(
-                    f"Tâche {job_id}: Règles personnalisées parsées avec succès. Nombre de règles: {len(custom_rules_list)}"
-                )  # LOG DÉBUG
-            else:
-                logger.warning(
-                    f"Tâche {job_id}: Le contenu des règles personnalisées n'est pas une liste JSON valide. Type reçu: {type(parsed_rules)}. Contenu: '{custom_replacement_rules}'. Ces règles seront ignorées."
-                )  # LOG DÉBUG
-        except json.JSONDecodeError as e_json_rules:
-            logger.warning(
-                f"Tâche {job_id}: Erreur de parsing JSON pour custom_replacement_rules: {e_json_rules}. Chaîne reçue: '{custom_replacement_rules}'. Ces règles seront ignorées.",
-                exc_info=True,
-            )  # LOG DÉBUG
-    else:
-        logger.info(
-            f"Tâche {job_id}: Aucune chaîne de règles personnalisées fournie ou elle est vide. Aucune règle personnalisée ne sera appliquée."
-        )  # LOG DÉBUG
+    if not isinstance(config_opts_raw, dict):
+        error_msg = "config_options doit être un objet JSON."
+        logger.error(f"Tâche {job_id}: {error_msg}")
+        await current_job.set_status_as_error_async(error_msg)
+        raise HTTPException(status_code=400, detail=error_msg)
+
+    try:
+        validated_options = AnonymizationOptions.model_validate(config_opts_raw)
+    except ValidationError as e_schema:
+        error_msg = (
+            "config_options contient des champs invalides ou inconnus: "
+            f"{e_schema.errors()}"
+        )
+        logger.error(f"Tâche {job_id}: {error_msg}")
+        await current_job.set_status_as_error_async(error_msg)
+        raise HTTPException(status_code=400, detail=error_msg)
+
+    config_opts_dict = validated_options.model_dump()
+
+    try:
+        custom_rules_list = parse_custom_replacement_rules(custom_replacement_rules)
+    except ValueError as e_rules:
+        # strict=False par défaut donc cette branche ne devrait pas être prise,
+        # mais on reste défensif si le helper évolue.
+        logger.warning(
+            f"Tâche {job_id}: règles personnalisées ignorées: {e_rules}"
+        )
+        custom_rules_list = []
+    if custom_replacement_rules and custom_replacement_rules.strip() and not custom_rules_list:
+        logger.warning(
+            f"Tâche {job_id}: custom_replacement_rules fournies mais non parsables; ignorées."
+        )
 
     has_header_bool: Optional[bool] = None
     if has_header is not None:

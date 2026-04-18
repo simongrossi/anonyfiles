@@ -1,9 +1,12 @@
 # anonyfiles_cli/anonymizer/spacy_engine.py
 
-import spacy
-import re
 import logging
+import os
+import re
 from functools import lru_cache
+
+import spacy
+
 from anonyfiles_cli.exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
@@ -27,36 +30,87 @@ PHONE_REGEX = r"\b(?:\+33|0|[+]\d{1,3})[1-9](?:[\s.-]?\d{2}){4}\b"
 IBAN_REGEX = r"\b[A-Z]{2}\d{2}[ ]?(?:\d[ ]?){12,26}\b"
 
 
+# L'auto-téléchargement est souvent inapproprié en CI ou dans un sidecar
+# PyInstaller packagé : on l'autorise explicitement via une variable d'env,
+# et on le désactive par défaut dès qu'un runner CI est détecté.
+_AUTO_DOWNLOAD_ENV = "ANONYFILES_ALLOW_SPACY_DOWNLOAD"
+
+
+def _auto_download_enabled() -> bool:
+    override = os.environ.get(_AUTO_DOWNLOAD_ENV)
+    if override is not None:
+        return override.lower() in ("1", "true", "yes", "on")
+    # Désactiver par défaut en CI pour échouer vite avec un message clair.
+    return not os.environ.get("CI")
+
+
+def _install_hint(model_name: str) -> str:
+    return (
+        f"Installez-le avec: python -m spacy download {model_name} "
+        f"(ou exportez {_AUTO_DOWNLOAD_ENV}=1 pour autoriser le téléchargement automatique)."
+    )
+
+
 @lru_cache(
     maxsize=2
 )  # Cache jusqu'à 2 modèles spaCy (ex: 'fr_core_news_md' et 'fr_core_news_lg')
 def _load_spacy_model_cached(model_name: str):
-    """
-    Charge un modèle spaCy et met le résultat en cache.
-    Cela évite de recharger le modèle si le même est demandé plusieurs fois.
+    """Charge (et met en cache) un modèle spaCy.
+
+    Stratégie :
+    1. Si le paquet est installé, on le charge directement. Toute erreur de
+       chargement est considérée comme une corruption/incompatibilité et remonte
+       sans réessayer un téléchargement (ça masquerait la vraie cause).
+    2. Si le paquet est absent, on déclenche un téléchargement *unique*,
+       uniquement si l'auto-download est autorisé (voir ``_auto_download_enabled``).
+    3. Tous les échecs produisent un ``ConfigurationError`` explicite avec la
+       commande d'installation manuelle.
     """
     logger.info("Loading spaCy model: %s (this might be cached)...", model_name)
-    try:
-        if not spacy.util.is_package(model_name):
-            logger.warning(
-                f"Model '{model_name}' not found. Attempting to download it..."
-            )
-            spacy.cli.download(model_name)
-        return spacy.load(model_name)
-    except Exception as e:
-        logger.error(f"Failed to load spaCy model '{model_name}': {e}")
-        # Une dernière tentative de téléchargement si l'erreur n'était pas claire
-        try:
-            import spacy.cli as spacy_cli
 
-            logger.info(f"Downloading spaCy model '{model_name}' fallback...")
-            spacy_cli.download(model_name)
+    if spacy.util.is_package(model_name):
+        try:
             return spacy.load(model_name)
-        except Exception as e2:
-            install_cmd = f"python -m spacy download {model_name}"
+        except (OSError, ImportError, ValueError) as exc:
+            # Modèle présent mais illisible (ex. ABI incompatible après upgrade
+            # spaCy, fichier tronqué). Ne pas re-télécharger en boucle.
             raise ConfigurationError(
-                f"Could not load spaCy model '{model_name}' after auto-download attempt. Install manualy: {install_cmd}. Error: {e2}"
-            ) from e2
+                f"Le modèle spaCy '{model_name}' est installé mais ne se charge pas: {exc}. "
+                f"{_install_hint(model_name)}"
+            ) from exc
+
+    if not _auto_download_enabled():
+        raise ConfigurationError(
+            f"Le modèle spaCy '{model_name}' est introuvable et le téléchargement "
+            f"automatique est désactivé. {_install_hint(model_name)}"
+        )
+
+    logger.warning(
+        "Model '%s' not found. Attempting a single download (this may take a while)...",
+        model_name,
+    )
+    try:
+        spacy.cli.download(model_name)
+    except SystemExit as exc:
+        # ``spacy.cli.download`` appelle ``sys.exit`` lorsque pip échoue
+        # (réseau coupé, quota disque, proxy...). Le convertir en erreur typée.
+        raise ConfigurationError(
+            f"Échec du téléchargement automatique du modèle spaCy '{model_name}' "
+            f"(code sortie pip: {exc.code}). {_install_hint(model_name)}"
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - on re-type immédiatement
+        raise ConfigurationError(
+            f"Échec du téléchargement automatique du modèle spaCy '{model_name}': {exc}. "
+            f"{_install_hint(model_name)}"
+        ) from exc
+
+    try:
+        return spacy.load(model_name)
+    except (OSError, ImportError, ValueError) as exc:
+        raise ConfigurationError(
+            f"Modèle spaCy '{model_name}' téléchargé mais impossible à charger: {exc}. "
+            f"{_install_hint(model_name)}"
+        ) from exc
 
 
 def is_valid_date(text):

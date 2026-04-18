@@ -55,6 +55,7 @@ def _resolve_jobs_dir() -> Path:
 JOBS_DIR = _resolve_jobs_dir()
 BASE_INPUT_STEM_FOR_JOB_FILES = "input"
 DEFAULT_RATE_LIMIT = "100/minute"
+DEFAULT_MAX_UPLOAD_MB = 100
 
 
 # --- Modèles de Configuration ---
@@ -75,6 +76,31 @@ class EntityConfig(BaseModel):
     options: Optional[ReplacementOptions] = Field(default_factory=ReplacementOptions)
 
 
+class AnonymizationOptions(BaseModel):
+    """Schéma validé pour le champ ``config_options`` des requêtes d'anonymisation.
+
+    Les anciens appels sans champs (``{}``) restent valides grâce aux valeurs
+    par défaut. Les clés inconnues sont rejetées (``extra='forbid'``) pour que
+    les fautes de frappe côté front (ex. ``anonymisePersons``) ne soient plus
+    silencieusement ignorées.
+    """
+
+    anonymizePersons: bool = True
+    anonymizeLocations: bool = True
+    anonymizeOrgs: bool = True
+    anonymizeEmails: bool = True
+    anonymizeDates: bool = True
+    anonymizePhones: bool = True
+    anonymizeIbans: bool = True
+    anonymizeAddresses: bool = True
+    # Par défaut `True` comme l'ancien code, sauf en présence de custom rules
+    # où l'appelant (router) choisit d'inverser la valeur par défaut.
+    anonymizeMisc: bool = True
+
+    class Config:
+        extra = "forbid"
+
+
 class AppConfig(BaseSettings):
     # Configuration principale
     spacy_model: str = Field(
@@ -89,6 +115,11 @@ class AppConfig(BaseSettings):
         default="", description="Origines CORS autorisées (séparées par des virgules)"
     )
     debug: bool = False
+    max_upload_size_mb: int = Field(
+        default=DEFAULT_MAX_UPLOAD_MB,
+        description="Taille maximale autorisée pour un fichier uploadé (en MiB).",
+        ge=1,
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="ANONYFILES_",  # Les vars d'env préfixées par ANONYFILES_ surchargeront
