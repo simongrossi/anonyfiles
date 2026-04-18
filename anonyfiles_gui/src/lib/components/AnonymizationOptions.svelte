@@ -1,35 +1,103 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/AnonymizationOptions.svelte -->
 <script lang="ts">
-  export let options: Array<{ key: string, label: string, default: boolean }>;
+  import { Check, User, MapPin, AtSign, Landmark, Tag } from 'lucide-svelte';
+
+  type Option = { key: string; label: string; default: boolean };
+
+  export let options: Array<Option>;
   export let selected: { [key: string]: boolean };
   export let isLoading: boolean = false;
+
+  // Regroupement sémantique des entités — purement cosmétique, ne change rien
+  // au contrat du composant (options/selected).
+  type Category = {
+    id: string;
+    label: string;
+    icon: typeof User;
+    keys: string[];
+  };
+  const categories: Category[] = [
+    { id: 'identity', label: 'Identité', icon: User, keys: ['anonymizePersons', 'anonymizeOrgs'] },
+    { id: 'places', label: 'Lieux & adresses', icon: MapPin, keys: ['anonymizeLocations', 'anonymizeAddresses'] },
+    { id: 'contact', label: 'Contact', icon: AtSign, keys: ['anonymizeEmails', 'anonymizePhones'] },
+    { id: 'finance', label: 'Finance & dates', icon: Landmark, keys: ['anonymizeIbans', 'anonymizeDates'] },
+    { id: 'misc', label: 'Divers', icon: Tag, keys: ['anonymizeMisc'] },
+  ];
+
+  $: optionsByKey = Object.fromEntries(options.map((o) => [o.key, o]));
+  $: activeCount = options.filter((o) => selected[o.key]).length;
 
   function toggle(key: string) {
     selected[key] = !selected[key];
   }
+
+  function enableAll() {
+    options.forEach((o) => (selected[o.key] = true));
+    selected = selected;
+  }
+  function disableAll() {
+    options.forEach((o) => (selected[o.key] = false));
+    selected = selected;
+  }
 </script>
 
-<div class="flex flex-wrap gap-3 mb-3 mt-1">
-  {#each options as opt}
-    <button
-      type="button"
-      on:click={() => toggle(opt.key)}
-      disabled={isLoading}
-      class={`group px-3 py-1.5 text-sm rounded-full font-medium border transition-all duration-200 ease-in-out 
-              transform hover:scale-105 active:scale-95 select-none flex items-center gap-1
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-              ${
-                selected[opt.key]
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                  : 'bg-white text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100 border-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-              }`}
-    >
-      {#if selected[opt.key]}
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 5.707 8.293a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l7-7a1 1 0 000-1.414z" clip-rule="evenodd" />
-        </svg>
+<section class="ui-section mb-5">
+  <header class="ui-section-header justify-between">
+    <div class="flex flex-col">
+      <span class="ui-section-title">Entités à anonymiser</span>
+      <span class="ui-section-subtitle">
+        {activeCount} sélectionnée{activeCount > 1 ? 's' : ''} sur {options.length}
+      </span>
+    </div>
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        class="ui-btn-ghost text-xs px-2 py-1"
+        on:click={enableAll}
+        disabled={isLoading || activeCount === options.length}
+      >
+        Tout activer
+      </button>
+      <button
+        type="button"
+        class="ui-btn-ghost text-xs px-2 py-1"
+        on:click={disableAll}
+        disabled={isLoading || activeCount === 0}
+      >
+        Tout désactiver
+      </button>
+    </div>
+  </header>
+
+  <div class="ui-section-body space-y-4">
+    {#each categories as cat}
+      {@const keys = cat.keys.filter((k) => optionsByKey[k])}
+      {#if keys.length > 0}
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <svelte:component this={cat.icon} size={14} class="text-zinc-400 dark:text-zinc-500" />
+            <span class="ui-chip-group-label">{cat.label}</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            {#each keys as key}
+              {@const opt = optionsByKey[key]}
+              {@const on = !!selected[key]}
+              <button
+                type="button"
+                class="ui-chip {on ? 'ui-chip-on' : 'ui-chip-off'}"
+                aria-pressed={on}
+                on:click={() => toggle(key)}
+                disabled={isLoading}
+              >
+                {#if on}
+                  <Check size={12} strokeWidth={2.5} />
+                {/if}
+                {opt.label}
+              </button>
+            {/each}
+          </div>
+        </div>
       {/if}
-      {opt.label}
-    </button>
-  {/each}
-</div>
+    {/each}
+  </div>
+</section>

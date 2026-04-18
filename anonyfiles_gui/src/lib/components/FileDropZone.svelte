@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { FileUp, FileText, X } from 'lucide-svelte';
 
   export let fileName: string = '';
   export let id: string = 'file-upload-' + Math.random().toString(36).substring(2, 9);
@@ -44,47 +45,72 @@
       internalDragActive = false;
     }
   }
+
+  function handleClear(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    dispatch('clear', { zoneId: dropZoneId });
+  }
+
+  $: formats = accept && accept !== '*/*'
+    ? accept.split(',').map((ext) => ext.trim().replace(/^\./, '').toUpperCase()).join(' · ')
+    : 'Tous formats';
+
+  $: shortName = fileName && fileName.length > 44 ? fileName.slice(0, 41) + '…' : fileName;
 </script>
 
 <div
   role="group"
-  class="dropzone border-2 border-dashed rounded-xl py-0.5 px-3 text-center mb-4 min-h-[60px] transition-colors duration-200 ease-in-out {internalDragActive ? 'border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-zinc-700' : 'bg-white dark:bg-zinc-800 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'}"
+  class="ui-dropzone mb-5 {internalDragActive ? 'ui-dropzone-active' : ''}"
   on:drop={handleDrop}
   on:dragover={handleDragOver}
   on:dragleave={handleDragLeave}
 >
-  <label for={id} class="cursor-pointer w-full h-full flex flex-col justify-center items-center p-1">
-    <div class="text-zinc-500 dark:text-zinc-400 mb-1 text-sm">
-      <svg class="mx-auto h-5 w-5 text-gray-400 dark:text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-      Déposez un fichier ou <span class="font-semibold text-blue-600 dark:text-blue-400">cliquez pour parcourir</span>
-      {#if accept && accept !== "*/*"}
-        <span class="text-xs mt-1 block">Formats : {accept.split(',').map(ext => ext.trim()).join(', ')}</span>
-      {:else}
-        <span class="text-xs mt-1 block">Tous types de fichiers</span>
-      {/if}
+  <label for={id} class="absolute inset-0 cursor-pointer rounded-2xl"></label>
+
+  {#if fileName}
+    <div class="relative z-10 flex items-center gap-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-4 py-3 shadow-card max-w-lg w-full">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-100">
+        <FileText size={20} />
+      </div>
+      <div class="min-w-0 flex-1 text-left">
+        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate" title={fileName}>{shortName}</p>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400">Fichier prêt · clique pour changer</p>
+      </div>
+      <button
+        type="button"
+        class="ui-icon-btn relative z-20"
+        title="Retirer le fichier"
+        aria-label="Retirer le fichier"
+        on:click={handleClear}
+      >
+        <X size={16} />
+      </button>
     </div>
-    <input
-      {id}
-      type="file"
-      {accept}
-      class="sr-only"
-      on:change={handleChange}
-    />
-    {#if fileName}
-      <span class="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300 break-all" title={fileName}>
-        {fileName.length > 30 ? fileName.substring(0,27) + '...' : fileName }
-      </span>
-    {/if}
-  </label>
+  {:else}
+    <div class="relative z-10 flex flex-col items-center gap-2 pointer-events-none">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white dark:bg-zinc-900 text-brand-600 dark:text-brand-100 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+        <FileUp size={22} strokeWidth={1.75} />
+      </div>
+      <p class="text-sm text-zinc-700 dark:text-zinc-200">
+        Glisse un fichier ici ou
+        <span class="font-semibold text-brand-600 dark:text-brand-100">clique pour parcourir</span>
+      </p>
+      <p class="text-[11px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{formats}</p>
+    </div>
+  {/if}
+
+  <input
+    {id}
+    type="file"
+    {accept}
+    class="sr-only"
+    on:change={handleChange}
+  />
 </div>
 
 <style>
-  /* Les styles pour .dropzone--active ont été déplacés dans l'attribut class du div ci-dessus. */
-  /* min-height: 40px; était redondant. */
-
-  .sr-only { 
+  .sr-only {
     position: absolute;
     width: 1px;
     height: 1px;

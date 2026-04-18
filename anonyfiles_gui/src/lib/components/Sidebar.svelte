@@ -2,19 +2,34 @@
 <script lang="ts">
   import { onMount, createEventDispatcher } from 'svelte';
   import { sidebarState } from '../stores/sidebarStore';
+  import {
+    ShieldCheck,
+    Unlock,
+    ScrollText,
+    Settings2,
+    Sparkles,
+    Puzzle,
+    Info,
+  } from 'lucide-svelte';
 
   export let activeTab: string = '';
 
   const dispatch = createEventDispatcher();
 
-  const navItems = [
-    { icon: "🕵️", label: "Anonymisation", key: "anonymizer" },
-    { icon: "🔓", label: "Désanonymisation", key: "deanonymizer", wip: true },
-    { icon: "🧵", label: "Log", key: "log" },
-    { icon: "⚙️", label: "Configuration", key: "config" },
-    { icon: "🆕", label: "Nouveautés", key: "releases" },
-    { icon: "🧩", label: "Règles avancées", key: "replacementRules", wip: true },
-    { icon: "ℹ️", label: "À Propos", key: "about" }
+  type Item = {
+    icon: typeof ShieldCheck;
+    label: string;
+    key: string;
+    beta?: boolean;
+  };
+  const navItems: Item[] = [
+    { icon: ShieldCheck, label: 'Anonymisation', key: 'anonymizer' },
+    { icon: Unlock, label: 'Désanonymisation', key: 'deanonymizer', beta: true },
+    { icon: ScrollText, label: 'Log', key: 'log' },
+    { icon: Settings2, label: 'Configuration', key: 'config' },
+    { icon: Sparkles, label: 'Nouveautés', key: 'releases' },
+    { icon: Puzzle, label: 'Règles avancées', key: 'replacementRules', beta: true },
+    { icon: Info, label: 'À Propos', key: 'about' },
   ];
 
   let isMobile = false;
@@ -24,16 +39,16 @@
     const checkScreen = () => {
       const mobile = window.innerWidth < 768;
       isMobile = mobile;
-      sidebarState.update(state => ({ ...state, isMobile: mobile }));
+      sidebarState.update((state) => ({ ...state, isMobile: mobile }));
     };
     checkScreen();
-    window.addEventListener("resize", checkScreen);
-    return () => window.removeEventListener("resize", checkScreen);
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
   });
 
-  $: sidebarState.update(state => ({
+  $: sidebarState.update((state) => ({
     ...state,
-    showSidebar: isMobile ? showMobileMenu : true
+    showSidebar: isMobile ? showMobileMenu : true,
   }));
 
   function closeMenu() {
@@ -49,43 +64,53 @@
 {#if isMobile && showMobileMenu}
   <button
     type="button"
-    class="fixed inset-0 bg-black bg-opacity-40 z-30"
+    class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30"
     on:click={closeMenu}
     aria-label="Fermer le menu"
     tabindex="-1"
   ></button>
 {/if}
 
-<nav class={`bg-zinc-900 text-white
-  ${$sidebarState.isMobile ? 'w-16' : 'w-64'}
-  h-[calc(100vh-4rem)] flex flex-col fixed top-16 left-0 z-40
-  shadow-lg transition-all duration-300 ease-in-out
-  ${$sidebarState.isMobile && !$sidebarState.showSidebar ? '-translate-x-full' : 'translate-x-0'}`}>
-
-  <div class="flex-grow overflow-y-auto space-y-1 mt-2">
+<nav
+  class={`bg-zinc-950 text-zinc-300 border-r border-zinc-800
+    ${$sidebarState.isMobile ? 'w-16' : 'w-64'}
+    h-[calc(100vh-4rem)] flex flex-col fixed top-16 left-0 z-40
+    transition-all duration-300 ease-in-out
+    ${$sidebarState.isMobile && !$sidebarState.showSidebar ? '-translate-x-full' : 'translate-x-0'}`}
+>
+  <div class="flex-grow overflow-y-auto py-3 px-2 space-y-0.5">
     {#each navItems as item (item.key)}
+      {@const Icon = item.icon}
+      {@const isActive = activeTab === item.key}
       <button
         on:click={() => selectTab(item.key)}
         type="button"
         title={item.label}
-        class="relative group flex items-center px-4 py-3 gap-3 w-full text-left text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-150
-          {activeTab === item.key ? 'bg-blue-600 text-white font-semibold border-l-4 border-blue-400' : 'border-l-4 border-transparent'}"
-        aria-current={activeTab === item.key ? 'page' : undefined}
+        class="group relative flex items-center gap-3 w-full rounded-lg px-3 py-2 text-sm text-left transition-colors
+               {isActive
+                 ? 'bg-brand-600/20 text-white shadow-inner'
+                 : 'text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100'}"
+        aria-current={isActive ? 'page' : undefined}
       >
-        <span class="text-xl">{item.icon}</span>
+        {#if isActive}
+          <span class="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-brand-500"></span>
+        {/if}
+        <Icon size={18} strokeWidth={isActive ? 2.25 : 1.75} class="shrink-0" />
         {#if !$sidebarState.isMobile}
-          <span class="whitespace-nowrap flex items-center gap-1">
-            {item.label}
-            {#if item.wip} <span class="text-yellow-400">🚧</span> {/if}
-          </span>
+          <span class="flex-1 min-w-0 truncate text-left font-medium">{item.label}</span>
+          {#if item.beta}
+            <span class="shrink-0 text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+              Beta
+            </span>
+          {/if}
         {/if}
       </button>
     {/each}
   </div>
 
-  <div class="p-4 border-t border-zinc-800">
-    {#if !$sidebarState.isMobile}
-      <p class="text-xs text-gray-500">© 2025</p>
-    {/if}
-  </div>
+  {#if !$sidebarState.isMobile}
+    <div class="px-4 py-3 border-t border-zinc-800/80 text-[11px] text-zinc-500">
+      Anonyfiles · © 2025
+    </div>
+  {/if}
 </nav>

@@ -1,36 +1,42 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/Header.svelte -->
 <script lang="ts">
-  export let title: string = 'Anonyfiles';
+  import { Menu, ShieldCheck } from 'lucide-svelte';
   import { sidebarState } from '../stores/sidebarStore';
+
+  export let title: string = 'Anonyfiles';
 </script>
 
-<header class="w-full h-16 px-4 flex items-center justify-between fixed top-0 z-50 bg-zinc-900 text-white border-b border-zinc-800">
-  <!-- Logo clair/sombre -->
-  <div class="flex items-center gap-2">
-    <img src="/anonyfiles-icon-dark.svg" alt="Logo" class="h-7 w-7 dark:hidden" />
-    <img src="/anonyfiles-icon-light.svg" alt="Logo" class="h-7 w-7 hidden dark:inline" />
+<header
+  class="w-full h-16 px-4 sm:px-6 flex items-center justify-between fixed top-0 z-50
+         bg-zinc-950/95 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/80
+         text-white border-b border-zinc-800"
+>
+  <!-- Logo -->
+  <div class="flex items-center gap-2 select-none" aria-label="Anonyfiles">
+    <img src="/anonyfiles-icon-dark.svg" alt="" class="h-7 w-7 dark:hidden" />
+    <img src="/anonyfiles-icon-light.svg" alt="" class="h-7 w-7 hidden dark:inline" />
+    <span class="hidden sm:inline text-sm font-semibold tracking-tight text-zinc-200">
+      Anonyfiles
+    </span>
   </div>
 
-  <!-- Titre centré -->
-  <h1
-    class="absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold tracking-wide select-none"
-    style="font-family: 'Montserrat', sans-serif;"
+  <!-- Titre -->
+  <div
+    class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 text-zinc-100 select-none"
   >
-    🕵️‍♂️ {title}
-  </h1>
+    <ShieldCheck size={18} class="text-brand-500" />
+    <h1 class="text-base sm:text-lg font-semibold tracking-tight">{title}</h1>
+  </div>
 
   <!-- Menu burger mobile -->
   <div class="w-7 h-7 flex items-center justify-end">
     {#if $sidebarState.isMobile}
       <button
-        on:click={() => sidebarState.update(s => ({ ...s, showSidebar: !s.showSidebar }))}
-        class="p-1 rounded hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+        on:click={() => sidebarState.update((s) => ({ ...s, showSidebar: !s.showSidebar }))}
+        class="p-1.5 rounded-lg hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50"
         aria-label="Menu"
       >
-        <svg class="h-6 w-6" viewBox="0 0 24 24" stroke="currentColor" fill="none">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
+        <Menu size={20} />
       </button>
     {/if}
   </div>

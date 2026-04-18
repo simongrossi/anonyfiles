@@ -41,10 +41,14 @@
   }
 </script>
 
-<div class="space-x-4 my-4" class:hidden={!isTauri()}>
-  <button class="btn" on:click={exportConfig}>Exporter la configuration</button>
-  <button class="btn" on:click={importConfig}>Importer une configuration</button>
+<div class="flex flex-wrap items-center gap-2" class:hidden={!isTauri()}>
+  <button type="button" class="ui-btn-secondary" on:click={exportConfig}>
+    Exporter la configuration
+  </button>
+  <button type="button" class="ui-btn-secondary" on:click={importConfig}>
+    Importer une configuration
+  </button>
   {#if status}
-    <span class="text-sm ml-2">{status}</span>
+    <span class="text-xs text-zinc-500 dark:text-zinc-400">{status}</span>
   {/if}
 </div>

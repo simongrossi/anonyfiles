@@ -1,5 +1,6 @@
 <script lang="ts">
   import { customReplacementRules } from '../stores/customRulesStore';
+  import { Wrench, Plus, Trash2, Regex, ArrowRight } from 'lucide-svelte';
 
   let newPattern = '';
   let newReplacement = '';
@@ -7,13 +8,13 @@
 
   function addRule() {
     if (!newPattern.trim()) return;
-    customReplacementRules.update(rules => [
+    customReplacementRules.update((rules) => [
       ...rules,
       {
         pattern: newPattern.trim(),
         replacement: newReplacement.trim(),
-        isRegex
-      }
+        isRegex,
+      },
     ]);
     newPattern = '';
     newReplacement = '';
@@ -21,145 +22,112 @@
   }
 
   function removeRule(index: number) {
-    customReplacementRules.update(rules =>
-      rules.filter((_, i) => i !== index)
-    );
+    customReplacementRules.update((rules) => rules.filter((_, i) => i !== index));
   }
 
   function toggleRegex() {
     isRegex = !isRegex;
   }
+
+  function handleKey(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addRule();
+    }
+  }
 </script>
 
-<style>
-  /* Vos styles existants pour les règles personnalisées */
-  .rule-entry {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 0.5rem;
-  }
-  :global(html.dark) .rule-entry {
-    border-bottom-color: #374151;
-  }
+<section class="ui-section mb-5">
+  <header class="ui-section-header justify-between">
+    <div class="flex items-center gap-2">
+      <Wrench size={16} class="text-zinc-400 dark:text-zinc-500" />
+      <span class="ui-section-title">Règles de remplacement personnalisées</span>
+    </div>
+    {#if $customReplacementRules.length > 0}
+      <span class="ui-badge-brand">{$customReplacementRules.length}</span>
+    {/if}
+  </header>
 
-  .rule-entry input[type="text"] {
-    flex: 1 1 150px;
-  }
-
-  .regex-toggle-button {
-    background-color: #e5e7eb;
-    color: #4b5563;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
-    border: 1px solid transparent;
-  }
-
-  .regex-toggle-button.active {
-    background-color: #3b82f6;
-    color: white;
-    border-color: #2563eb;
-  }
-
-  :global(html.dark) .regex-toggle-button {
-    background-color: #4b5563;
-    color: #d1d5db;
-    border-color: #374151;
-  }
-
-  :global(html.dark) .regex-toggle-button.active {
-    background-color: #60a5fa;
-    color: white;
-    border-color: #3b82f6;
-  }
-
-  .rule-form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    align-items: center;
-  }
-
-  .section-title {
-    font-weight: bold;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-  }
-
-  .delete-btn {
-    color: #ef4444;
-    font-weight: bold;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-  }
-
-  .delete-btn:hover {
-    background-color: #fee2e2;
-  }
-  :global(html.dark) .delete-btn:hover {
-    background-color: #3f2121;
-    color: #fca5a5;
-  }
-  :global(html.dark) .delete-btn {
-    color: #f87171;
-  }
-</style>
-
-<div>
-  <div class="section-title text-zinc-700 dark:text-zinc-200">🔧 Règles de remplacement personnalisées</div>
-
-  <div class="rule-form">
-    <input
-      type="text"
-      class="border rounded p-1 text-zinc-800 bg-white dark:text-zinc-100 dark:bg-zinc-700 dark:border-zinc-600 placeholder-gray-400 dark:placeholder-gray-500"
-      placeholder="Motif à remplacer"
-      bind:value={newPattern}
-    />
-    <input
-      type="text"
-      class="border rounded p-1 text-zinc-800 bg-white dark:text-zinc-100 dark:bg-zinc-700 dark:border-zinc-600 placeholder-gray-400 dark:placeholder-500"
-      placeholder="Remplacement"
-      bind:value={newReplacement}
-    />
-    <button
-      class="regex-toggle-button"
-      class:active={isRegex}
-      on:click={toggleRegex}
-      title="Activer/Désactiver le mode Regex"
-    >
-      Regex
-    </button>
-    <button class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" on:click={addRule}>Ajouter</button>
-  </div>
-
-  {#if $customReplacementRules.length > 0}
-    {#each $customReplacementRules as rule, index}
-      <div class="rule-entry">
-        <input type="text" class="border p-1 rounded bg-gray-100 dark:bg-zinc-700 dark:border-zinc-600 text-zinc-800 dark:text-zinc-100" value={rule.pattern} readonly />
-        <span class="text-zinc-700 dark:text-zinc-300">→</span>
-        <input type="text" class="border p-1 rounded bg-gray-100 dark:bg-zinc-700 dark:border-zinc-600 text-zinc-800 dark:text-zinc-100" value={rule.replacement} readonly />
-        <span class="text-sm italic text-gray-500 dark:text-gray-400">{rule.isRegex ? '(Regex)' : '(Texte exact)'}</span>
+  <div class="ui-section-body space-y-4">
+    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-3 items-end">
+      <div>
+        <label for="custom-rule-pattern" class="ui-field-label">Motif à remplacer</label>
+        <input
+          id="custom-rule-pattern"
+          type="text"
+          class="ui-input"
+          placeholder={isRegex ? '\\b\\d{10}\\b' : 'Confidentiel'}
+          bind:value={newPattern}
+          on:keydown={handleKey}
+        />
+      </div>
+      <div class="hidden sm:flex items-center justify-center pb-2 text-zinc-400">
+        <ArrowRight size={16} />
+      </div>
+      <div>
+        <label for="custom-rule-replacement" class="ui-field-label">Remplacement</label>
+        <input
+          id="custom-rule-replacement"
+          type="text"
+          class="ui-input"
+          placeholder="[SECRET]"
+          bind:value={newReplacement}
+          on:keydown={handleKey}
+        />
+      </div>
+      <div class="flex items-center gap-2">
         <button
           type="button"
-          class="delete-btn ml-auto sm:ml-2" on:click={() => removeRule(index)}
-          title="Supprimer la règle"
+          class="ui-chip {isRegex ? 'ui-chip-on' : 'ui-chip-off'}"
+          on:click={toggleRegex}
+          title="Activer/désactiver le mode Regex"
+          aria-pressed={isRegex}
         >
-          🗑️
+          <Regex size={14} strokeWidth={2} />
+          Regex
+        </button>
+        <button
+          type="button"
+          class="ui-btn-primary"
+          on:click={addRule}
+          disabled={!newPattern.trim()}
+        >
+          <Plus size={16} />
+          Ajouter
         </button>
       </div>
-    {/each}
-  {:else}
-    <p class="text-gray-500 dark:text-gray-400 italic text-sm">Aucune règle définie.</p>
-  {/if}
-</div>
+    </div>
+
+    {#if $customReplacementRules.length > 0}
+      <ul class="divide-y divide-zinc-200 dark:divide-zinc-700 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/40">
+        {#each $customReplacementRules as rule, index}
+          <li class="flex items-center gap-3 px-4 py-2.5">
+            <code class="flex-1 truncate text-xs text-zinc-800 dark:text-zinc-100 font-mono bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1" title={rule.pattern}>
+              {rule.pattern}
+            </code>
+            <ArrowRight size={14} class="text-zinc-400 shrink-0" />
+            <code class="flex-1 truncate text-xs text-zinc-800 dark:text-zinc-100 font-mono bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md px-2 py-1" title={rule.replacement || '(vide)'}>
+              {rule.replacement || '∅'}
+            </code>
+            <span class="ui-badge {rule.isRegex ? 'ui-badge-brand' : ''} shrink-0">
+              {rule.isRegex ? 'Regex' : 'Texte'}
+            </span>
+            <button
+              type="button"
+              class="ui-icon-btn hover:!text-red-600 hover:!bg-red-50 dark:hover:!bg-red-900/30"
+              on:click={() => removeRule(index)}
+              title="Supprimer la règle"
+              aria-label="Supprimer la règle"
+            >
+              <Trash2 size={16} />
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {:else}
+      <p class="text-sm text-zinc-500 dark:text-zinc-400 italic">
+        Aucune règle définie. Les entrées ci-dessus créent une règle texte exact ou regex.
+      </p>
+    {/if}
+  </div>
+</section>

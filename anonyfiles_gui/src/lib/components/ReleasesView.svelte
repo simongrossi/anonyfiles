@@ -1,50 +1,68 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/ReleasesView.svelte -->
 <script lang="ts">
-  // Pas besoin de chargement dynamique ici : changelog intégré statiquement
+  import { Sparkles, Github } from 'lucide-svelte';
+
+  const highlights = [
+    'Démarrage du projet avec anonymisation texte simple (.txt), configuration YAML, moteur spaCy et remplacement basique.',
+    'Support multi-format progressif : .csv avec en-têtes, .docx, .xlsx, puis .pdf et .json, avec prévisualisation intégrée.',
+    'Règles personnalisées (texte ou regex), priorisées sur les entités spaCy.',
+    "Système d'audit complet : mapping CSV, journal de traitement, fichier log horodaté.",
+    'Désanonymisation basée sur le fichier de mapping CSV exportable.',
+    'Refactor du moteur : traitements centralisés, séparation logique / analyse / remplacement.',
+    'Interface graphique Tauri + Svelte : drag & drop, preview dynamique, comparaison avant/après, responsive.',
+    'API FastAPI : endpoints d\'anonymisation, suivi de statut, téléchargement, logs intégrés.',
+    'Route DELETE /api/jobs/<id> pour supprimer les jobs obsolètes, intégrée dans la GUI.',
+    'Ergonomie desktop : layout revu, header fixe, sidebar compacte en mobile.',
+    'Gestion dynamique des règles personnalisées : export/import JSON, détection de doublons.',
+    'Modernisation continue du design : composants épurés, dark mode, refonte de la drop-zone.',
+  ];
 </script>
 
-<div class="space-y-6">
-  <h2 class="text-3xl font-bold text-gray-800 dark:text-white">Nouveautés & Mises à jour</h2>
-
-  <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow space-y-4">
-    <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-200">Résumé des évolutions</h3>
-    <p class="text-gray-600 dark:text-gray-400">
-      Voici un condensé chronologique des principales fonctionnalités et améliorations apportées au projet <strong>Anonyfiles</strong> :
-    </p>
-
-    <ul class="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-1">
-      <li><strong>Démarrage du projet</strong> avec anonymisation texte simple (.txt), configuration YAML, moteur basé sur spaCy et remplacement basique.</li>
-      <li>Ajout progressif du <strong>support multi-format</strong> : .csv avec en-têtes, .docx, .xlsx, puis .pdf et .json, avec prévisualisation intégrée.</li>
-      <li>Introduction des <strong>règles personnalisées</strong> (simples ou regex), priorisées sur les entités spaCy.</li>
-      <li>Mise en place d’un système <strong>d’audit complet</strong> (mapping CSV, journal de traitement, fichier log horodaté).</li>
-      <li>Ajout d’un <strong>système de désanonymisation</strong> basé sur le fichier de mapping CSV exportable.</li>
-      <li>Refactorisation du moteur : centralisation des traitements, meilleure robustesse, séparation claire logique/analyse/remplacement.</li>
-      <li>Ajout de l’<strong>interface graphique</strong> (Tauri + Svelte) avec drag & drop, preview dynamique, affichage avant/après et responsive design.</li>
-      <li>Implémentation de l’<strong>API FastAPI</strong> avec endpoints d’anonymisation, suivi de statut, téléchargement de fichiers et logs intégrés.</li>
-      <li>Ajout d’une route <code>DELETE /api/jobs/&lt;id&gt;</code> pour <strong>supprimer les jobs</strong> obsolètes (avec intégration dans la GUI).</li>
-      <li>Amélioration de l’<strong>ergonomie desktop</strong> : refonte du layout, header fixe avec logo centré, sidebar compacte en mobile, suppression des doublons visuels.</li>
-      <li>Gestion dynamique des <strong>règles personnalisées</strong> dans l’interface, avec export/import JSON, détection de doublons, etc.</li>
-      <li>Modernisation du <strong>design global</strong> : toggles responsives, champs épurés, conteneurs adaptatifs, refonte du composant de dépôt de fichiers.</li>
-      <li>Améliorations backend et frontend continues : nettoyage, contrôle d’erreurs, affichage conditionnel, gestion des messages, refactors TypeScript/Svelte.</li>
-    </ul>
-
-    <p class="text-gray-600 dark:text-gray-400 pt-2">
-      Ce résumé reflète l'évolution du projet vers une solution complète, stable et modulaire, adaptée à de multiples cas d’usage (RGPD, pseudonymisation, audit, transmission de fichiers sensibles…).
-    </p>
+<div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+  <div class="mb-5 flex items-center gap-3">
+    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-100">
+      <Sparkles size={20} />
+    </div>
+    <div>
+      <h1 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+        Nouveautés & mises à jour
+      </h1>
+      <p class="text-xs text-zinc-500 dark:text-zinc-400">
+        Condensé chronologique des principales évolutions.
+      </p>
+    </div>
   </div>
 
-  <div class="text-center mt-8">
-    <p class="text-sm text-gray-500 dark:text-gray-400">
-      Consultez le changelog complet sur
-      <a
-        href="https://github.com/simongrossi/anonyfiles/commits/main"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="text-blue-500 hover:underline"
-      >
-        GitHub
-      </a>
-      .
-    </p>
-  </div>
+  <section class="ui-section">
+    <header class="ui-section-header">
+      <span class="ui-section-title">Résumé des évolutions</span>
+    </header>
+    <div class="ui-section-body">
+      <ul class="space-y-3 text-sm text-zinc-700 dark:text-zinc-200">
+        {#each highlights as entry}
+          <li class="flex items-start gap-3">
+            <span
+              class="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0"
+              aria-hidden="true"
+            ></span>
+            <span>{entry}</span>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  </section>
+
+  <p class="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
+    Changelog complet sur
+    <a
+      href="https://github.com/simongrossi/anonyfiles/commits/main"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-100 hover:underline"
+    >
+      <Github size={12} />
+      GitHub
+    </a>
+    .
+  </p>
 </div>

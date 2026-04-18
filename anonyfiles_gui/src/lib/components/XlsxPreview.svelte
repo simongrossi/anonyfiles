@@ -83,15 +83,15 @@
 </script>
 
 {#if loading}
-  <div class="text-sm text-zinc-500 mb-4">Chargement du fichier Excel...</div>
+  <div class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">Chargement du fichier Excel…</div>
 {:else if error}
-  <div class="text-sm text-red-700 mb-4">{error}</div>
+  <div class="text-sm text-red-700 dark:text-red-300 mb-4">{error}</div>
 {:else if previewTable.length}
-  <div class="mb-2 flex items-center gap-2">
-    <label for="sheetSelect" class="text-sm font-medium">Feuille :</label>
+  <div class="mb-3 flex items-center gap-2">
+    <label for="sheetSelect" class="text-sm font-medium text-zinc-700 dark:text-zinc-200">Feuille :</label>
     <select
       id="sheetSelect"
-      class="border border-zinc-300 rounded px-2 py-1 text-sm"
+      class="ui-input !py-1 !w-auto"
       bind:value={selectedSheet}
       on:change={handleSheetChange}
     >
@@ -100,39 +100,41 @@
       {/each}
     </select>
   </div>
-  <table class="min-w-full text-sm border border-zinc-300 bg-white rounded-xl mb-2">
-    {#if hasHeader}
-      <thead>
-        <tr>
-          {#each previewHeaders as col}
-            <th class="px-2 py-1 border-b border-zinc-200 bg-blue-50 text-blue-700 font-bold">{col}</th>
+  <div class="overflow-x-auto mb-2 rounded-xl border border-zinc-200 dark:border-zinc-700">
+    <table class="min-w-full text-sm bg-white dark:bg-zinc-900">
+      {#if hasHeader}
+        <thead>
+          <tr>
+            {#each previewHeaders as col}
+              <th class="px-2 py-1 border-b border-zinc-200 dark:border-zinc-700 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-100 font-semibold text-left">{col}</th>
+            {/each}
+          </tr>
+        </thead>
+        <tbody>
+          {#each previewTable as row}
+            <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+              {#each row as cell}
+                <td class="px-2 py-1 border-b border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200">{cell}</td>
+              {/each}
+            </tr>
           {/each}
-        </tr>
-      </thead>
-      <tbody>
-        {#each previewTable as row}
-          <tr>
-            {#each row as cell}
-              <td class="px-2 py-1 border-b border-zinc-100 text-zinc-700">{cell}</td>
-            {/each}
-          </tr>
-        {/each}
-      </tbody>
-    {:else}
-      <tbody>
-        {#each previewTable as row}
-          <tr>
-            {#each row as cell}
-              <td class="px-2 py-1 border-b border-zinc-100 text-zinc-700">{cell}</td>
-            {/each}
-          </tr>
-        {/each}
-      </tbody>
-    {/if}
-  </table>
-  <div class="text-xs text-zinc-500 mt-1">
+        </tbody>
+      {:else}
+        <tbody>
+          {#each previewTable as row}
+            <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+              {#each row as cell}
+                <td class="px-2 py-1 border-b border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200">{cell}</td>
+              {/each}
+            </tr>
+          {/each}
+        </tbody>
+      {/if}
+    </table>
+  </div>
+  <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
     (Aperçu des {previewTable.length} premières lignes)
   </div>
 {:else}
-  <div class="text-xs text-zinc-500 mt-1">Aucune donnée à prévisualiser.</div>
+  <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Aucune donnée à prévisualiser.</div>
 {/if}

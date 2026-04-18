@@ -184,3 +184,108 @@ html.dark a { /* ou utilisez les variantes dark: de Tailwind directement sur les
   background: #2563eb;
   color: white;
 }
+
+/* =================================================================
+   REFRESH 2025 — Nouvelles utilities, co-existent avec les classes
+   historiques (.card-panel, .btn-primary...). On migre composant par
+   composant. Les anciennes classes restent intactes pour ne rien casser.
+   ================================================================= */
+
+/* ---------- Sections & cards ---------- */
+.ui-section {
+  @apply rounded-2xl bg-white/80 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700
+         shadow-card backdrop-blur-sm;
+}
+.ui-section-header {
+  @apply flex items-center gap-2 px-5 py-3 border-b border-zinc-200 dark:border-zinc-700;
+}
+.ui-section-title {
+  @apply text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100;
+}
+.ui-section-subtitle {
+  @apply text-xs text-zinc-500 dark:text-zinc-400;
+}
+.ui-section-body {
+  @apply px-5 py-4;
+}
+
+/* ---------- Form primitives ---------- */
+.ui-field-label {
+  @apply block text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1;
+}
+.ui-input {
+  @apply w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600
+         bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100
+         placeholder:text-zinc-400 dark:placeholder:text-zinc-500
+         focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500
+         transition shadow-sm;
+}
+.ui-textarea {
+  @apply ui-input resize-y min-h-[9rem] leading-relaxed;
+  font-family: "Inter", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------- Buttons ---------- */
+.ui-btn {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+         transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50
+         disabled:opacity-60 disabled:cursor-not-allowed;
+}
+.ui-btn-primary {
+  @apply ui-btn bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow;
+}
+.ui-btn-secondary {
+  @apply ui-btn bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200
+         dark:bg-zinc-700 dark:hover:bg-zinc-600 dark:text-zinc-100 dark:border-zinc-600;
+}
+.ui-btn-ghost {
+  @apply ui-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700;
+}
+.ui-btn-danger {
+  @apply ui-btn bg-red-600 hover:bg-red-700 text-white shadow-sm;
+}
+.ui-icon-btn {
+  @apply inline-flex items-center justify-center h-8 w-8 rounded-lg text-zinc-500 hover:text-zinc-900
+         hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-700
+         transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50;
+}
+
+/* ---------- Chips (entity toggles) ---------- */
+.ui-chip {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+         border transition-all select-none focus:outline-none focus-visible:ring-2
+         focus-visible:ring-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+.ui-chip-off {
+  @apply bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50
+         dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600
+         dark:hover:bg-zinc-700;
+}
+.ui-chip-on {
+  @apply bg-brand-600 text-white border-brand-600 shadow-sm;
+}
+
+/* ---------- Category label (chips group) ---------- */
+.ui-chip-group-label {
+  @apply text-[11px] uppercase tracking-wider font-semibold text-zinc-400 dark:text-zinc-500;
+}
+
+/* ---------- Badge ---------- */
+.ui-badge {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium
+         bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200;
+}
+.ui-badge-brand {
+  @apply ui-badge bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-100;
+}
+
+/* ---------- Drop zone (prototype) ---------- */
+.ui-dropzone {
+  @apply relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2
+         border-dashed border-zinc-300 dark:border-zinc-600 bg-zinc-50/80 dark:bg-zinc-800/60
+         px-6 py-8 text-center transition-colors cursor-pointer
+         hover:border-brand-500 hover:bg-brand-50/60 dark:hover:bg-zinc-800;
+}
+.ui-dropzone-active {
+  @apply border-brand-500 bg-brand-50 dark:border-brand-500 dark:bg-brand-900/20 shadow-ring;
+}

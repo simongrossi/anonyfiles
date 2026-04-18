@@ -52,9 +52,9 @@
 {:else if fileType === "xlsx"}
   <XlsxPreview {fileContent} />
 {:else if fileType === "txt"}
-  <div class="border border-gray-300 bg-gray-100 text-gray-900 p-2 rounded mb-2 text-xs max-h-40 overflow-auto whitespace-pre-line">
+  <div class="border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 p-2 rounded-lg mb-2 text-xs max-h-40 overflow-auto whitespace-pre-line">
     {fileContent}
   </div>
 {:else if fileName}
-  <div class="text-red-500">Format non supporté pour l’aperçu.</div>
+  <div class="text-red-600 dark:text-red-300 text-sm">Format non supporté pour l’aperçu.</div>
 {/if}

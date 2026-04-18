@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
+  import { Sparkles, RotateCcw, Trash2, FileText, Loader2 } from 'lucide-svelte';
   import FileDropZone from './FileDropZone.svelte';
   import CustomRulesManager from './CustomRulesManager.svelte';
   import AnonymizationOptions from './AnonymizationOptions.svelte';
@@ -137,86 +138,117 @@
 </script>
 
 {#if $isLoading}
-  <div class="fixed inset-0 z-50 bg-black bg-opacity-40 flex flex-col items-center justify-center">
-    <div class="flex flex-col items-center gap-3 p-8 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-700">
-      <svg class="animate-spin h-8 w-8 text-blue-700 dark:text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-      </svg>
-      <span class="font-bold text-lg text-zinc-800 dark:text-zinc-100 text-center">Anonymisation en cours…</span>
+  <div class="fixed inset-0 z-50 bg-zinc-900/50 backdrop-blur-sm flex flex-col items-center justify-center">
+    <div class="flex flex-col items-center gap-3 p-8 bg-white dark:bg-zinc-800 rounded-2xl shadow-card-lg border border-zinc-200 dark:border-zinc-700">
+      <Loader2 class="h-8 w-8 text-brand-600 dark:text-brand-100 animate-spin" />
+      <span class="font-semibold text-lg text-zinc-800 dark:text-zinc-100 text-center">Anonymisation en cours…</span>
       <span class="text-zinc-500 dark:text-zinc-400 text-sm text-center max-w-xs">Merci de patienter pendant le traitement.</span>
     </div>
   </div>
 {/if}
 
-<div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-  <FileDropZone
-    dropZoneId={dataAnonymizerDropZoneId}
-    on:file={(event) => handleFile(event.detail.file)} on:dragover={handleDragOver}
-    on:dragleave={handleDragLeave}
-  />
+<div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
 
-  <div class="mb-4 flex flex-col h-[40vh] sm:h-[30vh]">
-    <label for="inputText" class="font-semibold text-base text-zinc-700 dark:text-zinc-200 mb-1">Texte à anonymiser :</label>
-    <textarea
-      id="inputText"
-      class="input-text flex-grow resize-none border rounded p-2 w-full overflow-y-auto"
-      placeholder="Collez ou saisissez votre texte ici..."
-      bind:value={$inputText}
-      on:input={(e) => updateInputCountsFromTextarea(e.currentTarget.value)}
-    ></textarea>
-    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
-      Lignes: {$inputLineCount} | Caractères: {$inputCharCount}
-    </div>
-  </div>
-
-  {#if $fileType === "csv" || $fileType === "xlsx"}
-    <div class="mb-4 flex items-center gap-2">
-      <input
-        type="checkbox"
-        id="hasHeader"
-        bind:checked={$hasHeader}
-        class="accent-blue-600 dark:accent-blue-400 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-500"
+  <!-- Section 1 — Source -->
+  <section class="ui-section mb-5">
+    <header class="ui-section-header">
+      <FileText size={16} class="text-zinc-400 dark:text-zinc-500" />
+      <span class="ui-section-title">Source</span>
+      <span class="ui-section-subtitle">&middot; fichier ou texte collé</span>
+    </header>
+    <div class="ui-section-body">
+      <FileDropZone
+        dropZoneId={dataAnonymizerDropZoneId}
+        fileName={$fileName}
+        on:file={(event) => handleFile(event.detail.file)}
+        on:dragover={handleDragOver}
+        on:dragleave={handleDragLeave}
+        on:clear={() => {
+          fileName.set('');
+          fileType.set('txt');
+          inputText.set('');
+          xlsxFile.set(null);
+          previewTable.set([]);
+          previewHeaders.set([]);
+        }}
       />
-      <label for="hasHeader" class="text-zinc-700 dark:text-zinc-200">Le fichier contient une ligne d’en-tête</label>
-    </div>
-  {/if}
 
+      <div class="flex items-center justify-between mb-1">
+        <label for="inputText" class="ui-field-label !mb-0">Texte à anonymiser</label>
+        <span class="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
+          {$inputLineCount} ligne{$inputLineCount > 1 ? 's' : ''} · {$inputCharCount} car.
+        </span>
+      </div>
+      <textarea
+        id="inputText"
+        class="ui-textarea h-[28vh]"
+        placeholder="Colle ou saisis ton texte ici…"
+        bind:value={$inputText}
+        on:input={(e) => updateInputCountsFromTextarea(e.currentTarget.value)}
+      ></textarea>
+
+      {#if $fileType === "csv" || $fileType === "xlsx"}
+        <label class="mt-3 inline-flex items-center gap-2 cursor-pointer text-sm text-zinc-700 dark:text-zinc-200">
+          <input
+            type="checkbox"
+            bind:checked={$hasHeader}
+            class="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-brand-600 focus:ring-brand-500/40"
+          />
+          Le fichier contient une ligne d’en-tête
+        </label>
+      {/if}
+    </div>
+  </section>
+
+  <!-- Section 2 — Entités -->
   <AnonymizationOptions {options} bind:selected isLoading={$isLoading} />
 
+  <!-- Section 3 — Règles custom -->
   <CustomRulesManager />
 
-  <div class="flex flex-col sm:flex-row gap-2 justify-center mt-4">
-    <button class="btn-primary" on:click={onClickAnonymize} disabled={$isLoading || !canAnonymize}>
-      {#if $isLoading}
-        <svg class="animate-spin h-5 w-5 mr-1 inline-block align-middle" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-        </svg>
-        Traitement…
-      {:else}
-        Anonymiser
-      {/if}
-    </button>
-    <button class="btn-secondary" type="button" on:click={resetAll} disabled={$isLoading}>Réinitialiser</button>
+  <!-- Barre d'actions -->
+  <div class="sticky bottom-4 z-30 mt-6">
+    <div class="flex flex-col sm:flex-row gap-2 justify-end rounded-2xl bg-white/80 dark:bg-zinc-800/80 backdrop-blur border border-zinc-200 dark:border-zinc-700 shadow-card px-4 py-3">
+      <button
+        type="button"
+        class="ui-btn-secondary"
+        on:click={resetAll}
+        disabled={$isLoading}
+      >
+        <RotateCcw size={16} />
+        Réinitialiser
+      </button>
+      <button
+        type="button"
+        class="ui-btn-primary"
+        on:click={onClickAnonymize}
+        disabled={$isLoading || !canAnonymize}
+      >
+        {#if $isLoading}
+          <Loader2 size={16} class="animate-spin" />
+          Traitement…
+        {:else}
+          <Sparkles size={16} />
+          Anonymiser
+        {/if}
+      </button>
+    </div>
   </div>
 
   {#if $outputText.trim().length > 0 || $errorMessage.trim().length > 0 || $isLoading}
     {#await import('./ResultView.svelte') then ResultViewModule}
       <div class="mt-6">
         <svelte:component this={ResultViewModule.default} />
-        
+
         {#if $currentJobId && !$isLoading}
           <div class="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-center">
             <button
-              class="btn-secondary bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white border-red-500 hover:border-red-600 dark:border-red-600 dark:hover:border-red-700"
+              type="button"
+              class="ui-btn-danger"
               on:click={handleDeleteCurrentJob}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" class="w-4 h-4 mr-2 inline-block align-text-bottom">
-                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-              </svg>
-              Supprimer les Fichiers du Job Traité
+              <Trash2 size={16} />
+              Supprimer les fichiers du job traité
             </button>
           </div>
         {/if}
@@ -225,9 +257,9 @@
   {/if}
 
   {#if $errorMessage && !$isLoading}
-    <div class="card-panel card-error mt-4">
-      <strong>Erreur (Anonymisation) :</strong>
-      <pre class="whitespace-pre-wrap text-xs">{$errorMessage}</pre>
+    <div class="mt-4 rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-4 py-3">
+      <strong class="font-semibold">Erreur (anonymisation)</strong>
+      <pre class="whitespace-pre-wrap text-xs font-mono mt-1">{$errorMessage}</pre>
     </div>
   {/if}
 </div>

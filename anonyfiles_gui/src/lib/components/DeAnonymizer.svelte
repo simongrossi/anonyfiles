@@ -1,13 +1,24 @@
 <script lang="ts">
   import FileDropZone from './FileDropZone.svelte';
   import { onDestroy } from 'svelte';
+  import {
+    Unlock,
+    FileText,
+    FileSpreadsheet,
+    Loader2,
+    RotateCcw,
+    AlertTriangle,
+    Download,
+    Copy,
+    ListChecks,
+  } from 'lucide-svelte';
   import { apiUrl, pollJob, debug } from '$lib/utils/api';
 
   let inputFile: File | null = null;
   let mappingFile: File | null = null;
-  let outputText: string = "";
+  let outputText: string = '';
   let isLoading: boolean = false;
-  let errorMessage: string = "";
+  let errorMessage: string = '';
   let report: string[] = [];
   let permissive: boolean = false;
   let abortController: AbortController | null = null;
@@ -15,8 +26,8 @@
   function resetAll() {
     inputFile = null;
     mappingFile = null;
-    outputText = "";
-    errorMessage = "";
+    outputText = '';
+    errorMessage = '';
     report = [];
     isLoading = false;
     if (abortController) {
@@ -36,7 +47,7 @@
       if (zoneIdFromEvent === 'mapping-file-zone') mappingFile = null;
       return;
     }
-    errorMessage = "";
+    errorMessage = '';
     if (zoneIdFromEvent === 'input-file-zone') {
       inputFile = file;
     } else if (zoneIdFromEvent === 'mapping-file-zone') {
@@ -44,20 +55,25 @@
         mappingFile = file;
       } else {
         mappingFile = null;
-        errorMessage = "Le fichier de mapping doit être un fichier .csv";
+        errorMessage = 'Le fichier de mapping doit être un fichier .csv';
       }
     }
   }
 
+  function handleClear(zoneId: string) {
+    if (zoneId === 'input-file-zone') inputFile = null;
+    if (zoneId === 'mapping-file-zone') mappingFile = null;
+  }
+
   async function deanonymize() {
     if (!inputFile || !mappingFile) {
-      errorMessage = "Merci de sélectionner un fichier à désanonymiser ET un fichier de mapping CSV.";
+      errorMessage = 'Merci de sélectionner un fichier à désanonymiser ET un fichier de mapping CSV.';
       isLoading = false;
       return;
     }
 
-    errorMessage = "";
-    outputText = "";
+    errorMessage = '';
+    outputText = '';
     report = [];
     isLoading = true;
     if (abortController) abortController.abort();
@@ -71,7 +87,7 @@
       formData.append('permissive', String(permissive));
 
       const deanonymizeEndpoint = await apiUrl('deanonymize/');
-      debug("DeAnonymizer: Appel API:", deanonymizeEndpoint);
+      debug('DeAnonymizer: Appel API:', deanonymizeEndpoint);
 
       const response = await fetch(deanonymizeEndpoint, { method: 'POST', body: formData, signal });
       const data = await response.json();
@@ -79,7 +95,7 @@
       if (!response.ok) throw new Error(data?.detail || data?.error || `Erreur HTTP ${response.status}`);
 
       const jobId = data.job_id;
-      if (!jobId) throw new Error(data?.error || "job_id absent de la réponse API.");
+      if (!jobId) throw new Error(data?.error || 'job_id absent de la réponse API.');
 
       const statusData = await pollJob<{
         status: string;
@@ -88,15 +104,34 @@
         error?: string;
       }>(await apiUrl(`deanonymize_status/${jobId}`), { signal });
 
-      outputText = statusData.deanonymized_text || "";
+      outputText = statusData.deanonymized_text || '';
       report = statusData.audit_log || [];
       isLoading = false;
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
-        errorMessage = e.message || "Erreur lancement désanonymisation.";
+        errorMessage = e.message || 'Erreur lancement désanonymisation.';
       }
       isLoading = false;
     }
+  }
+
+  async function copyOutput() {
+    try {
+      await navigator.clipboard.writeText(outputText);
+    } catch {}
+  }
+
+  function exportOutput() {
+    const blob = new Blob([outputText], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.download = 'deanonymized.txt';
+    link.href = URL.createObjectURL(blob);
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
+    }, 200);
   }
 
   onDestroy(() => {
@@ -104,105 +139,184 @@
   });
 </script>
 
-
-<div class="p-4 md:p-8">
-  <h1 class="text-xl md:text-2xl font-bold text-zinc-800 dark:text-zinc-100 mb-6">
-    Désanonymiser un Fichier
-  </h1>
-
-  <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-    <div>
-      <label for="deanonymize-input-file" class="block text-sm font-semibold mb-2 text-zinc-700 dark:text-zinc-300">📄 Fichier anonymisé à restaurer</label>
-      <FileDropZone
-        id="deanonymize-input-file"
-        dropZoneId="input-file-zone"
-        fileName={inputFile ? inputFile.name : ""}
-        accept=".txt,.csv,.xlsx,.docx,.pdf,.json"
-        on:file={handleFileDropped}
-      />
-      {#if inputFile}
-        <p class="text-xs mt-1 text-blue-700 dark:text-blue-400">Fichier source : {inputFile.name}</p>
-      {/if}
+<div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+  <div class="mb-5 flex items-center gap-3">
+    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-100">
+      <Unlock size={20} />
     </div>
     <div>
-      <label for="deanonymize-mapping-file" class="block text-sm font-semibold mb-2 text-zinc-700 dark:text-zinc-300">📑 Fichier de mapping (CSV)</label>
-      <FileDropZone
-        id="deanonymize-mapping-file"
-        dropZoneId="mapping-file-zone"
-        fileName={mappingFile ? mappingFile.name : ""}
-        accept=".csv"
-        on:file={handleFileDropped}
-      />
-      {#if mappingFile}
-        <p class="text-xs mt-1 text-blue-700 dark:text-blue-400">Fichier mapping : {mappingFile.name}</p>
-      {/if}
+      <h1 class="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+        Désanonymiser un fichier
+      </h1>
+      <p class="text-xs text-zinc-500 dark:text-zinc-400">
+        Restaurer les données d'origine à partir d'un fichier anonymisé et de son mapping CSV.
+      </p>
     </div>
   </div>
 
-  <div class="flex items-center mt-4 mb-6 gap-2">
-    <input
-      type="checkbox"
-      id="permissiveToggleDeanonymize"
-      bind:checked={permissive}
-      class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-blue-600 accent-blue-600 dark:accent-blue-400"
-      disabled={isLoading}
-    />
-    <label for="permissiveToggleDeanonymize" class="text-sm text-zinc-700 dark:text-zinc-200 select-none">
-      Mode permissif
-    </label>
-  </div>
+  <!-- Section 1 — Fichiers -->
+  <section class="ui-section mb-5">
+    <header class="ui-section-header">
+      <FileText size={16} class="text-zinc-400 dark:text-zinc-500" />
+      <span class="ui-section-title">Fichiers</span>
+      <span class="ui-section-subtitle">&middot; source + mapping CSV</span>
+    </header>
+    <div class="ui-section-body grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <span class="ui-field-label flex items-center gap-1.5">
+          <FileText size={12} />
+          Fichier anonymisé à restaurer
+        </span>
+        <FileDropZone
+          id="deanonymize-input-file"
+          dropZoneId="input-file-zone"
+          fileName={inputFile ? inputFile.name : ''}
+          accept=".txt,.csv,.xlsx,.docx,.pdf,.json"
+          on:file={handleFileDropped}
+          on:clear={() => handleClear('input-file-zone')}
+        />
+      </div>
+      <div>
+        <span class="ui-field-label flex items-center gap-1.5">
+          <FileSpreadsheet size={12} />
+          Fichier de mapping (CSV)
+        </span>
+        <FileDropZone
+          id="deanonymize-mapping-file"
+          dropZoneId="mapping-file-zone"
+          fileName={mappingFile ? mappingFile.name : ''}
+          accept=".csv"
+          on:file={handleFileDropped}
+          on:clear={() => handleClear('mapping-file-zone')}
+        />
+      </div>
+    </div>
+  </section>
 
-  <div class="flex flex-wrap gap-4 mt-2 mb-6">
-    <button
-      class="px-6 py-2 font-semibold text-white rounded-xl bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-      on:click={deanonymize}
-      disabled={isLoading || !inputFile || !mappingFile}
-      aria-busy={isLoading}
-    >
-      {#if isLoading}
-        <svg class="animate-spin h-5 w-5 mr-2 inline-block align-middle" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-        Traitement…
-      {:else}
-        Désanonymiser
-      {/if}
-    </button>
-    <button
-      class="px-5 py-2 rounded-lg border border-zinc-300 text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition dark:border-gray-600 dark:text-zinc-100 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50"
-      type="button"
-      on:click={resetAll}
-      disabled={isLoading}
-    >
-      Réinitialiser
-    </button>
+  <!-- Section 2 — Options -->
+  <section class="ui-section mb-5">
+    <header class="ui-section-header">
+      <ListChecks size={16} class="text-zinc-400 dark:text-zinc-500" />
+      <span class="ui-section-title">Options</span>
+    </header>
+    <div class="ui-section-body">
+      <label class="inline-flex items-start gap-3 cursor-pointer group">
+        <span class="relative shrink-0 mt-0.5">
+          <input
+            type="checkbox"
+            bind:checked={permissive}
+            class="peer sr-only"
+            disabled={isLoading}
+          />
+          <span
+            class="block h-5 w-9 rounded-full bg-zinc-300 dark:bg-zinc-600 peer-checked:bg-brand-600
+                   peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500/40 transition-colors"
+          ></span>
+          <span
+            class="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform
+                   peer-checked:translate-x-4"
+          ></span>
+        </span>
+        <span>
+          <span class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">Mode permissif</span>
+          <span class="block text-xs text-zinc-500 dark:text-zinc-400">
+            Ignore les entrées de mapping manquantes au lieu d'interrompre le traitement.
+          </span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- Actions -->
+  <div class="sticky bottom-4 z-30 mt-6">
+    <div class="flex flex-col sm:flex-row gap-2 justify-end rounded-2xl bg-white/80 dark:bg-zinc-800/80 backdrop-blur border border-zinc-200 dark:border-zinc-700 shadow-card px-4 py-3">
+      <button
+        type="button"
+        class="ui-btn-secondary"
+        on:click={resetAll}
+        disabled={isLoading}
+      >
+        <RotateCcw size={16} />
+        Réinitialiser
+      </button>
+      <button
+        type="button"
+        class="ui-btn-primary"
+        on:click={deanonymize}
+        disabled={isLoading || !inputFile || !mappingFile}
+        aria-busy={isLoading}
+      >
+        {#if isLoading}
+          <Loader2 size={16} class="animate-spin" />
+          Traitement…
+        {:else}
+          <Unlock size={16} />
+          Désanonymiser
+        {/if}
+      </button>
+    </div>
   </div>
 
   {#if errorMessage}
-    <div class="border border-red-200 bg-red-50 text-red-800 rounded-xl p-4 mt-4 shadow-md dark:border-red-700 dark:bg-red-900/30 dark:text-red-300" role="alert">
-      <strong class="font-semibold">Erreur :</strong>
-      <pre class="mt-1 whitespace-pre-wrap text-sm font-mono">{typeof errorMessage === 'object' ? JSON.stringify(errorMessage, null, 2) : errorMessage}</pre>
+    <div
+      class="mt-4 rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-4 py-3"
+      role="alert"
+    >
+      <div class="flex items-start gap-2">
+        <AlertTriangle size={18} class="shrink-0 mt-0.5" />
+        <div>
+          <strong class="font-semibold">Erreur</strong>
+          <pre class="whitespace-pre-wrap text-xs font-mono mt-1">{typeof errorMessage === 'object' ? JSON.stringify(errorMessage, null, 2) : errorMessage}</pre>
+        </div>
+      </div>
     </div>
   {/if}
 
   {#if outputText}
-    <div class="border border-green-200 bg-green-50 text-green-900 rounded-2xl p-4 flex flex-col gap-2 mt-4 shadow-sm dark:border-green-700 dark:bg-green-900/30 dark:text-green-200">
-      <h3 class="font-bold text-lg">Fichier désanonymisé :</h3>
-      <textarea
-        class="w-full mt-1 p-3 border border-zinc-300 rounded-xl resize-y min-h-[120px] font-mono text-sm bg-white text-zinc-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-zinc-100 dark:border-gray-600 dark:focus:ring-blue-600 dark:focus:border-blue-600"
-        readonly
-        value={outputText}
-        rows="10"
-      ></textarea>
-    </div>
+    <section class="ui-section mt-6">
+      <header class="ui-section-header justify-between">
+        <div class="flex items-center gap-2">
+          <FileText size={16} class="text-zinc-400 dark:text-zinc-500" />
+          <span class="ui-section-title">Fichier désanonymisé</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button type="button" class="ui-btn-ghost text-xs px-2 py-1" on:click={copyOutput}>
+            <Copy size={14} />
+            Copier
+          </button>
+          <button type="button" class="ui-btn-ghost text-xs px-2 py-1" on:click={exportOutput}>
+            <Download size={14} />
+            Exporter
+          </button>
+        </div>
+      </header>
+      <div class="ui-section-body">
+        <textarea
+          class="ui-textarea font-mono text-sm min-h-[12rem]"
+          readonly
+          value={outputText}
+          rows="10"
+        ></textarea>
+      </div>
+    </section>
   {/if}
 
   {#if report && report.length > 0}
-    <div class="mt-6 p-4 rounded-xl bg-sky-50 border border-sky-200 dark:bg-sky-900/30 dark:border-sky-700">
-      <h3 class="font-semibold text-sky-800 dark:text-sky-200 mb-2">Journal / Avertissements :</h3>
-      <ul class="list-disc list-inside space-y-1 text-sky-900 dark:text-sky-100 text-sm">
-        {#each report as message}
-          <li>{typeof message === 'object' ? JSON.stringify(message) : message}</li>
-        {/each}
-      </ul>
-    </div>
+    <section class="ui-section mt-6">
+      <header class="ui-section-header">
+        <ListChecks size={16} class="text-zinc-400 dark:text-zinc-500" />
+        <span class="ui-section-title">Journal / Avertissements</span>
+      </header>
+      <div class="ui-section-body">
+        <ul class="space-y-1.5 text-sm text-zinc-700 dark:text-zinc-200">
+          {#each report as message}
+            <li class="flex items-start gap-2">
+              <span class="mt-1.5 h-1 w-1 rounded-full bg-zinc-400 shrink-0"></span>
+              <span>{typeof message === 'object' ? JSON.stringify(message) : message}</span>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    </section>
   {/if}
 </div>
