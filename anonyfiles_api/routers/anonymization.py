@@ -130,7 +130,6 @@ def _process_engine_result(
     """
 
     engine_status_reported = engine_result.get("status")
-    engine_status_reported = engine_result.get("status")
     engine_error_message = engine_result.get("error")
 
     final_status_for_log_event: str
@@ -455,11 +454,13 @@ async def anonymize_file_endpoint(
     except ValueError as e_rules:
         # strict=False par défaut donc cette branche ne devrait pas être prise,
         # mais on reste défensif si le helper évolue.
-        logger.warning(
-            f"Tâche {job_id}: règles personnalisées ignorées: {e_rules}"
-        )
+        logger.warning(f"Tâche {job_id}: règles personnalisées ignorées: {e_rules}")
         custom_rules_list = []
-    if custom_replacement_rules and custom_replacement_rules.strip() and not custom_rules_list:
+    if (
+        custom_replacement_rules
+        and custom_replacement_rules.strip()
+        and not custom_rules_list
+    ):
         logger.warning(
             f"Tâche {job_id}: custom_replacement_rules fournies mais non parsables; ignorées."
         )

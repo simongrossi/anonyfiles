@@ -35,13 +35,6 @@ class BaseProcessor:
             "reconstruct_and_write_anonymized_file doit être implémenté par la sous-classe."
         )
 
-    # Les anciennes méthodes comme 'replace_entities' ou 'write_final_blocks' (pour TxtProcessor)
-    # peuvent être marquées comme obsolètes ou supprimées si elles ne sont plus appelées
-    # directement par l'AnonyfilesEngine dans le nouveau flux.
-    # Exemple :
-    # def replace_entities(self, *args, **kwargs):
-    #     raise DeprecationWarning(f"{self.__class__.__name__}.replace_entities est obsolète. Utiliser reconstruct_and_write_anonymized_file.")
-
     async def extract_blocks_async(self, input_path: Path, **kwargs) -> List[str]:
         """Asynchronous wrapper calling :meth:`extract_blocks` in a thread."""
         return await asyncio.to_thread(self.extract_blocks, input_path, **kwargs)

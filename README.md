@@ -182,7 +182,7 @@ La CI `desktop-build.yml` produit ces artifacts automatiquement sur tag `v*` pou
 #### Pré-requis
 
 * Python 3.11 (recommandé, testé en production)
-* Node.js 18+, npm/yarn (pour la GUI)
+* Node.js 20+, npm/yarn (pour la GUI)
 * Rust & Cargo (pour la GUI)
 * Modèle spaCy `fr_core_news_md`
 
@@ -436,7 +436,7 @@ déploiement via Railway. Copiez-le en `railway.json` puis ajustez les valeurs.
   pip install -e .[dev]
   ```
  
-* Le projet utilise `pyproject.toml` pour la gestion des dépendances. Plus de `requirements.txt` à gérer manuellement !
+* Le projet utilise `pyproject.toml` comme source de vérité des dépendances. Le `requirements.txt` racine est un lock généré, à régénérer avec `python -m piptools compile pyproject.toml -o requirements.txt` plutôt qu'à modifier manuellement.
 
 * Merci de créer une issue ou une PR avec un descriptif clair et un code lisible.
 

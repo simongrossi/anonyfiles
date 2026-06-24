@@ -17,9 +17,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copie du projet complet pour installation via pyproject.toml
 COPY . .
-# Installation des dépendances et du projet via pip install .
+# Installation verrouillée des dépendances puis du projet sans relancer la résolution
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir .
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir --no-deps .
 # Si vous devez télécharger le modèle spacy ici pour qu'il soit dans l'image :
 # RUN python -m spacy download fr_core_news_md
 

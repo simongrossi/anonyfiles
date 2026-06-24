@@ -6,7 +6,7 @@ import yaml
 from pathlib import Path
 from contextvars import ContextVar
 from typing import Optional, Dict, Any
-from pydantic import Field, BaseModel
+from pydantic import Field, BaseModel, ConfigDict
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -66,13 +66,12 @@ DEFAULT_PURGE_INTERVAL_MINUTES = 60
 
 
 class ReplacementOptions(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     locale: Optional[str] = None
     provider: Optional[str] = None
     text: Optional[str] = None
     # Pour 'codes', pas d'options spécifiques requises mais on accepte des dicts génériques
-
-    class Config:
-        extra = "allow"  # Permettre d'autres options non explicitement définies
 
 
 class EntityConfig(BaseModel):
@@ -101,8 +100,7 @@ class AnonymizationOptions(BaseModel):
     # où l'appelant (router) choisit d'inverser la valeur par défaut.
     anonymizeMisc: bool = True
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class AppConfig(BaseSettings):

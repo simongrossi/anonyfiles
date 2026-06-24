@@ -36,7 +36,7 @@ Il s’appuie sur le NLP (spaCy), une configuration flexible en YAML, et des rè
 
 ### **🛆 Dépendances techniques**
 
-* Python **3.8+**
+* Python **3.11+**
 * pip et environnements virtuels recommandés
 * Modèle spaCy fr_core_news_md ou lg
 
@@ -44,12 +44,10 @@ Il s’appuie sur le NLP (spaCy), une configuration flexible en YAML, et des rè
 
 ```bash
 git clone https://github.com/simongrossi/anonyfiles.git
-cd anonyfiles/anonyfiles_cli
-pip install -r requirements.txt
-# Installer le package en mode éditable pour avoir l'alias 'anonyfiles-cli'
-pip install -e .
+cd anonyfiles
+python -m pip install -e .
 # Installer le modèle spaCy séparément après les dépendances
-python3 -m spacy download fr_core_news_md
+python -m spacy download fr_core_news_md
 ```
 
 ## **📁 Structure du projet refactorisée**
@@ -59,7 +57,7 @@ Le projet anonyfiles_cli est conçu de manière modulaire, avec une séparation 
 ### **À la racine :**
 
 * main.py : point d’entrée via la commande `anonyfiles-cli`
-* requirements.txt : dépendances Python
+* `pyproject.toml` (à la racine) : dépendances Python et entry point CLI
 * README.md : documentation
 
 ### **anonymizer/**

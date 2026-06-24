@@ -5,10 +5,12 @@ Merci de votre intérêt pour contribuer à Anonyfiles !
 ## Comment proposer une contribution ?
 1. Forkez ce dépôt et clonez-le en local.
 2. Créez une nouvelle branche pour votre feature ou correction.
-3. Installez les dépendances de test :
+3. Créez un environnement Python 3.11+ puis installez le projet avec les
+   outils de développement :
 
    ```bash
-   pip install -r requirements-test.txt
+   python -m pip install -e ".[dev]"
+   python -m spacy download fr_core_news_md
    ```
 
    puis assurez-vous que le code passe les tests (`pytest` pour Python, `npm run build` pour le front…).
@@ -43,10 +45,11 @@ def saluer(nom: str) -> str:
 
 ### Lancer les tests localement
 
-1. Installez les dépendances de test :
+1. Installez le projet avec les dépendances de développement :
 
    ```bash
-   pip install -r requirements-test.txt
+   python -m pip install -e ".[dev]"
+   python -m spacy download fr_core_news_md
    ```
 
 2. Exécutez la suite de tests :
@@ -73,15 +76,15 @@ python scripts/generate_test_logs.py --live --format apache
 
 Le projet utilise une approche hybride moderne :
 
-*   **`pyproject.toml`** : Source de vérité unique. Déclare les dépendances abstraites avec des plages de versions (ex: `fastapi>=0.110.0`). C'est ce fichier qui est utilisé lors d'un `pip install .`.
-*   **`requirements.txt`** : Fichier généré automatiquement via `pip-tools`. Il contient les versions épinglées (versions exactes) pour garantir la reproductibilité des environnements (CI/CD, déploiement).
+*   **`pyproject.toml`** : source de vérité unique. Il déclare Python 3.11+ et les dépendances abstraites avec des plages de versions (ex. `spacy>=3.8,<3.9`). C'est ce fichier qui est utilisé lors d'un `pip install .` ou `pip install -e ".[dev]"`.
+*   **`requirements.txt`** : lock runtime généré automatiquement via `pip-tools`. Il contient les versions exactes utilisées par les déploiements reproductibles. Ne le modifiez pas à la main.
 
 ### Mettre à jour les dépendances
 
 1.  Modifiez `pyproject.toml` pour ajouter/modifier une bibliothèque.
 2.  Régénérez le `requirements.txt` :
     ```bash
-    pip-compile pyproject.toml -o requirements.txt
+    python -m piptools compile pyproject.toml -o requirements.txt
     ```
 
 ## Signaler un bug

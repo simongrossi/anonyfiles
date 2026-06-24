@@ -5,8 +5,8 @@ commands = []
 commands = [
   "python3 -m ensurepip --upgrade",
   "python3 -m pip install --upgrade pip setuptools wheel",
-  "pip install -r requirements-full.txt",
-  "pip install -e ."
+  "pip install -r requirements.txt",
+  "pip install --no-deps ."
 ]
 
 [phases.build]

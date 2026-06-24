@@ -7,13 +7,16 @@ import aiofiles.os as aio_os
 from fastapi.concurrency import run_in_threadpool
 from typing import Optional, Any, Dict
 
-from .core_config import logger, JOBS_DIR, BASE_INPUT_STEM_FOR_JOB_FILES
+from . import core_config
+from .core_config import logger, BASE_INPUT_STEM_FOR_JOB_FILES
+
+JOBS_DIR = core_config.JOBS_DIR
 
 
 class Job:
     def __init__(self, job_id: str):
         self.job_id = job_id
-        self.job_dir = JOBS_DIR / self.job_id
+        self.job_dir = core_config.JOBS_DIR / self.job_id
         self.status_file_path = self.job_dir / "status.json"
         self.audit_log_file_path = self.job_dir / "audit_log.json"
         self.base_input_stem = BASE_INPUT_STEM_FOR_JOB_FILES

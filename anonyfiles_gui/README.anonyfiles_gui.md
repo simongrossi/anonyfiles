@@ -20,12 +20,15 @@ développée en Svelte, Rust et Tauri pour une expérience utilisateur moderne e
 
 ## 🛠️ Prérequis & Installation
 
-- [Node.js](https://nodejs.org/)  
-- [Rust](https://www.rust-lang.org/tools/install)  
-- [Tauri CLI](https://tauri.app/v1/guides/getting-started/prerequisites/)  
-- [Python 3.9+](https://www.python.org/downloads/) avec le projet [anonyfiles_cli](https://github.com/simongrossi/anonyfiles) installé et accessible dans le `PATH`  
+- [Node.js 20+](https://nodejs.org/)
+- [Rust stable](https://www.rust-lang.org/tools/install)
+- Python 3.11+ pour builder le sidecar Python/FastAPI
+- Dépendances Python installées depuis la racine via `pyproject.toml`
 
 ```sh
+cd ..
+python -m pip install -e .
+python -m spacy download fr_core_news_md
 cd anonyfiles_gui
 npm install
 npm run tauri dev
@@ -54,10 +57,11 @@ npm run tauri dev
 
 ---
 
-## 🤖 Intégration avec le CLI
+## 🤖 Intégration avec l'API locale
 
-La GUI exploite le moteur Python (`anonyfiles_cli`) via une commande Rust/Tauri.  
-Veillez à ce que `anonyfiles_cli` (et Python) soit installé et accessible dans votre environnement système (`PATH`).
+La GUI parle à l'API FastAPI (`anonyfiles_api`). En desktop, Tauri lance le
+sidecar Python embarqué ; en développement, vous pouvez aussi lancer Uvicorn à
+part avec `python -m anonyfiles_api --host 127.0.0.1 --port 8000`.
 
 ---
 

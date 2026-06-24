@@ -19,33 +19,6 @@ class PdfProcessor(BaseProcessor):
             blocks.append(text)
         return blocks
 
-    def replace_entities(
-        self, input_path, output_path, replacements, entities_per_block_with_offsets
-    ):
-        doc = fitz.open(input_path)
-
-        for page_num, page in enumerate(doc):
-            if page_num >= len(entities_per_block_with_offsets):
-                break
-            entities = entities_per_block_with_offsets[page_num]
-            if not entities:
-                continue
-
-            # Ajouter une annotation de redaction pour chaque occurrence d'entité
-            for ent_text, ent_label, start, end in entities:
-                areas = page.search_for(ent_text)
-                for area in areas:
-                    # Crée une annotation de redaction blanche (masque le contenu)
-                    page.add_redact_annot(area, fill=(1, 1, 1))
-
-            # Appliquer toutes les redactions sur la page
-            page.apply_redactions()
-
-        output_dir = Path(output_path).parent
-        if not output_dir.exists():
-            output_dir.mkdir(parents=True, exist_ok=True)
-        doc.save(output_path)
-
     def reconstruct_and_write_anonymized_file(
         self,
         output_path,

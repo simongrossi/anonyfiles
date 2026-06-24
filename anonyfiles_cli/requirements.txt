@@ -1,4 +1,0 @@
-#
-# CE FICHIER EST obsolète.
-# Les dépendances sont désormais gérées dans le fichier pyproject.toml à la racine.
-#

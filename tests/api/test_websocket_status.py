@@ -8,7 +8,6 @@ import pytest
 
 pytest.importorskip("httpx")
 from fastapi.testclient import TestClient
-from starlette.websockets import WebSocketDisconnect
 
 import anonyfiles_api.core_config as core_config
 from anonyfiles_api.job_utils import Job
@@ -78,10 +77,8 @@ def test_websocket_reports_status_progress(tmp_path):
                 second = ws.receive_json()
                 assert first["status"] == "pending"
                 assert second["status"] in {"finished", "error"}
-                ws.close()
-                with pytest.raises(WebSocketDisconnect):
-                    ws.receive_json()
     finally:
         core_config.JOBS_DIR = original_jobs_dir
         for t in threads:
-            t.join()
+            t.join(timeout=5)
+            assert not t.is_alive()

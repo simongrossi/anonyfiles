@@ -4,7 +4,10 @@ Ce dossier regroupe les fichiers utiles pour exécuter **Anonyfiles API** en pro
 
 ## 📦 Image Docker
 
-Une `Dockerfile` est disponible à la racine du projet. Elle installe les dépendances listées dans `requirements-full.txt` puis lance l'API avec Uvicorn.
+Une `Dockerfile` est disponible à la racine du projet. Elle utilise Python 3.11,
+installe les dépendances verrouillées dans `requirements.txt`, installe ensuite
+le package depuis `pyproject.toml` sans relancer la résolution, puis lance l'API
+avec Uvicorn.
 
 ```bash
 docker build -t anonyfiles .
@@ -40,6 +43,8 @@ Les variables d'environnement à définir (dans `/etc/default/anonyfiles-api` pa
 ## 📦 Déploiement via Nixpacks
 
 Le fichier `nixpacks.toml` décrit les étapes d'installation et la commande de lancement pour [Nixpacks](https://nixpacks.com/).
+Il suit la même stratégie que l'image Docker : `requirements.txt` pour les
+versions exactes, puis `pip install --no-deps .` pour installer le package local.
 
 ```bash
 nixpacks build . --name anonyfiles
@@ -64,5 +69,4 @@ Pour mettre en place un déploiement automatisé :
    ```
 3. Définir les variables d'environnement nécessaires depuis le tableau de bord Railway.
 4. Le workflow [`railway.yml`](../.github/workflows/railway.yml) déclenche automatiquement le déploiement à chaque push sur la branche principale.
-
 

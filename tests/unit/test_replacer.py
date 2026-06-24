@@ -27,4 +27,4 @@ def test_generate_replacements_with_rules():
     assert replacements["Jean"] == "{{PERS_001}}"
     assert mapping["Jean"] == "{{PERS_001}}"
     assert replacements["ACME"] == "{ORGANIZATION:ACME}"
-    assert replacements["01/01/2020"] == "{{DATE_REMOVED}}"
+    assert replacements["01/01/2020"] == "{{DATE_REMOVED_1}}"

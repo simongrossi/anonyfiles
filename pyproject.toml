@@ -14,10 +14,9 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "uvicorn[standard]>=0.34.0",
     "python-multipart>=0.0.20",
-    "spacy>=3.7.0,<4.0.0",
-    "pandas>=2.0.0",
+    "spacy>=3.8.0,<3.9.0",
+    "pandas>=2.2.0",
     "numpy>=1.26.0",
-    "thinc>=8.1.8",
     "python-docx>=1.1.0",
     "faker>=18.0.0",
     "openpyxl>=3.1.0",
@@ -50,7 +49,8 @@ dev = [
     "pypdf",
     "build",
     "types-requests",
-    "types-PyYAML"
+    "types-PyYAML",
+    "reportlab"
 ]
 packaging = [
     "pyinstaller>=6.0.0"

@@ -23,6 +23,7 @@ développée en Svelte, Rust et Tauri pour une expérience utilisateur moderne e
 - [Node.js 20+](https://nodejs.org/) & npm
 - [Rust stable](https://www.rust-lang.org/tools/install) & Cargo
 - Python 3.11+ (pour builder le sidecar qui embarque l'API)
+- Dépendances Python installées depuis la racine via `pyproject.toml`
 
 Deux scénarios d'installation, à choisir selon ce que tu veux faire :
 

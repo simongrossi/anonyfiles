@@ -72,6 +72,8 @@ def generate_redaction_replacement(
     # Sinon comportement legacy
     # On insère l'index avant le dernier caractère si c'est un crochet ou une accolade, sinon à la fin
     # Heuristique simple : si finit par "]" ou "}", on insère avant.
+    if base_text.startswith("{{") and base_text.endswith("}}"):
+        return f"{base_text[:-2]}_{index + 1}" + "}}"
     if base_text.endswith("]") or base_text.endswith("}"):
         return f"{base_text[:-1]}_{index + 1}{base_text[-1]}"
     return f"{base_text}_{index + 1}"
@@ -89,13 +91,13 @@ def generate_placeholder_replacement(
     Remplace par un format dynamique. Ajoute un index pour l'unicité si non présent.
     """
     format_str = options.get("format", "{{{}}}".format(label.upper()))
+    if "{}" in format_str:
+        return format_str.format(entity_text)
+
     try:
-        # Essai de formatage standard
-        formatted = format_str.format(entity_text)
-        # Pour garantir la bijectivité, on ajoute l'index si le format ne semble pas déjà unique (ce qui est dur à savoir)
-        # Par sécurité, on ajoute l'index en suffixe du tag si ça ressemble à un tag {{TAG...}}
+        formatted = format_str
         if formatted.startswith("{{") and formatted.endswith("}}"):
-            return f"{formatted[:-2]}_{index + 1}}}"
+            return f"{formatted[:-2]}_{index + 1}" + "}}"
         return f"{formatted}_{index + 1}"
     except Exception as e:
         logger.warning(
@@ -162,6 +164,9 @@ class ReplacementSession:
 
     def __init__(self):
         self.entity_to_code = {}
+
+    def _generate_code(self, label: str, index: int) -> str:
+        return generate_code_replacement(self, label, index, {}, "")
 
     def generate_replacements(self, unique_spacy_entities, replacement_rules=None):
         if not replacement_rules:

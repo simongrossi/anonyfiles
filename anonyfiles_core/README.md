@@ -14,5 +14,10 @@ Elle est appelée directement par:
 
 ## 📦 Dépendances
 
-Chaque module possède son fichier `requirements.txt` afin de permettre une installation séparée selon vos besoins.
-Les dépendances principales incluent `spacy`, `faker`, et `pyyaml`.
+Les dépendances Python sont centralisées à la racine du dépôt :
+
+- `pyproject.toml` est la source de vérité et déclare Python 3.11+.
+- `requirements.txt` est le lock runtime généré depuis `pyproject.toml` avec `pip-tools`.
+
+Installez le moteur depuis la racine avec `python -m pip install .`, puis
+téléchargez le modèle NLP avec `python -m spacy download fr_core_news_md`.

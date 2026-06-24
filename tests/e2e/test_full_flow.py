@@ -62,6 +62,8 @@ def test_full_anonymization_flow(setup_test_env):
     result = engine.anonymize(
         input_path=INPUT_PDF,
         output_path=output_pdf_path,
+        entities=None,
+        dry_run=False,
         mapping_output_path=mapping_path,
         log_entities_path=log_path,
     )

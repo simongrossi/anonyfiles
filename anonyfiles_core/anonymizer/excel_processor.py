@@ -5,7 +5,6 @@ import numpy as np
 from pathlib import Path
 import logging
 from .base_processor import BaseProcessor
-from .utils import apply_positional_replacements
 
 logger = logging.getLogger(__name__)
 
@@ -63,59 +62,6 @@ class ExcelProcessor(BaseProcessor):
             all_blocks.extend(flat_values)
 
         return all_blocks
-
-    def replace_entities(
-        self, input_path, output_path, replacements, entities_per_block_with_offsets
-    ):
-        """
-        [Legacy method - conservée pour compatibilité si nécessaire, mais engine préfère reconstruct...]
-        Remplace les entités dans chaque cellule Excel et sauvegarde le résultat.
-        """
-        # Note: Cette méthode est moins optimale car elle doit relire le fichier.
-        # Idéalement engine.py devrait utiliser reconstruct_and_write_anonymized_file.
-        # Ici on réimplémente une logique similaire à reconstruct mais en refaisant tout.
-
-        dfs = pd.read_excel(input_path, sheet_name=None, header=None, dtype=str)
-
-        # On doit utiliser un writer pour supporter le multi-feuilles
-        output_dir = Path(output_path).parent
-        if not output_dir.exists():
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-        with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
-            global_block_index = 0
-
-            for sheet_name, df in dfs.items():
-                df = df.fillna("")
-                anonymized_data = df.values.copy()  # Numpy array
-
-                rows, cols = anonymized_data.shape
-
-                for r in range(rows):
-                    for c in range(cols):
-                        cell_text = str(anonymized_data[r, c])
-
-                        entities_for_this_cell = []
-                        if global_block_index < len(entities_per_block_with_offsets):
-                            entities_for_this_cell = entities_per_block_with_offsets[
-                                global_block_index
-                            ]
-
-                        if cell_text.strip() and entities_for_this_cell:
-                            anonymized_text = apply_positional_replacements(
-                                cell_text, replacements, entities_for_this_cell
-                            )
-                            anonymized_data[r, c] = anonymized_text
-
-                        global_block_index += 1
-
-                # Création du DF anonymisé
-                new_df = pd.DataFrame(
-                    anonymized_data, index=df.index, columns=df.columns
-                )
-                new_df.to_excel(
-                    writer, sheet_name=sheet_name, header=False, index=False
-                )
 
     def reconstruct_and_write_anonymized_file(
         self, output_path, final_processed_blocks, original_input_path, **kwargs

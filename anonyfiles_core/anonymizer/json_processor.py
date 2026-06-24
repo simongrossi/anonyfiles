@@ -204,7 +204,3 @@ class JsonProcessor(BaseProcessor):
         json_str = json.dumps(anonymized_json, indent=2, ensure_ascii=False)
         async with aiofiles.open(output_path, "w", encoding="utf-8") as fout:
             await fout.write(json_str)
-
-    # Ancienne méthode replace_entities (maintenant redondante pour le flux principal)
-    # def replace_entities(self, input_path, output_path, replacements, entities_per_block_with_offsets):
-    #     raise DeprecationWarning("JsonProcessor.replace_entities est obsolète.")
