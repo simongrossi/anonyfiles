@@ -56,6 +56,10 @@ JOBS_DIR = _resolve_jobs_dir()
 BASE_INPUT_STEM_FOR_JOB_FILES = "input"
 DEFAULT_RATE_LIMIT = "100/minute"
 DEFAULT_MAX_UPLOAD_MB = 100
+# Rétention des jobs : les répertoires de jobs contiennent le fichier original
+# et le mapping (clé de dé-anonymisation). On les purge passé ce délai.
+DEFAULT_JOB_RETENTION_HOURS = 24
+DEFAULT_PURGE_INTERVAL_MINUTES = 60
 
 
 # --- Modèles de Configuration ---
@@ -118,6 +122,20 @@ class AppConfig(BaseSettings):
     max_upload_size_mb: int = Field(
         default=DEFAULT_MAX_UPLOAD_MB,
         description="Taille maximale autorisée pour un fichier uploadé (en MiB).",
+        ge=1,
+    )
+    job_retention_hours: int = Field(
+        default=DEFAULT_JOB_RETENTION_HOURS,
+        description=(
+            "Durée de conservation des répertoires de jobs (fichier original + "
+            "mapping de dé-anonymisation) avant purge automatique, en heures. "
+            "Mettre 0 pour désactiver la purge."
+        ),
+        ge=0,
+    )
+    job_purge_interval_minutes: int = Field(
+        default=DEFAULT_PURGE_INTERVAL_MINUTES,
+        description="Intervalle entre deux balayages de purge des jobs, en minutes.",
         ge=1,
     )
 

@@ -1,5 +1,7 @@
 # anonyfiles_api/api.py
 
+import asyncio
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,6 +26,7 @@ from .core_config import (
     clear_request_context,
     AppConfig,
 )
+from .retention import run_purge_loop
 
 # Plus besoin d'importer load_config_api_safe depuis anonyfiles_cli.main
 # CLI_MODULE_PATH = Path(__file__).resolve().parent.parent / "anonyfiles_cli"
@@ -94,6 +97,17 @@ async def startup_event():
         if app_config.debug:
             logger.info("Mode DEBUG activé via la configuration.")
 
+        # Démarrage de la purge périodique des jobs expirés (confidentialité).
+        app.state.purge_stop_event = asyncio.Event()
+        app.state.purge_task = asyncio.create_task(
+            run_purge_loop(
+                jobs_dir=JOBS_DIR,
+                max_age_seconds=app_config.job_retention_hours * 3600,
+                interval_seconds=app_config.job_purge_interval_minutes * 60,
+                stop_event=app.state.purge_stop_event,
+            )
+        )
+
     except Exception as e:
         logger.critical(
             f"ÉCHEC CRITIQUE: Configuration invalide. L'application ne peut pas démarrer.\nErreur: {e}",
@@ -101,6 +115,22 @@ async def startup_event():
         )
         # On relève l'exception pour stopper Uvicorn (Fail Fast)
         raise e
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Arrête proprement la tâche de purge des jobs."""
+    stop_event = getattr(app.state, "purge_stop_event", None)
+    task = getattr(app.state, "purge_task", None)
+    if stop_event is not None:
+        stop_event.set()
+    if task is not None:
+        try:
+            await asyncio.wait_for(task, timeout=5)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            task.cancel()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Arrêt de la tâche de purge: {exc}")
 
 
 # Le reste du fichier (middleware, inclusion des routeurs, endpoint racine)
