@@ -3,8 +3,6 @@
 import logging
 import os
 import re
-import importlib
-import sys
 from functools import lru_cache
 
 import spacy
@@ -53,17 +51,6 @@ def _install_hint(model_name: str) -> str:
     )
 
 
-def _active_spacy_module():
-    global spacy
-    if hasattr(spacy, "load"):
-        return spacy
-
-    if sys.modules.get("spacy") is spacy:
-        sys.modules.pop("spacy", None)
-    spacy = importlib.import_module("spacy")
-    return spacy
-
-
 @lru_cache(
     maxsize=2
 )  # Cache jusqu'à 2 modèles spaCy (ex: 'fr_core_news_md' et 'fr_core_news_lg')
@@ -81,21 +68,9 @@ def _load_spacy_model_cached(model_name: str):
     """
     logger.info("Loading spaCy model: %s (this might be cached)...", model_name)
 
-    spacy_module = _active_spacy_module()
-    spacy_util = getattr(spacy_module, "util", None)
-    is_package = getattr(spacy_util, "is_package", None)
-    if is_package is None:
+    if spacy.util.is_package(model_name):
         try:
-            return spacy_module.load(model_name)
-        except (OSError, ImportError, ValueError, AttributeError) as exc:
-            raise ConfigurationError(
-                f"Le modèle spaCy '{model_name}' est introuvable ou ne se charge pas: {exc}. "
-                f"{_install_hint(model_name)}"
-            ) from exc
-
-    if is_package(model_name):
-        try:
-            return spacy_module.load(model_name)
+            return spacy.load(model_name)
         except (OSError, ImportError, ValueError) as exc:
             # Modèle présent mais illisible (ex. ABI incompatible après upgrade
             # spaCy, fichier tronqué). Ne pas re-télécharger en boucle.
@@ -115,7 +90,7 @@ def _load_spacy_model_cached(model_name: str):
         model_name,
     )
     try:
-        spacy_module.cli.download(model_name)
+        spacy.cli.download(model_name)
     except SystemExit as exc:
         # ``spacy.cli.download`` appelle ``sys.exit`` lorsque pip échoue
         # (réseau coupé, quota disque, proxy...). Le convertir en erreur typée.
@@ -130,7 +105,7 @@ def _load_spacy_model_cached(model_name: str):
         ) from exc
 
     try:
-        return spacy_module.load(model_name)
+        return spacy.load(model_name)
     except (OSError, ImportError, ValueError) as exc:
         raise ConfigurationError(
             f"Modèle spaCy '{model_name}' téléchargé mais impossible à charger: {exc}. "
@@ -166,8 +141,7 @@ class SpaCyEngine:
         self.nlp = _load_spacy_model_cached(model)
 
         # Configuration de l'EntityRuler si pas déjà présent
-        pipe_names = getattr(self.nlp, "pipe_names", [])
-        if hasattr(self.nlp, "add_pipe") and "entity_ruler" not in pipe_names:
+        if "entity_ruler" not in self.nlp.pipe_names:
             # On ajoute le ruler AVANT le NER ("ner") pour que les regex aient la priorité
             ruler = self.nlp.add_pipe("entity_ruler", before="ner")
 

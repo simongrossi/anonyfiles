@@ -119,6 +119,8 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 - [x] Corriger la ligne dupliquée `anonyfiles_api/routers/anonymization.py:132`.
 - [x] Retirer les fichiers parasites versionnés : `debug_job_mock.py`, `input.txt`,
       `input_test.txt`, `validate_fix_final.py`.
+- [x] Nettoyer le code smell de `spacy_engine.py` : supprimer les contournements de prod
+      (`_active_spacy_module`, gardes `getattr/hasattr`) et fiabiliser les doubles de test.
 
 ### Phase 3 — Modernisation front (chantiers séparés, un par un)
 - [ ] Vite 4 → 6/7.
