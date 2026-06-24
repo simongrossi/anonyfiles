@@ -227,4 +227,7 @@ Un exemple deploy/anonyfiles-api.service est fourni.
 | Variable | Description | Défaut |
 |---|---|---|
 | ANONYFILES_JOBS_DIR | Dossier des jobs | jobs/ |
+| ANONYFILES_MAX_UPLOAD_SIZE_MB | Taille max upload (Mio) | 100 |
+| ANONYFILES_JOB_RETENTION_HOURS | TTL des jobs avant purge auto (h) | 24 |
+| ANONYFILES_JOB_PURGE_INTERVAL_MINUTES | Intervalle de purge (min) | 60 |
 | ANONYFILES_CORS_ORIGINS | Origines autorisées | — |

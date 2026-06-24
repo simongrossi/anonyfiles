@@ -175,5 +175,8 @@ Pour la mise en production, consulter `deploy/`.
 | Variable | Description |
 |---|---|
 | `ANONYFILES_JOBS_DIR` | Dossier de stockage |
+| `ANONYFILES_MAX_UPLOAD_SIZE_MB` | Taille max d'un upload (Mio, défaut 100) |
+| `ANONYFILES_JOB_RETENTION_HOURS` | TTL des jobs avant purge auto (h, défaut 24, 0=off) |
+| `ANONYFILES_JOB_PURGE_INTERVAL_MINUTES` | Intervalle de purge (min, défaut 60) |
 | `ANONYFILES_CORS_ORIGINS` | Origines autorisées CORS |
 

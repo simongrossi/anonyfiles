@@ -415,6 +415,9 @@ définir (par exemple dans `/etc/default/anonyfiles-api`) :
 - `ANONYFILES_HOST` : adresse d'écoute d'uvicorn (ex. `127.0.0.1`)
 - `ANONYFILES_PORT` : port d'écoute de l'API (ex. `8000`)
 - `ANONYFILES_JOBS_DIR` : répertoire des jobs (défaut `jobs`)
+- `ANONYFILES_MAX_UPLOAD_SIZE_MB` : taille max d'un fichier téléversé en Mio (défaut `100`)
+- `ANONYFILES_JOB_RETENTION_HOURS` : durée de conservation des jobs avant purge automatique, en heures (défaut `24`, `0` pour désactiver)
+- `ANONYFILES_JOB_PURGE_INTERVAL_MINUTES` : intervalle entre deux balayages de purge (défaut `60`)
 - `ANONYFILES_CORS_ORIGINS` : domaines autorisés pour les requêtes API (ex: `https://mon-domaine.com,http://localhost:3000`)
 
 Un fichier `railway.json.example` est fourni à la racine pour simplifier un

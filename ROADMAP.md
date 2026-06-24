@@ -8,16 +8,20 @@
 
 ## 0. Contexte / travail déjà réalisé
 
-Branches en cours (non mergées, **rien n'est encore poussé**) :
+**Mise à jour 2026-06-25** : toutes les branches sont désormais **mergées dans `main`**
+(fast-forward). Le fix engine `_sanitize_for_ner` (`claude/flamboyant-torvalds`) est
+déjà présent dans `main` (intégré + reformaté black). La **Phase 0** (modernisation déps)
+a été réalisée par le commit `Modernize Python dependency stack`.
 
 | Branche | Contenu | État |
 |---|---|---|
-| `fix/docx-upload-and-anonymization` | Fix issue #73 (le champ `file` n'était jamais envoyé pour docx/pdf/json → 422) + durcissement docx (en-têtes/pieds de page anonymisés, `ValueError` sur mismatch, fichier corrompu) + même fix mismatch côté Excel + tests GUI Vitest + docs | ✅ 3 commits |
-| `feat/job-retention` | Empilée sur la précédente : purge automatique des jobs expirés (TTL configurable, env `ANONYFILES_JOB_RETENTION_HOURS`) — confidentialité | ✅ 4 commits (superset) |
+| `fix/docx-upload-and-anonymization` | Fix issue #73 + durcissement docx + fix mismatch Excel + tests GUI Vitest + docs | ✅ mergée dans `main` |
+| `feat/job-retention` | Purge automatique des jobs expirés (TTL, env `ANONYFILES_JOB_RETENTION_HOURS`) | ✅ mergée dans `main` |
+| `claude/flamboyant-torvalds` | `_sanitize_for_ner` (tokens custom rules avant NER) | ✅ déjà dans `main` |
+| commit `Modernize Python dependency stack` | Unification déps + spaCy 3.8/NumPy 2/pandas + lock unique + fix nixpacks + nettoyage | ✅ sur `main` |
 
-> `feat/job-retention` contient **tout** (c'est un sur-ensemble de la branche fix).
-
-À faire côté Git : décider de la stratégie de merge / PR et **pousser**.
+> ⚠️ **À valider en CI** : `pandas 3.0` / `numpy 2.4` n'ont pas pu être testés en local
+> (Python 3.9 ici, le projet exige 3.11). La CI (Python 3.11) est le filet de sécurité.
 
 ---
 
@@ -26,19 +30,19 @@ Branches en cours (non mergées, **rien n'est encore poussé**) :
 **Problème central : trois récits contradictoires sur la gestion des dépendances**,
 et des fichiers référencés qui n'existent pas.
 
-- [ ] **🔴 `CONTRIBUTING.md` (l.11, 49, 76-84)** : référence `pip install -r requirements-test.txt`
+- [x] **🔴 `CONTRIBUTING.md` (l.11, 49, 76-84)** : référence `pip install -r requirements-test.txt`
   et `pip-compile pyproject.toml -o requirements.txt` — ces `.txt` **n'existent pas**.
-- [ ] **🔴 `deploy/README.md` (l.7)** : prétend que le Dockerfile installe `requirements-full.txt`
+- [x] **🔴 `deploy/README.md` (l.7)** : prétend que le Dockerfile installe `requirements-full.txt`
   (faux : il fait `pip install .`) et ce fichier est **manquant**.
-- [ ] **🔴 `nixpacks.toml`** : `pip install -r requirements-full.txt` → fichier absent →
+- [x] **🔴 `nixpacks.toml`** : `pip install -r requirements-full.txt` → fichier absent →
   **déploiement Railway/nixpacks cassé**.
-- [ ] **🟠 `anonyfiles_core/README.md` (l.17)** : « Chaque module possède son `requirements.txt` »
+- [x] **🟠 `anonyfiles_core/README.md` (l.17)** : « Chaque module possède son `requirements.txt` »
   → contredit la centralisation `pyproject.toml`.
-- [ ] **🟠 `anonyfiles_cli/README.anonyfiles_cli.md` (l.48)** : `pip install -r requirements.txt`
+- [x] **🟠 `anonyfiles_cli/README.anonyfiles_cli.md` (l.48)** : `pip install -r requirements.txt`
   alors que ce fichier est un stub « obsolète ».
-- [ ] **🟠 `anonyfiles_gui/README.anonyfiles_gui.md` (l.26)** : exige **Python 3.9+** alors que
+- [x] **🟠 `anonyfiles_gui/README.anonyfiles_gui.md` (l.26)** : exige **Python 3.9+** alors que
   tout le reste (et `pyproject`) exige **3.11+**.
-- [ ] **🟠 `README.md` (l.439) + `CHANGELOG.md`** : « Plus de `requirements.txt` ! » contredit
+- [x] **🟠 `README.md` (l.439) + `CHANGELOG.md`** : « Plus de `requirements.txt` ! » contredit
   `CONTRIBUTING.md` et l'existence de `requirements.in`.
 
 > Les docs **fonctionnelles** (formats `.docx/.pdf/.json/.xlsx`, modèle spaCy, quickstart)
@@ -94,26 +98,26 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 ## 3. Plan d'action priorisé
 
 ### Phase 0 — Déblocage déps Python (impact le plus élevé)
-- [ ] Bumper les **modèles spaCy → 3.8.0** + `spacy>=3.8,<3.9`, lever le plafond numpy
+- [x] Bumper les **modèles spaCy → 3.8.0** + `spacy>=3.8,<3.9`, lever le plafond numpy
       (`>=1.26` autorise 2.x), pandas `>=2.2`.
-- [ ] **Une seule source de vérité** : garder `pyproject.toml`, supprimer/aligner
+- [x] **Une seule source de vérité** : garder `pyproject.toml`, supprimer/aligner
       `requirements.in`, `requirements-test.in`, `anonyfiles_api/requirements.txt`
       (retirer les pins `fastapi==0.111`, `spacy==3.7.5`).
-- [ ] Régénérer **et commiter** un lock unique (`pip-compile pyproject.toml`) **ou** assumer
+- [x] Régénérer **et commiter** un lock unique (`pip-compile pyproject.toml`) **ou** assumer
       100 % pyproject. Créer le `requirements-full.txt` manquant **ou** corriger
       `nixpacks.toml` en `pip install .` (déploiement actuellement cassé).
 - [ ] Valider : `pip install .` + `python -m spacy download fr_core_news_md` + suite de tests
       verte **sous numpy 2**.
 
 ### Phase 1 — Cohérence doc (rapide, juste après Phase 0)
-- [ ] Corriger CONTRIBUTING / `deploy/README` / `core/README` / cli README / gui README
+- [x] Corriger CONTRIBUTING / `deploy/README` / `core/README` / cli README / gui README
       (Python 3.11, vraie stratégie de déps). Tout doit raconter **la même** histoire.
 
 ### Phase 2 — Dette technique ciblée
 - [ ] Pydantic v2 : `class Config` → `ConfigDict` (supprime les warnings).
-- [ ] Supprimer les méthodes `replace_entities` legacy restantes (pdf/excel/json) — mortes.
-- [ ] Corriger la ligne dupliquée `anonyfiles_api/routers/anonymization.py:132`.
-- [ ] Retirer les fichiers parasites versionnés : `debug_job_mock.py`, `input.txt`,
+- [x] Supprimer les méthodes `replace_entities` legacy restantes (pdf/excel/json) — mortes.
+- [x] Corriger la ligne dupliquée `anonyfiles_api/routers/anonymization.py:132`.
+- [x] Retirer les fichiers parasites versionnés : `debug_job_mock.py`, `input.txt`,
       `input_test.txt`, `validate_fix_final.py`.
 
 ### Phase 3 — Modernisation front (chantiers séparés, un par un)

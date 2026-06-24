@@ -39,6 +39,9 @@ Les variables d'environnement à définir (dans `/etc/default/anonyfiles-api` pa
 - `ANONYFILES_HOST` : adresse d'écoute (ex. `127.0.0.1`)
 - `ANONYFILES_PORT` : port d'écoute (ex. `8000`)
 - `ANONYFILES_JOBS_DIR` : répertoire des jobs (défaut `jobs`)
+- `ANONYFILES_MAX_UPLOAD_SIZE_MB` : taille max d'un fichier téléversé en Mio (défaut `100`)
+- `ANONYFILES_JOB_RETENTION_HOURS` : conservation des jobs avant purge auto, en heures (défaut `24`, `0`=désactivé)
+- `ANONYFILES_JOB_PURGE_INTERVAL_MINUTES` : intervalle de balayage de purge (défaut `60`)
 
 ## 📦 Déploiement via Nixpacks
 

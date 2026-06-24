@@ -10,6 +10,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ### Ajouté
 - **Support des formats Word (`.docx`), PDF (`.pdf`) et JSON (`.json`) dans l'interface graphique (GUI)** : correction du bug qui empêchait l'envoi de ces fichiers au backend de l'application (le champ `file` n'était pas inclus dans les données de formulaire, générant une erreur de validation HTTP 422).
+- **Purge automatique des jobs (confidentialité)** : les répertoires de jobs (fichier original + mapping de dé-anonymisation) sont supprimés passé un délai configurable. Réglable via `ANONYFILES_JOB_RETENTION_HOURS` (défaut `24`, `0` pour désactiver) et `ANONYFILES_JOB_PURGE_INTERVAL_MINUTES` (défaut `60`).
+
+### Modifié
+- **Modernisation de la pile de dépendances Python** : unification sur `pyproject.toml` + un unique lock `requirements.txt` (suppression de `requirements.in`, `requirements-test.in`, `anonyfiles_api/requirements.txt`, `anonyfiles_cli/requirements.txt`). Montée vers spaCy 3.8 / NumPy 2 / pandas, déverrouillant l'écosystème jusque-là bloqué par l'épinglage des modèles spaCy 3.7.0. Déploiement Nixpacks réparé.
 
 ### Corrigé
 - **Sécurisation de l'anonymisation Word (`.docx`)** :
@@ -21,7 +25,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
   - Déclenchement d'une exception `ValueError` en cas d'incohérence dans le nombre de cellules/blocs afin de prévenir tout décalage ou fuite accidentelle.
 
 ### Vérifié
-- Tests ajoutés pour les en-têtes/pieds de page docx et les fichiers corrompus.
+- Tests ajoutés pour les en-têtes/pieds de page docx et les fichiers corrompus, pour la purge des jobs (TTL), et tests GUI (Vitest) couvrant l'envoi du `file` pour chaque type de fichier.
 
 ## [1.4.2] – 2026-04-18
 
