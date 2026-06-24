@@ -147,14 +147,13 @@ class ExcelProcessor(BaseProcessor):
         )
 
         if total_cells_expected != len(final_processed_blocks):
-            logger.warning(
-                "Mismatch Excel: %s cellules attendues vs %s blocs fournis. Ajustement...",
-                total_cells_expected,
-                len(final_processed_blocks),
+            # Désalignement = bug d'extraction/reconstruction. On échoue de façon
+            # explicite plutôt que de produire un fichier décalé / partiellement
+            # anonymisé (risque de fuite de données non anonymisées).
+            raise ValueError(
+                f"Mismatch Excel: {total_cells_expected} cellules attendues "
+                f"vs {len(final_processed_blocks)} blocs fournis."
             )
-            # On ne lève pas d'erreur bloquante ici pour la robustesse, mais c'est risqué.
-            # Si mismatch, on risque de décaler les données.
-            # On va essayer de continuer tant qu'on a des blocs.
 
         output_dir = Path(output_path).parent
         if not output_dir.exists():

@@ -4,7 +4,6 @@ from pathlib import Path
 import logging
 from docx import Document
 from .base_processor import BaseProcessor
-from .utils import apply_positional_replacements
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +14,16 @@ class DocxProcessor(BaseProcessor):
     - Traverse hiérarchiquement : Paragraphes du corps -> Tableaux (récursifs).
     - Préserve l'intégrité de la structure tout en anonymisant l'ensemble du contenu.
     """
+
+    @staticmethod
+    def _open_document(path):
+        """Ouvre un document .docx en remontant une erreur claire si illisible."""
+        try:
+            return Document(path)
+        except Exception as exc:  # noqa: BLE001 - on veut un message unifié
+            raise ValueError(
+                f"Fichier .docx illisible ou corrompu: {Path(path).name} ({exc})"
+            ) from exc
 
     def _iter_block_items(self, parent_elt):
         """
@@ -34,82 +43,53 @@ class DocxProcessor(BaseProcessor):
                         # Récursion: une cellule contient des paragraphes et potentiellement d'autres tables
                         yield from self._iter_block_items(cell)
 
+    def _iter_header_footer_parts(self, doc):
+        """
+        Itère sur les en-têtes et pieds de page *propres* à chaque section.
+
+        Les en-têtes/pieds liés à la section précédente (``is_linked_to_previous``)
+        ne contiennent pas de définition propre : on les ignore pour éviter de
+        traiter deux fois le même contenu (ou des parties vides héritées).
+        """
+        for section in doc.sections:
+            for part in (
+                section.header,
+                section.footer,
+                section.first_page_header,
+                section.first_page_footer,
+                section.even_page_header,
+                section.even_page_footer,
+            ):
+                if part is None:
+                    continue
+                if getattr(part, "is_linked_to_previous", False):
+                    continue
+                yield part
+
+    def _iter_document_paragraphs(self, doc):
+        """
+        Ordre déterministe couvrant TOUT le texte anonymisable d'un document :
+        corps (paragraphes + tableaux), puis en-têtes et pieds de page.
+
+        ``extract_blocks`` et ``reconstruct_and_write_anonymized_file`` partagent
+        ce parcours pour garantir l'alignement index-par-index des blocs.
+        """
+        yield from self._iter_block_items(doc)
+        for part in self._iter_header_footer_parts(doc):
+            yield from self._iter_block_items(part)
+
     def extract_blocks(self, input_path):
         """
-        Extrait TOUS les blocs de texte (Body + Tables).
+        Extrait TOUS les blocs de texte (Body + Tables + En-têtes/Pieds de page).
         Retourne une liste plate de chaînes de caractères.
         """
-        doc = Document(input_path)
+        doc = self._open_document(input_path)
         blocks = []
 
-        # Le Document est le parent racine
-        for paragraph in self._iter_block_items(doc):
+        for paragraph in self._iter_document_paragraphs(doc):
             blocks.append(paragraph.text)
 
         return blocks
-
-    def replace_entities(
-        self, input_path, output_path, replacements, entities_per_block_with_offsets
-    ):
-        """
-        [Legacy method] Remplace les entités in-place et sauvegarde.
-        """
-        doc = Document(input_path)
-
-        # On récupère tous les paragraphes cibles dans le même ordre
-        target_paragraphs = list(self._iter_block_items(doc))
-
-        if len(target_paragraphs) != len(entities_per_block_with_offsets):
-            logger.warning(
-                f"Mismatch Word: {len(target_paragraphs)} paragraphes trouvés vs {len(entities_per_block_with_offsets)} listes d'entités."
-            )
-            # On continue, mais risque de désalignement si le fichier a changé entre temps (peu probable ici)
-
-        for i, p in enumerate(target_paragraphs):
-            # Sécurité index
-            if i >= len(entities_per_block_with_offsets):
-                break
-
-            original_text = p.text
-            entities_for_this_paragraph = entities_per_block_with_offsets[i]
-
-            anonymized_text = original_text
-            if original_text.strip() and entities_for_this_paragraph:
-                anonymized_text = apply_positional_replacements(
-                    original_text, replacements, entities_for_this_paragraph
-                )
-
-            # Application du remplacement
-            # Stratégie simple : si changement, on remplace le texte.
-            # Pour essayer de garder le style, on peut clear et add_run, mais attention aux formats complexes.
-            if anonymized_text != original_text:
-                # Méthode brute propre :
-                # p.text = anonymized_text  <-- perd les styles de runs multiples
-
-                # Méthode qui essaie de préserver le style du premier run ou ajoute un nouveau run
-                # Todo: Une reconstruction "Run-aware" nécessiterait un parser beaucoup plus complexe (mapping offset -> run).
-                # Pour l'instant, on applique la méthode standard du projet : vidage des runs et ajout du nouveau texte.
-
-                # Vider les runs existants
-                p.clear()
-                # (Note : p.clear() n'existe pas nativement sur Paragraph dans toutes les versions,
-                # souvent on fait p._element.clear_content() ou boucle remove)
-
-                # Alternative robuste compatible python-docx standard:
-                for run in p.runs:
-                    run.text = ""
-
-                # On remet tout le texte dans le premier run s'il existe (garde le style du début), sinon on en crée un.
-                if p.runs:
-                    p.runs[0].text = anonymized_text
-                else:
-                    p.add_run(anonymized_text)
-
-        output_dir = Path(output_path).parent
-        if not output_dir.exists():
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-        doc.save(output_path)
 
     def reconstruct_and_write_anonymized_file(
         self, output_path, final_processed_blocks, original_input_path, **kwargs
@@ -118,15 +98,18 @@ class DocxProcessor(BaseProcessor):
         Reconstruit le document DOCX en injectant les blocs anonymisés.
         Gère le corps du texte ET les tableaux.
         """
-        doc = Document(original_input_path)
-        target_paragraphs = list(self._iter_block_items(doc))
+        doc = self._open_document(original_input_path)
+        target_paragraphs = list(self._iter_document_paragraphs(doc))
 
         count_expected = len(target_paragraphs)
         if count_expected != len(final_processed_blocks):
-            logger.warning(
-                "Mismatch Reconstruct Word: %s paragraphes (inclus tableaux) vs %s blocs fournis.",
-                count_expected,
-                len(final_processed_blocks),
+            # Désalignement = bug d'extraction/reconstruction. On échoue de façon
+            # explicite plutôt que de produire un document partiellement anonymisé
+            # (risque de fuite de données non anonymisées).
+            raise ValueError(
+                "Mismatch Reconstruct Word: "
+                f"{count_expected} paragraphes (corps + tableaux + en-têtes/pieds) "
+                f"vs {len(final_processed_blocks)} blocs fournis."
             )
 
         for i, p in enumerate(target_paragraphs):

@@ -75,6 +75,54 @@ def test_reconstruct_and_write_anonymized_file_docx_preserves_formatting():
     assert runs[-1].italic
 
 
+def test_docx_header_and_footer_are_anonymized():
+    tmp_in = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
+    tmp_out = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
+
+    doc = Document()
+    doc.add_paragraph("Corps avec Pierre.")
+    section = doc.sections[0]
+    # Écrire dans l'en-tête et le pied de page les délie automatiquement.
+    section.header.paragraphs[0].text = "En-tête: Jean Dupont"
+    section.footer.paragraphs[0].text = "Pied: Marie Curie"
+    doc.save(tmp_in.name)
+
+    processor = DocxProcessor()
+    blocks = processor.extract_blocks(tmp_in.name)
+
+    # Le contenu des en-têtes/pieds de page doit être extrait.
+    assert any("Jean Dupont" in b for b in blocks)
+    assert any("Marie Curie" in b for b in blocks)
+
+    final_blocks = [
+        b.replace("Jean Dupont", "PER_HEADER")
+        .replace("Marie Curie", "PER_FOOTER")
+        .replace("Pierre", "PER_BODY")
+        for b in blocks
+    ]
+    processor.reconstruct_and_write_anonymized_file(
+        Path(tmp_out.name),
+        final_blocks,
+        Path(tmp_in.name),
+    )
+
+    result = Document(tmp_out.name)
+    assert "PER_BODY" in result.paragraphs[0].text
+    assert "PER_HEADER" in result.sections[0].header.paragraphs[0].text
+    assert "PER_FOOTER" in result.sections[0].footer.paragraphs[0].text
+
+
+def test_extract_blocks_invalid_docx_raises_clear_error():
+    tmp = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
+    tmp.write(b"this is not a real docx file")
+    tmp.flush()
+    tmp.close()
+
+    processor = DocxProcessor()
+    with pytest.raises(ValueError, match="docx"):
+        processor.extract_blocks(tmp.name)
+
+
 def test_reconstruct_and_write_anonymized_file_docx_mismatch():
     tmp_in = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")
     tmp_out = tempfile.NamedTemporaryFile("w+b", delete=False, suffix=".docx")

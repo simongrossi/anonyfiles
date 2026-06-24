@@ -43,12 +43,22 @@ export async function runAnonymization({
   try {
     const formData = new FormData();
 
-    if (fileType === 'txt' || !fileType) {
-      formData.append('file', new Blob([get(inputText)], { type: 'text/plain' }), fileName || 'input.txt');
-    } else if (fileType === 'csv' || fileType === 'xlsx') {
-      if (!xlsxFile) throw new Error('Fichier manquant pour le type xlsx/csv');
+    if (fileType === 'txt' || fileType === 'json' || !fileType) {
+      // Formats textuels : le contenu est édité en mémoire (inputText) et
+      // renvoyé sous forme de Blob. On conserve l'extension d'origine pour que
+      // le backend sélectionne le bon processeur (.txt / .json).
+      const mime = fileType === 'json' ? 'application/json' : 'text/plain';
+      const defaultName = fileType === 'json' ? 'input.json' : 'input.txt';
+      formData.append('file', new Blob([get(inputText)], { type: mime }), fileName || defaultName);
+    } else if (['csv', 'xlsx', 'docx', 'pdf'].includes(fileType)) {
+      // Formats binaires : on envoie le fichier tel quel.
+      if (!xlsxFile) throw new Error(`Fichier manquant pour le type ${fileType}`);
       formData.append('file', xlsxFile, fileName);
-      formData.append('has_header', String(!!hasHeader));
+      if (fileType === 'csv' || fileType === 'xlsx') {
+        formData.append('has_header', String(!!hasHeader));
+      }
+    } else {
+      throw new Error(`Type de fichier non pris en charge : ${fileType}`);
     }
 
     formData.append('config_options', JSON.stringify(selected));

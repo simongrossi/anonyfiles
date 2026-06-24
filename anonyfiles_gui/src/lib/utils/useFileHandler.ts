@@ -48,13 +48,9 @@ export function handleFile(file: File) {
     };
     reader.readAsText(file, "UTF-8");
   } else if (["xlsx", "docx", "pdf"].includes(ext)) {
-    if (ext === "xlsx") {
-      xlsxFile.set(file);
-    }
-    // Note: Si vous avez besoin de traiter docx ou pdf en tant qu'objet File
-    // pour l'envoyer au backend de la même manière que xlsx,
-    // vous devrez également ajouter xlsxFile.set(file); pour ces extensions ici.
-    // Actuellement, seul xlsx définit xlsxFile dans ce bloc.
+    // Ces formats binaires sont envoyés tels quels au backend : on conserve
+    // l'objet File pour qu'il soit ajouté au FormData lors de l'anonymisation.
+    xlsxFile.set(file);
   } else {
     errorMessage.set(`Format de fichier non pris en charge : ${ext}. Seuls les fichiers .txt, .csv, .xlsx, .docx, .pdf, .json sont acceptés.`);
     fileName.set("");
