@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "node copy-presets.js && vite build",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -30,6 +32,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "vite": "^4.5.0",
+    "vitest": "^4.1.9",
     "xlsx": "^0.18.5"
   }
 }
