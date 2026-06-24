@@ -6,6 +6,23 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [1.4.3] – 2026-06-25
+
+### Ajouté
+- **Support des formats Word (`.docx`), PDF (`.pdf`) et JSON (`.json`) dans l'interface graphique (GUI)** : correction du bug qui empêchait l'envoi de ces fichiers au backend de l'application (le champ `file` n'était pas inclus dans les données de formulaire, générant une erreur de validation HTTP 422).
+
+### Corrigé
+- **Sécurisation de l'anonymisation Word (`.docx`)** :
+  - Anonymisation automatique des en-têtes et pieds de page pour toutes les sections du document (jusqu'ici, seules les sections de texte principal et de tableaux étaient traitées).
+  - Contrôle strict de l'intégrité : déclenchement d'une exception `ValueError` en cas d'incohérence/décalage dans le décompte des paragraphes/blocs anonymisés, au lieu de générer un document incomplet.
+  - Gestion des erreurs : retour d'une exception claire en cas de fichier Word corrompu ou illisible.
+  - Retrait du code mort/obsolète (`replace_entities`).
+- **Sécurisation de l'anonymisation Excel (`.xlsx`)** :
+  - Déclenchement d'une exception `ValueError` en cas d'incohérence dans le nombre de cellules/blocs afin de prévenir tout décalage ou fuite accidentelle.
+
+### Vérifié
+- Tests ajoutés pour les en-têtes/pieds de page docx et les fichiers corrompus.
+
 ## [1.4.2] – 2026-04-18
 
 ### Corrigé

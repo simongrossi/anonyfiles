@@ -7,7 +7,7 @@ développée en Svelte, Rust et Tauri pour une expérience utilisateur moderne e
 
 ## 🚀 Fonctionnalités
 
-- Glisser-déposer de fichiers texte (.txt, .csv) ou sélection par dialogue  
+- Glisser-déposer de fichiers (.txt, .csv, .docx, .xlsx, .pdf, .json) ou sélection par dialogue  
 - Zone de saisie manuelle pour anonymisation à la volée  
 - Sélection intuitive des types d’entités à anonymiser (Personnes, Lieux, Organisations, Emails, Dates, etc.)  
 - Affichage immédiat du texte anonymisé  
@@ -54,7 +54,7 @@ Produit un `.app` / `.dmg` / `.msi` / `.exe` / `.AppImage` / `.deb` dans `src-ta
 
 ## 💡 Utilisation
 
-- Glissez-déposez un fichier texte (.txt, .csv) ou collez du texte brut dans la zone dédiée
+- Glissez-déposez un fichier (.txt, .csv, .docx, .xlsx, .pdf, .json) ou collez du texte brut dans la zone dédiée
 - Sélectionnez les entités à anonymiser selon vos besoins
 - Cliquez sur "Anonymiser"
 - Copiez ou enregistrez le texte anonymisé
