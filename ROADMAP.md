@@ -173,8 +173,10 @@ on est coincé sur numpy 1.26 et un écosystème daté.
       `documents RH`, `contrats`, `logs techniques`) au-dessus des options
       détaillées dans la GUI, avec options manuelles toujours modifiables et
       retour automatique en mode personnalisé.
-- [ ] **Prévisualisation des entités détectées** : afficher les entités avant traitement final,
-      permettre de décocher/corriger, puis lancer l'anonymisation.
+- [x] **Prévisualisation des entités détectées** : endpoint
+      `/anonymize_preview/` en dry-run, tableau GUI avant traitement final,
+      possibilité de décocher une entité ou corriger son label, puis lancement
+      de l'anonymisation avec décisions exactes par texte détecté.
 - [ ] **Batch complet** : traitement multi-fichiers avec rapport global, erreurs par fichier,
       ZIP final et reprise possible.
 

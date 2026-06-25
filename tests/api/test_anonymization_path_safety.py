@@ -52,6 +52,7 @@ def test_anonymize_sanitizes_filenames(tmp_path):
             config_options,
             has_header,
             custom_rules,
+            entity_decisions,
             passed_base_config,
         ):
             from anonyfiles_api.job_utils import Job

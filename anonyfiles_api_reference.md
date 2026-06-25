@@ -2,6 +2,10 @@
 
 L'API **Anonyfiles** permet d'intégrrer les fonctionnalités d'anonymisation et de désanonymisation dans vos propres applications, workflows ou services tiers. Elle est construite avec **FastAPI** et conçue pour être performante et asynchrone.
 
+Le endpoint `POST /anonymize_preview/` permet de prévisualiser les entités
+détectées en dry-run avant de lancer le job final. Le job `POST /anonymize/`
+accepte ensuite `entity_decisions` pour exclure ou corriger des entités précises.
+
 ---
 
 ## 🚀 Démarrage

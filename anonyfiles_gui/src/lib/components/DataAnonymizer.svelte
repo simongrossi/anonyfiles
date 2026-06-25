@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { Sparkles, RotateCcw, Trash2, FileText, Loader2 } from 'lucide-svelte';
+  import { Eye, ListChecks, Sparkles, RotateCcw, Trash2, FileText, Loader2 } from 'lucide-svelte';
   import FileDropZone from './FileDropZone.svelte';
   import CustomRulesManager from './CustomRulesManager.svelte';
   import AnonymizationOptions from './AnonymizationOptions.svelte';
@@ -16,7 +16,12 @@
     inputCharCount  // AJOUTÉ : Importer le store pour le nombre de caractères en entrée
   } from '../stores/anonymizationStore';
   import { customReplacementRules } from '../stores/customRulesStore';
-  import { runAnonymization } from '../utils/anonymize';
+  import {
+    runAnonymization,
+    runAnonymizationPreview,
+    type EntityDecision,
+    type PreviewEntity
+  } from '../utils/anonymize';
   import { debug, debugError } from '../utils/api';
   import {
     ANONYMIZATION_OPTIONS,
@@ -41,6 +46,11 @@
 
   const options = ANONYMIZATION_OPTIONS;
   let selected: AnonymizationSelection = createDefaultAnonymizationSelection();
+  const entityLabels = ['PER', 'LOC', 'ORG', 'EMAIL', 'DATE', 'MISC', 'PHONE', 'IBAN', 'ADDRESS'];
+  let previewEntities: PreviewEntity[] = [];
+  let previewError = "";
+  let isPreviewLoading = false;
+  let previewSignature = "";
 
   // AJOUTÉ : Fonction pour mettre à jour les compteurs pour la saisie manuelle
   function updateInputCountsFromTextarea(currentText: string) {
@@ -65,6 +75,19 @@
     ($fileType === "xlsx" && $xlsxFile !== null) ||
     (["docx", "pdf", "json"].includes($fileType) && $fileName.length > 0); // json est aussi traité comme texte par useFileHandler
 
+  $: currentPreviewSignature = JSON.stringify({
+    fileType: $fileType,
+    fileName: $fileName,
+    hasHeader: $hasHeader,
+    inputText: $inputText,
+    selected,
+    customReplacementRules: $customReplacementRules,
+  });
+  $: isPreviewStale =
+    previewEntities.length > 0 &&
+    previewSignature.length > 0 &&
+    previewSignature !== currentPreviewSignature;
+
   let dragActive = false;
   const dataAnonymizerDropZoneId = "data-anonymizer-dropzone";
 
@@ -86,12 +109,51 @@
         hasHeader: $hasHeader,
         xlsxFile: $xlsxFile,
         selected,
-        customReplacementRules: get(customReplacementRules)
+        customReplacementRules: get(customReplacementRules),
+        entityDecisions: !isPreviewStale && previewEntities.length > 0
+          ? previewEntityDecisions()
+          : undefined
       });
     } catch (e) {
       debugError("Erreur dans anonymisation:", e);
       // errorMessage.set(e.message || 'Une erreur inattendue est survenue.');
     }
+  }
+
+  async function onClickPreview() {
+    previewError = "";
+    previewEntities = [];
+    isPreviewLoading = true;
+    try {
+      previewEntities = await runAnonymizationPreview({
+        fileType: $fileType,
+        fileName: $fileName,
+        hasHeader: $hasHeader,
+        xlsxFile: $xlsxFile,
+        selected,
+        customReplacementRules: get(customReplacementRules)
+      });
+      previewSignature = currentPreviewSignature;
+    } catch (e: any) {
+      previewError = e?.message || "Prévisualisation impossible.";
+      debugError("Erreur dans prévisualisation:", e);
+    } finally {
+      isPreviewLoading = false;
+    }
+  }
+
+  function updatePreviewEntity(index: number, patch: Partial<PreviewEntity>) {
+    previewEntities = previewEntities.map((entity, i) =>
+      i === index ? { ...entity, ...patch } : entity
+    );
+  }
+
+  function previewEntityDecisions(): EntityDecision[] {
+    return previewEntities.map(({ text, label, enabled }) => ({
+      text,
+      label,
+      enabled
+    }));
   }
 
   function resetAll() {
@@ -111,6 +173,10 @@
     previewTable.set([]);
     previewHeaders.set([]);
     selected = createDefaultAnonymizationSelection();
+    previewEntities = [];
+    previewError = "";
+    previewSignature = "";
+    isPreviewLoading = false;
     dragActive = false;
     customReplacementRules.set([]);
     currentJobId.set(null);
@@ -198,6 +264,96 @@
 
   <!-- Section 3 — Règles custom -->
   <CustomRulesManager />
+
+  <!-- Section 4 — Prévisualisation -->
+  <section class="ui-section mt-5">
+    <header class="ui-section-header justify-between">
+      <div class="flex items-center gap-2">
+        <ListChecks size={16} class="text-zinc-400 dark:text-zinc-500" />
+        <div class="flex flex-col">
+          <span class="ui-section-title">Prévisualisation des entités</span>
+          <span class="ui-section-subtitle">
+            {previewEntities.length} entité{previewEntities.length > 1 ? 's' : ''} · {previewEntities.reduce((sum, entity) => sum + entity.count, 0)} occurrence{previewEntities.reduce((sum, entity) => sum + entity.count, 0) > 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+      {#if isPreviewStale}
+        <span class="ui-badge">Obsolète</span>
+      {/if}
+    </header>
+    <div class="ui-section-body space-y-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="ui-btn-secondary"
+          on:click={onClickPreview}
+          disabled={$isLoading || isPreviewLoading || !canAnonymize}
+        >
+          {#if isPreviewLoading}
+            <Loader2 size={16} class="animate-spin" />
+            Analyse…
+          {:else}
+            <Eye size={16} />
+            Prévisualiser
+          {/if}
+        </button>
+        {#if previewEntities.length > 0 && !isPreviewStale}
+          <span class="ui-badge-brand">Prête</span>
+        {/if}
+      </div>
+
+      {#if previewError}
+        <div class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-2 text-sm">
+          {previewError}
+        </div>
+      {/if}
+
+      {#if previewEntities.length > 0}
+        <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+          <table class="min-w-full text-sm">
+            <thead class="bg-zinc-50 dark:bg-zinc-900/70 text-xs uppercase text-zinc-500 dark:text-zinc-400">
+              <tr>
+                <th class="w-12 px-3 py-2 text-left">Actif</th>
+                <th class="px-3 py-2 text-left">Entité</th>
+                <th class="w-32 px-3 py-2 text-left">Type</th>
+                <th class="w-24 px-3 py-2 text-right">Occ.</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
+              {#each previewEntities as entity, index}
+                <tr class="{entity.enabled ? 'bg-white dark:bg-zinc-800' : 'bg-zinc-50 text-zinc-400 dark:bg-zinc-900/50 dark:text-zinc-500'}">
+                  <td class="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-brand-600 focus:ring-brand-500/40"
+                      checked={entity.enabled}
+                      on:change={(event) => updatePreviewEntity(index, { enabled: event.currentTarget.checked })}
+                    />
+                  </td>
+                  <td class="px-3 py-2">
+                    <span class="font-medium text-zinc-800 dark:text-zinc-100">{entity.text}</span>
+                  </td>
+                  <td class="px-3 py-2">
+                    <select
+                      class="ui-input !py-1 !text-xs"
+                      value={entity.label}
+                      disabled={!entity.enabled}
+                      on:change={(event) => updatePreviewEntity(index, { label: event.currentTarget.value })}
+                    >
+                      {#each entityLabels as label}
+                        <option value={label}>{label}</option>
+                      {/each}
+                    </select>
+                  </td>
+                  <td class="px-3 py-2 text-right tabular-nums">{entity.count}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
+    </div>
+  </section>
 
   <!-- Barre d'actions -->
   <div class="sticky bottom-4 z-30 mt-6">

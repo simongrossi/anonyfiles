@@ -5,6 +5,7 @@ TextBlocks: TypeAlias = list[TextBlock]
 Entity: TypeAlias = tuple[str, str]
 EntitySpan: TypeAlias = tuple[str, str, int, int]
 EntitySpansByBlock: TypeAlias = list[list[EntitySpan]]
+EntityLabelOverrides: TypeAlias = dict[str, str]
 ReplacementMap: TypeAlias = dict[str, str]
 ProcessorKwargs: TypeAlias = dict[str, Any]
 JsonPathSegment: TypeAlias = str | int

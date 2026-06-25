@@ -16,24 +16,27 @@ vi.mock('./api', () => ({
   debugError: vi.fn(),
 }));
 
-import { runAnonymization } from './anonymize';
+import { runAnonymization, runAnonymizationPreview } from './anonymize';
 import { inputText, errorMessage } from '../stores/anonymizationStore';
 import { get } from 'svelte/store';
 
 let lastBody: FormData | null = null;
+let lastUrl: unknown = null;
 let fetchCalls = 0;
 
 beforeEach(() => {
   lastBody = null;
+  lastUrl = null;
   fetchCalls = 0;
   inputText.set('Bonjour Jean Dupont');
   errorMessage.set('');
-  globalThis.fetch = vi.fn(async (_url: unknown, init: any) => {
+  globalThis.fetch = vi.fn(async (url: unknown, init: any) => {
     fetchCalls += 1;
+    lastUrl = url;
     lastBody = init.body as FormData;
     return {
       ok: true,
-      json: async () => ({ job_id: 'job-123' }),
+      json: async () => ({ job_id: 'job-123', entities: [{ text: 'Jean Dupont', label: 'PER', count: 1, enabled: true }] }),
       text: async () => '',
     };
   }) as unknown as typeof fetch;
@@ -97,5 +100,36 @@ describe('runAnonymization — construction du FormData par type de fichier', ()
     await runAnonymization({ fileType: 'docx', fileName: 'rapport.docx', xlsxFile: null, selected: {} });
     expect(fetchCalls).toBe(0);
     expect(get(errorMessage)).toContain('Fichier manquant');
+  });
+
+  it('ajoute les décisions de prévisualisation au job final', async () => {
+    await runAnonymization({
+      fileType: 'txt',
+      fileName: 'note.txt',
+      selected: {},
+      entityDecisions: [
+        { text: 'Jean Dupont', label: 'PER', enabled: true },
+        { text: 'Paris', label: 'LOC', enabled: false },
+      ],
+    });
+
+    expect(lastBody!.get('entity_decisions')).toBe(JSON.stringify([
+      { text: 'Jean Dupont', label: 'PER', enabled: true },
+      { text: 'Paris', label: 'LOC', enabled: false },
+    ]));
+  });
+
+  it('preview : appelle le endpoint dry-run et retourne les entités', async () => {
+    const entities = await runAnonymizationPreview({
+      fileType: 'txt',
+      fileName: 'note.txt',
+      selected: {},
+    });
+
+    expect(lastUrl).toBe('http://test/api/anonymize_preview/');
+    expect(lastBody!.has('entity_decisions')).toBe(false);
+    expect(entities).toEqual([
+      { text: 'Jean Dupont', label: 'PER', count: 1, enabled: true },
+    ]);
   });
 });

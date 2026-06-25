@@ -13,6 +13,7 @@ from .ner_processor import NERProcessor
 from .file_processor_factory import FileProcessorFactory
 from .replacement_generator import ReplacementGenerator
 from .writer import AnonymizedFileWriter
+from .type_defs import EntityLabelOverrides, EntitySpansByBlock
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,34 @@ def _sanitize_for_ner(text: str) -> str:
     return _CUSTOM_TOKEN_RE.sub(lambda m: " " * len(m.group()), text)
 
 
+def apply_entity_decisions_to_detected_entities(
+    entities_per_block: EntitySpansByBlock,
+    ignored_entity_texts: set[str] | None = None,
+    entity_label_overrides: EntityLabelOverrides | None = None,
+) -> tuple[list[tuple[str, str]], EntitySpansByBlock]:
+    """Apply user preview decisions to detected entity spans.
+
+    Decisions are keyed by exact entity text because the current preview UI
+    exposes unique detected values rather than individual offsets.
+    """
+    ignored = ignored_entity_texts or set()
+    label_overrides = entity_label_overrides or {}
+    filtered_per_block: EntitySpansByBlock = []
+    unique_by_text: dict[str, str] = {}
+
+    for block_entities in entities_per_block:
+        filtered_block = []
+        for ent_text, ent_label, start, end in block_entities:
+            if ent_text in ignored:
+                continue
+            final_label = label_overrides.get(ent_text, ent_label)
+            filtered_block.append((ent_text, final_label, start, end))
+            unique_by_text[ent_text] = final_label
+        filtered_per_block.append(filtered_block)
+
+    return list(unique_by_text.items()), filtered_per_block
+
+
 class AnonyfilesEngine:
     """
     Orchestre le processus complet d'anonymisation d'un fichier.
@@ -36,8 +65,12 @@ class AnonyfilesEngine:
         config: Dict[str, Any],
         exclude_entities_cli: Optional[List[str]] = None,
         custom_replacement_rules: Optional[List[Dict[str, str]]] = None,
+        ignored_entity_texts: Optional[set[str]] = None,
+        entity_label_overrides: Optional[Dict[str, str]] = None,
     ):
         self.config = config or {}
+        self.ignored_entity_texts = ignored_entity_texts or set()
+        self.entity_label_overrides = entity_label_overrides or {}
 
         # Initialisation du logger d'audit
         self.audit_logger = AuditLogger()
@@ -132,6 +165,13 @@ class AnonyfilesEngine:
         unique_spacy_entities, spacy_entities_per_block_with_offsets = (
             self.ner_processor.detect_entities_in_blocks(
                 [_sanitize_for_ner(b) for b in blocks_after_custom_rules]
+            )
+        )
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = (
+            apply_entity_decisions_to_detected_entities(
+                spacy_entities_per_block_with_offsets,
+                ignored_entity_texts=self.ignored_entity_texts,
+                entity_label_overrides=self.entity_label_overrides,
             )
         )
         logger.debug(

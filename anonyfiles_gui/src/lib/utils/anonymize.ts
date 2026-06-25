@@ -21,6 +21,61 @@ interface RunAnonymizationParams {
   xlsxFile?: File | null;
   selected: Record<string, boolean>;
   customReplacementRules?: { pattern: string; replacement: string; isRegex?: boolean }[];
+  entityDecisions?: EntityDecision[];
+}
+
+export interface EntityDecision {
+  text: string;
+  label: string;
+  enabled: boolean;
+}
+
+export interface PreviewEntity extends EntityDecision {
+  count: number;
+}
+
+function buildAnonymizationFormData({
+  fileType,
+  fileName,
+  hasHeader,
+  xlsxFile,
+  selected,
+  customReplacementRules,
+  entityDecisions,
+}: RunAnonymizationParams): FormData {
+  const formData = new FormData();
+
+  if (fileType === 'txt' || fileType === 'json' || !fileType) {
+    // Formats textuels : le contenu est édité en mémoire (inputText) et
+    // renvoyé sous forme de Blob. On conserve l'extension d'origine pour que
+    // le backend sélectionne le bon processeur (.txt / .json).
+    const mime = fileType === 'json' ? 'application/json' : 'text/plain';
+    const defaultName = fileType === 'json' ? 'input.json' : 'input.txt';
+    formData.append('file', new Blob([get(inputText)], { type: mime }), fileName || defaultName);
+  } else if (['csv', 'xlsx', 'docx', 'pdf'].includes(fileType)) {
+    // Formats binaires : on envoie le fichier tel quel.
+    if (!xlsxFile) throw new Error(`Fichier manquant pour le type ${fileType}`);
+    formData.append('file', xlsxFile, fileName);
+    if (fileType === 'csv' || fileType === 'xlsx') {
+      formData.append('has_header', String(!!hasHeader));
+    }
+  } else {
+    throw new Error(`Type de fichier non pris en charge : ${fileType}`);
+  }
+
+  formData.append('config_options', JSON.stringify(selected));
+
+  if (customReplacementRules && customReplacementRules.length > 0) {
+    debug('runAnonymization - règles personnalisées envoyées :', customReplacementRules);
+    formData.append('custom_replacement_rules', JSON.stringify(customReplacementRules));
+  }
+
+  if (entityDecisions && entityDecisions.length > 0) {
+    formData.append('entity_decisions', JSON.stringify(entityDecisions));
+  }
+
+  formData.append('file_type', fileType || '');
+  return formData;
 }
 
 export async function runAnonymization({
@@ -29,7 +84,8 @@ export async function runAnonymization({
   hasHeader,
   xlsxFile,
   selected,
-  customReplacementRules
+  customReplacementRules,
+  entityDecisions
 }: RunAnonymizationParams) {
   isLoading.set(true);
   errorMessage.set('');
@@ -41,34 +97,15 @@ export async function runAnonymization({
   currentJobId.set(null);
 
   try {
-    const formData = new FormData();
-
-    if (fileType === 'txt' || fileType === 'json' || !fileType) {
-      // Formats textuels : le contenu est édité en mémoire (inputText) et
-      // renvoyé sous forme de Blob. On conserve l'extension d'origine pour que
-      // le backend sélectionne le bon processeur (.txt / .json).
-      const mime = fileType === 'json' ? 'application/json' : 'text/plain';
-      const defaultName = fileType === 'json' ? 'input.json' : 'input.txt';
-      formData.append('file', new Blob([get(inputText)], { type: mime }), fileName || defaultName);
-    } else if (['csv', 'xlsx', 'docx', 'pdf'].includes(fileType)) {
-      // Formats binaires : on envoie le fichier tel quel.
-      if (!xlsxFile) throw new Error(`Fichier manquant pour le type ${fileType}`);
-      formData.append('file', xlsxFile, fileName);
-      if (fileType === 'csv' || fileType === 'xlsx') {
-        formData.append('has_header', String(!!hasHeader));
-      }
-    } else {
-      throw new Error(`Type de fichier non pris en charge : ${fileType}`);
-    }
-
-    formData.append('config_options', JSON.stringify(selected));
-
-    if (customReplacementRules && customReplacementRules.length > 0) {
-      debug('runAnonymization - règles personnalisées envoyées :', customReplacementRules);
-      formData.append('custom_replacement_rules', JSON.stringify(customReplacementRules));
-    }
-
-    formData.append('file_type', fileType || '');
+    const formData = buildAnonymizationFormData({
+      fileType,
+      fileName,
+      hasHeader,
+      xlsxFile,
+      selected,
+      customReplacementRules,
+      entityDecisions,
+    });
 
     const response = await apiFetch(await apiUrl('anonymize/'), {
       method: 'POST',
@@ -119,4 +156,29 @@ export async function runAnonymization({
   } finally {
     isLoading.set(false);
   }
+}
+
+export async function runAnonymizationPreview(
+  params: RunAnonymizationParams
+): Promise<PreviewEntity[]> {
+  const formData = buildAnonymizationFormData(params);
+  formData.delete('entity_decisions');
+
+  const response = await apiFetch(await apiUrl('anonymize_preview/'), {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errMsg = await response.text();
+    try {
+      const errJson = JSON.parse(errMsg);
+      throw new Error(`[${response.status}] Erreur backend: ${errJson.detail || errMsg}`);
+    } catch {
+      throw new Error(`[${response.status}] Erreur backend: ${errMsg}`);
+    }
+  }
+
+  const data = await response.json();
+  return Array.isArray(data.entities) ? data.entities : [];
 }

@@ -78,6 +78,7 @@ Le entry point PyInstaller est [`anonyfiles_api/__main__.py`](__main__.py), qui 
 
 | Méthode | Endpoint                     | Description                                      |
 |---------|------------------------------|--------------------------------------------------|
+| POST    | `/anonymize_preview`         | Prévisualise les entités détectées sans créer de job |
 | POST    | `/anonymize`                 | Anonymise un fichier ou texte (asynchrone)       |
 | GET     | `/anonymize_status/{job_id}` | Vérifie le statut d’un job                       |
 | WS      | `/ws/{job_id}`               | Statut temps réel d'un job (WebSocket) |
@@ -123,6 +124,30 @@ frontend web public : elle est incluse dans le bundle navigateur.
 
 ## 🔄 API Asynchrone – Détail
 
+### `POST /anonymize_preview/`
+
+Analyse le fichier en mode dry-run et retourne les entités détectées sans créer
+de job ni écrire de fichier de sortie. Le formulaire accepte les mêmes champs
+que `POST /anonymize/` : `file`, `config_options`, `custom_replacement_rules`,
+`file_type` et `has_header`.
+
+**Exemple de réponse :**
+
+```json
+{
+  "status": "success",
+  "entities_detected_count": 2,
+  "total_occurrences": 3,
+  "entities": [
+    {"text": "Jean Dupont", "label": "PER", "count": 1, "enabled": true},
+    {"text": "Paris", "label": "LOC", "count": 2, "enabled": true}
+  ]
+}
+```
+
+La GUI utilise ensuite `entity_decisions` sur `POST /anonymize/` pour exclure
+une entité précise (`enabled: false`) ou corriger son label avant le job final.
+
 ### `POST /anonymize/`
 
 Lance un job d’anonymisation en arrière-plan.
@@ -133,6 +158,8 @@ Lance un job d’anonymisation en arrière-plan.
 - `config_options` : chaîne JSON des options d’anonymisation (ex. : entités à exclure, règles personnalisées)
 - `file_type` *(optionnel)*
 - `has_header` *(optionnel)*
+- `entity_decisions` *(optionnel)* : liste JSON issue de la prévisualisation,
+  au format `{"text": "...", "label": "PER", "enabled": true}`
 
 **Exemple de réponse :**
 ```json

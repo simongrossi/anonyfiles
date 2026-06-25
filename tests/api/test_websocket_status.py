@@ -44,6 +44,7 @@ def test_websocket_reports_status_progress(tmp_path):
             config_options,
             has_header,
             custom_rules,
+            entity_decisions,
             passed_base_config,
         ):
             time.sleep(1.5)

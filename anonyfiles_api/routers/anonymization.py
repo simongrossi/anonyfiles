@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from typing import Optional, Any, Dict
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import json
 import uuid
 import aiofiles.os as aio_os
@@ -43,6 +44,18 @@ from anonyfiles_core.anonymizer.file_utils import (
 
 router = APIRouter()
 
+ALLOWED_ENTITY_LABELS = {
+    "PER",
+    "LOC",
+    "ORG",
+    "EMAIL",
+    "DATE",
+    "MISC",
+    "PHONE",
+    "IBAN",
+    "ADDRESS",
+}
+
 
 def _prepare_engine_options(
     config_options: dict, custom_rules: Optional[list]
@@ -62,6 +75,86 @@ def _prepare_processor_kwargs(
 ) -> Dict[str, Any]:
     """Build keyword arguments for the engine processor."""
     return build_processor_kwargs(input_path, has_header=has_header)
+
+
+def _parse_entity_decisions(entity_decisions: Optional[str]) -> list[dict[str, Any]]:
+    """Parse preview decisions sent by the GUI before final anonymization."""
+    if not entity_decisions or not entity_decisions.strip():
+        return []
+
+    try:
+        raw_decisions = json.loads(entity_decisions)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"JSON invalide pour entity_decisions: {exc}") from exc
+
+    if not isinstance(raw_decisions, list):
+        raise ValueError("entity_decisions doit être une liste JSON.")
+
+    parsed_decisions: list[dict[str, Any]] = []
+    for index, raw_decision in enumerate(raw_decisions):
+        if not isinstance(raw_decision, dict):
+            raise ValueError(f"entity_decisions[{index}] doit être un objet JSON.")
+
+        text = str(raw_decision.get("text", "")).strip()
+        label = str(raw_decision.get("label", "")).strip().upper()
+        enabled = bool(raw_decision.get("enabled", True))
+
+        if not text:
+            raise ValueError(f"entity_decisions[{index}].text est requis.")
+        if label not in ALLOWED_ENTITY_LABELS:
+            raise ValueError(
+                f"entity_decisions[{index}].label invalide: {label or 'vide'}."
+            )
+
+        parsed_decisions.append({"text": text, "label": label, "enabled": enabled})
+
+    return parsed_decisions
+
+
+def _engine_entity_decision_options(
+    entity_decisions: list[dict[str, Any]],
+) -> tuple[set[str], dict[str, str]]:
+    ignored_entity_texts = {
+        decision["text"] for decision in entity_decisions if not decision["enabled"]
+    }
+    entity_label_overrides = {
+        decision["text"]: decision["label"]
+        for decision in entity_decisions
+        if decision["enabled"]
+    }
+    return ignored_entity_texts, entity_label_overrides
+
+
+def _preview_entities_from_engine_result(
+    engine_result: Dict[str, Any],
+) -> list[dict[str, Any]]:
+    audit_counts: dict[tuple[str, str], int] = {}
+    for entry in engine_result.get("audit_log", []):
+        if not isinstance(entry, dict):
+            continue
+        entry_type = str(entry.get("type", ""))
+        if not entry_type.startswith("spacy_"):
+            continue
+        label = entry_type.replace("spacy_", "", 1)
+        pattern = str(entry.get("pattern", ""))
+        if pattern:
+            audit_counts[(pattern, label)] = int(entry.get("count", 1) or 1)
+
+    preview_entities = []
+    for entity in engine_result.get("entities_detected", []):
+        if not isinstance(entity, (list, tuple)) or len(entity) < 2:
+            continue
+        text = str(entity[0])
+        label = str(entity[1])
+        preview_entities.append(
+            {
+                "text": text,
+                "label": label,
+                "count": audit_counts.get((text, label), 1),
+                "enabled": True,
+            }
+        )
+    return preview_entities
 
 
 def _execute_engine_anonymization(
@@ -231,6 +324,7 @@ def run_anonymization_job_sync(
     config_options: dict,
     has_header: Optional[bool],
     custom_rules: Optional[list],
+    entity_decisions: Optional[list[dict[str, Any]]],
     passed_base_config: Dict[str, Any],
 ):
     """Execute an anonymization job in a background thread.
@@ -278,6 +372,9 @@ def run_anonymization_job_sync(
             error=None,
         )
         engine_opts = _prepare_engine_options(config_options, custom_rules)
+        ignored_entity_texts, entity_label_overrides = _engine_entity_decision_options(
+            entity_decisions or []
+        )
         processor_kwargs = _prepare_processor_kwargs(input_path, has_header)
 
         output_path = default_output(
@@ -292,7 +389,12 @@ def run_anonymization_job_sync(
             progress=45,
             error=None,
         )
-        engine = AnonyfilesEngine(config=passed_base_config, **engine_opts)
+        engine = AnonyfilesEngine(
+            config=passed_base_config,
+            ignored_entity_texts=ignored_entity_texts,
+            entity_label_overrides=entity_label_overrides,
+            **engine_opts,
+        )
         engine_result = _execute_engine_anonymization(
             engine,
             input_path,
@@ -353,6 +455,130 @@ def run_anonymization_job_sync(
         set_job_id(None)
 
 
+@router.post("/anonymize_preview/", tags=["Anonymisation"])
+async def anonymize_preview_endpoint(
+    request: Request,
+    file: UploadFile = File(...),
+    config_options: str = Form(...),
+    custom_replacement_rules: Optional[str] = Form(None),
+    file_type: Optional[str] = Form(None),
+    has_header: Optional[str] = Form(None),
+):
+    """Preview detected entities without creating a job or writing output files."""
+    logger.info(
+        f"Requête de prévisualisation d'anonymisation, fichier: {file.filename}, type: {file_type}, header: {has_header}"
+    )
+
+    try:
+        config_opts_raw = json.loads(config_options)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"JSON invalide pour config_options: {str(exc)}",
+        ) from exc
+
+    if not isinstance(config_opts_raw, dict):
+        raise HTTPException(
+            status_code=400, detail="config_options doit être un objet JSON."
+        )
+
+    try:
+        validated_options = AnonymizationOptions.model_validate(config_opts_raw)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "config_options contient des champs invalides ou inconnus: "
+                f"{exc.errors()}"
+            ),
+        ) from exc
+
+    try:
+        custom_rules_list = parse_custom_replacement_rules(custom_replacement_rules)
+    except ValueError:
+        custom_rules_list = []
+
+    has_header_bool: Optional[bool] = None
+    if has_header is not None:
+        has_header_bool = has_header.lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+            "vrai",
+            "oui",
+        )
+
+    current_base_config = getattr(request.app.state, "BASE_CONFIG", None)
+    if current_base_config is None or not current_base_config:
+        raise HTTPException(
+            status_code=500,
+            detail="Erreur serveur: Configuration de base non disponible pour prévisualiser la requête.",
+        )
+
+    max_upload_bytes: Optional[int] = None
+    settings = getattr(request.app.state, "settings", None)
+    if settings is not None and getattr(settings, "max_upload_size_mb", None):
+        max_upload_bytes = int(settings.max_upload_size_mb) * 1024 * 1024
+
+    safe_name = safe_upload_filename(
+        file.filename,
+        fallback_stem=BASE_INPUT_STEM_FOR_JOB_FILES,
+        fallback_suffix=".tmp",
+    )
+    file_extension = Path(safe_name).suffix or ".tmp"
+
+    try:
+        with TemporaryDirectory(prefix="anonyfiles-preview-") as tmp_dir:
+            input_path = (
+                Path(tmp_dir) / f"{BASE_INPUT_STEM_FOR_JOB_FILES}{file_extension}"
+            )
+            await stream_upload_to_path(file, input_path, max_bytes=max_upload_bytes)
+            processor_kwargs = _prepare_processor_kwargs(input_path, has_header_bool)
+            engine_opts = _prepare_engine_options(
+                validated_options.model_dump(), custom_rules_list
+            )
+            engine = AnonyfilesEngine(config=current_base_config.copy(), **engine_opts)
+            engine_result = await run_in_threadpool(
+                engine.anonymize,
+                input_path=input_path,
+                output_path=None,
+                entities=None,
+                dry_run=True,
+                log_entities_path=None,
+                mapping_output_path=None,
+                **processor_kwargs,
+            )
+    except UploadTooLargeError as exc:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Fichier trop volumineux (limite: {exc.max_bytes} octets).",
+        ) from exc
+    except OSError as exc:
+        logger.error(f"Erreur de prévisualisation upload: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Impossible de sauvegarder temporairement le fichier à prévisualiser.",
+        ) from exc
+    finally:
+        await file.close()
+
+    if engine_result.get("status") != "success":
+        raise HTTPException(
+            status_code=400,
+            detail=engine_result.get("error", "Prévisualisation impossible."),
+        )
+
+    preview_entities = _preview_entities_from_engine_result(engine_result)
+    return {
+        "status": "success",
+        "entities": preview_entities,
+        "entities_detected_count": len(preview_entities),
+        "total_occurrences": sum(entity["count"] for entity in preview_entities),
+        "audit_log": engine_result.get("audit_log", []),
+    }
+
+
 @router.post("/anonymize/", tags=["Anonymisation"])
 async def anonymize_file_endpoint(
     request: Request,
@@ -361,6 +587,7 @@ async def anonymize_file_endpoint(
     # MODIFICATION CLÉ ICI :
     # Conserver Form(None) pour l'API, mais ajouter plus de robustesse au parsing JSON.
     custom_replacement_rules: Optional[str] = Form(None),
+    entity_decisions: Optional[str] = Form(None),
     file_type: Optional[str] = Form(None),
     has_header: Optional[str] = Form(None),
 ):
@@ -495,6 +722,14 @@ async def anonymize_file_endpoint(
             f"Tâche {job_id}: custom_replacement_rules fournies mais non parsables; ignorées."
         )
 
+    try:
+        entity_decisions_list = _parse_entity_decisions(entity_decisions)
+    except ValueError as e_decisions:
+        error_msg = str(e_decisions)
+        logger.error(f"Tâche {job_id}: {error_msg}")
+        await current_job.set_status_as_error_async(error_msg)
+        raise HTTPException(status_code=400, detail=error_msg)
+
     has_header_bool: Optional[bool] = None
     if has_header is not None:
         has_header_bool = has_header.lower() in (
@@ -531,6 +766,7 @@ async def anonymize_file_endpoint(
                 "config_options": config_opts_dict,
                 "has_header": has_header_bool,
                 "custom_rules": custom_rules_list,
+                "entity_decisions": entity_decisions_list,
                 "passed_base_config": current_base_config_for_task.copy(),
             },
         )
