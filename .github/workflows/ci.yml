@@ -81,7 +81,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # 24 pour rester aligné avec le npm (11.x) ayant généré le lockfile :
+          # un npm 10 (Node 20) rejette `npm ci` sur les deps optionnelles esbuild.
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: anonyfiles_gui/package-lock.json
 
