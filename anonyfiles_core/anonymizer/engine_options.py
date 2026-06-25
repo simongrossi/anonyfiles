@@ -18,7 +18,6 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
-
 # Mapping "toggle key in request" -> "entity label used by the engine".
 # Kept as a tuple of tuples so the iteration order is deterministic and the
 # callers (tests, logs) see a stable ``exclude_entities`` list.

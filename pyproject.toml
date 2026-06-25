@@ -42,10 +42,9 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio",
     "ruff",
-    # Épinglé : black non versionné laissait la CI installer une version plus
-    # récente que celle ayant servi à formater le repo, faisant échouer
-    # `black --check .` sur des fichiers pourtant conformes (dérive de style).
-    "black==25.11.0",
+    # Épinglé pour un formatage reproductible (évite la dérive de style quand la
+    # CI installe une version plus récente). 26.3.1 corrige aussi CVE-2026-32274.
+    "black==26.3.1",
     "bandit",
     "safety",
     "pip-audit",

@@ -19,7 +19,6 @@ from typing import Optional
 import aiofiles
 from fastapi import UploadFile
 
-
 DEFAULT_CHUNK_SIZE = 1024 * 1024  # 1 MiB
 
 
