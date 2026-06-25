@@ -96,6 +96,9 @@ jobs:
       - name: Run GUI tests (Vitest)
         run: npm test
 
+      - name: Build (Vite)
+        run: npm run build
+
   # -------------------------------------------------------------
   # 2. BUILD WHEEL
   #    Construit le paquet Python distribuable (.whl, .tar.gz).
