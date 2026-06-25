@@ -1,6 +1,7 @@
 # anonyfiles_cli/commands/utils.py
 
 import typer
+import json
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
@@ -8,6 +9,7 @@ import time
 
 from ..ui.console_display import ConsoleDisplay
 from ..utils.system_utils import detect_file_encoding  # Import de la fonction
+from ..managers.config_manager import ConfigManager
 
 app = typer.Typer(help="Commandes utilitaires pour Anonyfiles.")
 console = ConsoleDisplay()
@@ -53,6 +55,49 @@ def list_entities():
     )
     for code, desc in entities.items():
         console.console.print(f"  • [cyan]{code}[/cyan]: {desc}")
+
+
+@app.command(
+    name="spacy-status",
+    help="Diagnostique spaCy et le modèle configuré.",
+)
+def spacy_status(
+    config: Optional[Path] = typer.Option(
+        None,
+        "--config",
+        help="Fichier de configuration YAML à inspecter.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    model: Optional[str] = typer.Option(
+        None,
+        "--model",
+        help="Modèle spaCy à diagnostiquer. Surcharge la configuration.",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Affiche le diagnostic complet au format JSON.",
+    ),
+):
+    """Affiche un diagnostic actionnable pour spaCy et son modèle."""
+    from anonyfiles_core.anonymizer.spacy_status import get_spacy_status
+
+    effective_model = model
+    if not effective_model:
+        effective_config = ConfigManager.get_effective_config(config)
+        effective_model = effective_config.get("spacy_model", "fr_core_news_md")
+
+    status = get_spacy_status(effective_model)
+    if json_output:
+        typer.echo(json.dumps(status, indent=2, ensure_ascii=False))
+    else:
+        _print_spacy_status(status)
+
+    if not status["ready"]:
+        raise typer.Exit(code=ExitCodes.CONFIG_ERROR)
 
 
 @app.command(name="info", help="Affiche des informations détaillées sur un fichier.")
@@ -105,6 +150,41 @@ def file_info(
     except Exception as e:
         console.handle_error(e, "file_info_command")
         raise typer.Exit(code=ExitCodes.GENERAL_ERROR)
+
+
+def _print_spacy_status(status):
+    model = status["model"]
+    spacy = status["spacy"]
+    commands = status["commands"]
+    state_style = "green" if status["ready"] else "red"
+    compatibility = model.get("compatible")
+    compatibility_text = (
+        "oui"
+        if compatibility is True
+        else "non" if compatibility is False else "inconnue"
+    )
+
+    console.console.print("[bold]Diagnostic spaCy[/bold]")
+    console.console.print(f"Statut: [{state_style}]{status['status']}[/{state_style}]")
+    console.console.print(f"Python: {status['python_version']}")
+    console.console.print(
+        f"spaCy: {'installé' if spacy['installed'] else 'absent'}"
+        f" ({spacy.get('version') or 'version inconnue'})"
+    )
+    console.console.print(
+        f"Modèle: {model['name']} "
+        f"({'installé' if model['installed'] else 'absent'})"
+    )
+    console.console.print(f"Version modèle: {model.get('version') or 'inconnue'}")
+    console.console.print(
+        "Compatibilité spaCy: "
+        f"{compatibility_text} "
+        f"({model.get('spacy_version_constraint') or 'contrainte inconnue'})"
+    )
+    console.console.print(f"Message: {status['message']}")
+    if not status["ready"]:
+        console.console.print(f"Réparation: {commands['repair_model']}")
+    console.console.print(f"Validation: {commands['validate_models']}")
 
 
 @app.command(

@@ -123,6 +123,7 @@ Cette commande va :
 * Installer les dépendances Python pour la CLI et l'API
 * Installer les modules npm pour la GUI
 * Télécharger le modèle spaCy `fr_core_news_md` dans l'environnement `env-cli`
+* Vérifier le modèle avec `anonyfiles-cli utils spacy-status --model fr_core_news_md`
 
 #### 🔢 Commandes courantes
 

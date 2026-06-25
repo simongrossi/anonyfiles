@@ -8,6 +8,7 @@ from unittest.mock import patch  # noqa: E402
 import zipfile  # noqa: E402
 import importlib  # noqa: E402
 import sys  # noqa: E402
+import json  # noqa: E402
 
 sys.modules.setdefault(
     "spacy",
@@ -93,6 +94,79 @@ def test_cli_validate_config(tmp_path):
     result = runner.invoke(app, ["config", "validate-config", str(cfg)])
     assert result.exit_code == 0
     assert "Configuration valide" in result.output
+
+
+def test_cli_spacy_status_json(monkeypatch):
+    from anonyfiles_core.anonymizer import spacy_status
+
+    monkeypatch.setattr(
+        spacy_status,
+        "get_spacy_status",
+        lambda model_name: {
+            "status": "ok",
+            "ready": True,
+            "python_version": "3.11.0",
+            "spacy": {"installed": True, "version": "3.8.14"},
+            "model": {
+                "name": model_name,
+                "installed": True,
+                "version": "3.8.0",
+                "spacy_version_constraint": ">=3.8.0,<3.9.0",
+                "compatible": True,
+            },
+            "commands": {
+                "install_model": f"python -m spacy download {model_name}",
+                "repair_model": f"python -m spacy download {model_name}",
+                "validate_models": "python -m spacy validate",
+            },
+            "message": "ok",
+        },
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["utils", "spacy-status", "--model", "fr_core_news_md", "--json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["status"] == "ok"
+    assert payload["model"]["name"] == "fr_core_news_md"
+
+
+def test_cli_spacy_status_fails_when_model_missing(monkeypatch):
+    from anonyfiles_core.anonymizer import spacy_status
+
+    monkeypatch.setattr(
+        spacy_status,
+        "get_spacy_status",
+        lambda model_name: {
+            "status": "missing_model",
+            "ready": False,
+            "python_version": "3.11.0",
+            "spacy": {"installed": True, "version": "3.8.14"},
+            "model": {
+                "name": model_name,
+                "installed": False,
+                "version": None,
+                "spacy_version_constraint": None,
+                "compatible": None,
+            },
+            "commands": {
+                "install_model": f"python -m spacy download {model_name}",
+                "repair_model": f"python -m spacy download {model_name}",
+                "validate_models": "python -m spacy validate",
+            },
+            "message": "missing",
+        },
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["utils", "spacy-status", "--model", "missing_model"])
+
+    assert result.exit_code == 3
+    assert "python -m spacy download missing_model" in result.output
 
 
 def test_cli_config_create_dry_run(tmp_path):

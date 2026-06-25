@@ -170,6 +170,19 @@ Vous pouvez aussi obtenir le script directement :
 anonyfiles-cli completion bash
 ```
 
+### **🩺 Diagnostic spaCy**
+
+Pour vérifier rapidement le modèle NLP configuré, sa version et sa compatibilité
+avec spaCy :
+
+```bash
+anonyfiles-cli utils spacy-status
+anonyfiles-cli utils spacy-status --model fr_core_news_md --json
+```
+
+La commande affiche aussi les commandes de réparation :
+`python -m spacy download fr_core_news_md` et `python -m spacy validate`.
+
 
 ## **🧹 Gestion des jobs (nettoyage et listage)**
 

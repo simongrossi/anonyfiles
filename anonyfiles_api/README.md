@@ -84,7 +84,8 @@ Le entry point PyInstaller est [`anonyfiles_api/__main__.py`](__main__.py), qui 
 | GET     | `/deanonymize_status/{job_id}` | Vérifie le statut d’un job de désanonymisation |
 | GET     | `/jobs/queue`                | Compteurs de la file de jobs interne             |
 | POST    | `/jobs/{job_id}/cancel`      | Demande l’annulation d’un job                    |
-| GET     | `/health`                    | Vérifie le bon fonctionnement de l’API           |
+| GET     | `/health`                    | Vérifie le fonctionnement de l’API + diagnostic spaCy |
+| GET     | `/health/spacy`              | Diagnostic détaillé du modèle spaCy configuré    |
 
 📘 Documentation interactive disponible sur : [http://localhost:8000/docs](http://localhost:8000/docs)
 
@@ -181,6 +182,36 @@ Retourne les compteurs de la file en mémoire :
   "workers": 1
 }
 ```
+
+### `GET /health`
+
+Retourne l'état de l'API et le diagnostic spaCy sans charger le modèle complet :
+
+```json
+{
+  "status": "ok",
+  "spacy": {
+    "status": "ok",
+    "ready": true,
+    "python_version": "3.11.15",
+    "spacy": {"installed": true, "version": "3.8.14"},
+    "model": {
+      "name": "fr_core_news_md",
+      "installed": true,
+      "version": "3.8.0",
+      "spacy_version_constraint": ">=3.8.0,<3.9.0",
+      "compatible": true
+    },
+    "commands": {
+      "install_model": "python -m spacy download fr_core_news_md",
+      "repair_model": "python -m spacy download fr_core_news_md",
+      "validate_models": "python -m spacy validate"
+    }
+  }
+}
+```
+
+`GET /health/spacy` retourne directement le bloc `spacy`.
 
 ### `POST /jobs/{job_id}/cancel`
 

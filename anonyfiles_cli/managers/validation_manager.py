@@ -156,10 +156,11 @@ class ValidationManager:
     @staticmethod
     def ensure_spacy_model(model_name: str) -> None:
         """Vérifie que le modèle spaCy demandé est installé."""
-        import importlib
+        from anonyfiles_core.anonymizer.spacy_status import (
+            format_spacy_status_for_error,
+            get_spacy_status,
+        )
 
-        if importlib.util.find_spec(model_name) is None:
-            raise ConfigurationError(
-                f"Le modèle spaCy '{model_name}' est introuvable. "
-                f"Installez-le avec 'python -m spacy download {model_name}'."
-            )
+        status = get_spacy_status(model_name)
+        if not status["ready"]:
+            raise ConfigurationError(format_spacy_status_for_error(status))

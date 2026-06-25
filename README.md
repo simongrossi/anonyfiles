@@ -221,6 +221,9 @@ python -m spacy download fr_core_news_md
 ```
 *(Si cela échoue pour cause de permissions, essayez avec `sudo` ou vérifiez votre environnement virtuel.)*
 
+Pour diagnostiquer le modèle installé et sa compatibilité :
+`anonyfiles-cli utils spacy-status --model fr_core_news_md`.
+
 ### Installation CLI
 
 ➡️ Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)

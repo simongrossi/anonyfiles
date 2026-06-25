@@ -138,6 +138,19 @@ anonyfiles-cli anonymize anonyfiles_cli/input.txt \
  --mapping-output anonyfiles_cli/mappings/mapping.csv
 ```
 
+### **Diagnostic spaCy**
+
+Pour vérifier le modèle NLP configuré, sa version, sa compatibilité avec spaCy
+et les commandes de réparation :
+
+```bash
+anonyfiles-cli utils spacy-status
+anonyfiles-cli utils spacy-status --model fr_core_news_md --json
+```
+
+La réparation recommandée reste :
+`python -m spacy download fr_core_news_md`, puis `python -m spacy validate`.
+
 ## **🧹 Gestion des jobs (nettoyage et listage)**
 
 La CLI d'Anonyfiles permet de gérer les fichiers générés par chaque opération (anonymisation, désanonymisation) en utilisant un Job ID unique (basé sur un timestamp). Ceci est essentiel pour la confidentialité des données et le nettoyage des fichiers temporaires.

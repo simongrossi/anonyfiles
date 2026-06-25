@@ -124,13 +124,33 @@ Restaure un fichier anonymisé via un mapping.
 
 #### **GET** `/health`
 
-Permet de vérifier l'état du service.
+Permet de vérifier l'état du service et le diagnostic spaCy.
 
 **Réponse** :
 
 ```json
-{"status": "ok", "version": "..."}
+{
+  "status": "ok",
+  "spacy": {
+    "status": "ok",
+    "ready": true,
+    "model": {
+      "name": "fr_core_news_md",
+      "installed": true,
+      "version": "3.8.0",
+      "compatible": true
+    },
+    "commands": {
+      "install_model": "python -m spacy download fr_core_news_md",
+      "validate_models": "python -m spacy validate"
+    }
+  }
+}
 ```
+
+#### **GET** `/health/spacy`
+
+Retourne directement le diagnostic spaCy détaillé.
 
 #### **GET** `/jobs/queue`
 

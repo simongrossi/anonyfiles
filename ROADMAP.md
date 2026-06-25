@@ -147,8 +147,10 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 - [x] **Tests golden par format** : snapshots attendus pour TXT/CSV/DOCX/XLSX/PDF/JSON afin de
       sécuriser la reconstruction, la lisibilité des sorties et l'absence de fuites
       ou corruptions silencieuses.
-- [ ] **Meilleure gestion des modèles spaCy** : commande/écran indiquant modèle installé,
-      version, compatibilité spaCy et instruction d'installation/réparation.
+- [x] **Meilleure gestion des modèles spaCy** : helper partagé, commande
+      `anonyfiles-cli utils spacy-status`, endpoint `/health/spacy` et bloc
+      `spacy` de `/health` indiquant modèle installé, version, compatibilité spaCy
+      et instructions d'installation/réparation.
 - [ ] **Typage progressif du core** : introduire `mypy` ou `pyright` progressivement sur
       `anonyfiles_core`, en priorité les processors, le moteur et les retours d'API internes.
 
@@ -180,6 +182,8 @@ on est coincé sur numpy 1.26 et un écosystème daté.
   `uv run --python python3.11 --extra dev pytest -q tests/quality`
 - Tests golden par format :
   `uv run --python python3.11 --extra dev pytest -q tests/golden`
+- Diagnostic spaCy :
+  `anonyfiles-cli utils spacy-status --model fr_core_news_md`
 - Tests GUI : `cd anonyfiles_gui && npm test` (Vitest).
 - L'environnement de dev complet : `pip install -e .[dev]` puis
   `python -m spacy download fr_core_news_md`.
