@@ -191,7 +191,7 @@ La CI `desktop-build.yml` produit ces artifacts automatiquement sur tag `v*` pou
 #### Pré-requis
 
 * Python 3.11 (recommandé, testé en production)
-* Node.js 20+, npm/yarn (pour la GUI)
+* Node.js 22+, npm/yarn (pour la GUI)
 * Rust & Cargo (pour la GUI)
 * Modèle spaCy `fr_core_news_md`
 

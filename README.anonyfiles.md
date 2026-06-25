@@ -60,7 +60,7 @@ anonyfiles/
 ### Pré-requis
 
 * Python 3.11 (recommandé, testé en production)
-* Node.js 18+, npm/yarn (pour la GUI)
+* Node.js 22+, npm/yarn (pour la GUI)
 * Rust & Cargo (pour la GUI)
 * Modèle spaCy `fr_core_news_md`
 

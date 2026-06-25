@@ -6,6 +6,18 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [1.6.0] – 2026-06-25
+
+### Modifié
+- **Modernisation de la pile front (GUI)** : **Vite 4 → 6**, **Svelte 4 → 5** (mode legacy ; composants non encore réécrits en runes), **Tailwind 3 → 4** (config CSS-first `@theme`, `@tailwindcss/postcss`). `lucide-svelte` 0.469 → 1.x (icônes retirées remappées : `Github`→`ExternalLink`, `Loader2`→`LoaderCircle`).
+- **CI durcie** : ajout des étapes **mypy** (typage), **Vitest** + **build Vite** (job GUI). Épinglage de `black==26.3.1` (corrige CVE-2026-32274). `.nvmrc` + `engines` (Node ≥ 22) pour fiabiliser `npm ci`.
+
+### Corrigé
+- `yaml` déclaré en dépendance directe du GUI (était résolu transitivement, build fragile).
+
+### En cours
+- Migration des composants Svelte vers les **runes** (`$state`/`$derived`/`$props`) : `Sidebar.svelte` fait (POC vérifié), reste des composants à suivre — voir `ROADMAP.md` (Phase 3+).
+
 ## [1.5.0] – 2026-06-25
 
 ### Ajouté

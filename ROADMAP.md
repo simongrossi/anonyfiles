@@ -138,8 +138,33 @@ on est coincé sur numpy 1.26 et un écosystème daté.
       `@custom-variant dark`, couche de compat couleur de bordure, renames d'utilitaires),
       PostCSS `@tailwindcss/postcss`, suppression du `tailwind.config.cjs` mort. Smoke test visuel OK.
 
-> Reste optionnel (Phase 3+) : migrer les composants vers les **runes** Svelte 5
-> (`$state`/`$derived`/`$props`) et remplacer `createEventDispatcher` par des callback props.
+### Phase 3+ — Migration runes Svelte 5 (optionnel, EN COURS)
+
+> **Reprise : c'est ici qu'on s'est arrêté.** Le mode legacy fonctionne parfaitement
+> (non déprécié), donc cette migration est de la modernisation, pas une urgence.
+
+**Méthode validée** (recette à réappliquer pour chaque composant) :
+1. `export let x` → `let { x = défaut } = $props();`
+2. `let y = …` (état réactif local) → `let y = $state(…);` — **attention : en mode runes,
+   TOUT état réactif local doit passer en `$state`, sinon réactivité silencieusement cassée.**
+3. `$:` dérivé pur → `$derived(…)` ; `$:` à effet de bord → `$effect(() => { … })`
+4. `createEventDispatcher` : fonctionne encore en mode runes → on peut le **garder** d'abord
+   (parent inchangé), et convertir en *callback props* dans un second temps.
+5. Vérifier : `npm run build` + `npx tsc --noEmit` + **test d'interaction réel**
+   (preview_eval : cliquer/saisir et constater la mise à jour) + screenshot.
+
+> Alternative recommandée : `cd anonyfiles_gui && npx sv migrate svelte-5` dans un **vrai terminal**
+> (l'outil officiel est interactif/clack — non pilotable depuis l'agent), puis relire le diff + tester.
+
+**Avancement :**
+- [x] `Sidebar.svelte` — POC fait et vérifié (clic nav → `activeTab` + bascule de vue OK).
+- [ ] `ToggleButton.svelte`, `SwitchTheme.svelte` (petits, sans events) — faciles
+- [ ] `FileDropZone.svelte` ⚠️ (a `createEventDispatcher`)
+- [ ] `Header.svelte`, `CsvPreview.svelte`, `XlsxPreview.svelte`, `AuditLogTable.svelte`
+- [ ] `LogView.svelte`, `ConfigurationView.svelte`, `ExportDirectoryChooser.svelte`, `ResultView.svelte`
+- [ ] `AnonymizationOptions.svelte` (toggles d'entités — bien tester les clics)
+- [ ] `DataAnonymizer.svelte` ⚠️ (gros, beaucoup d'état + `createEventDispatcher`) — à faire en dernier
+- [ ] (bonus final) remplacer `createEventDispatcher` par des callback props dans les 2 composants concernés
 
 ### Phase 4 — Sécurité / robustesse
 - [x] Merger les branches en cours (`fix/docx…`, `feat/job-retention`) + pousser/PR.

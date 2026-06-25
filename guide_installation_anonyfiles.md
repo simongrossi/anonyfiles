@@ -82,7 +82,7 @@ Cette section est pour contribuer à la GUI ou la lancer en mode dev. Pour une a
 
 ### Prérequis GUI
 
-- Node.js 20+ & npm
+- Node.js 22+ & npm
 - Rust stable & Cargo ([rustup](https://rustup.rs/))
 - Les dépendances Python + le modèle spaCy installés (voir installation standard ci-dessus) — la GUI va spawner l'API en sidecar, qui n'existe encore que comme venv Python à ce stade.
 
@@ -106,7 +106,7 @@ Cette section produit un `.app` (macOS) / `.exe` ou `.msi` (Windows) / `.AppImag
 
 ### Prérequis build
 
-- Node.js 20+, Rust stable, Python 3.11+
+- Node.js 22+, Rust stable, Python 3.11+
 - Sous Linux : `libwebkit2gtk-4.1-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, `libgtk-3-dev`, `build-essential`, `curl`, `wget`, `file` (voir `.github/workflows/desktop-build.yml` pour la liste exacte)
 
 ### Build via Makefile (recommandé)

@@ -22,7 +22,7 @@ développée en Svelte, Rust et Tauri pour une expérience utilisateur moderne e
 
 ## 🛠️ Prérequis & Installation
 
-- [Node.js 20+](https://nodejs.org/)
+- [Node.js 22+](https://nodejs.org/)
 - [Rust stable](https://www.rust-lang.org/tools/install)
 - Python 3.11+ pour builder le sidecar Python/FastAPI
 - Dépendances Python installées depuis la racine via `pyproject.toml`
