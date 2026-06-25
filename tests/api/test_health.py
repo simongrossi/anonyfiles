@@ -2,15 +2,11 @@ import pytest
 
 pytest.importorskip("httpx")
 from fastapi.testclient import TestClient
-import importlib
-import sys
 
 
 def get_app():
-    sys.modules.setdefault(
-        "spacy",
-        importlib.util.module_from_spec(importlib.machinery.ModuleSpec("spacy", None)),
-    )
+    # spaCy n'est pas stubbé : dépendance dure, et un stub partiel masquerait
+    # `spacy.util` (utilisé au chargement réel du modèle).
     from anonyfiles_api.api import app
 
     return app

@@ -6,31 +6,42 @@ from pathlib import Path  # noqa: E402
 from types import SimpleNamespace  # noqa: E402
 from unittest.mock import patch  # noqa: E402
 import zipfile  # noqa: E402
-import importlib  # noqa: E402
-import sys  # noqa: E402
 import json  # noqa: E402
-
-sys.modules.setdefault(
-    "spacy",
-    importlib.util.module_from_spec(importlib.machinery.ModuleSpec("spacy", None)),
-)
 
 from anonyfiles_cli.main import app  # noqa: E402
 from anonyfiles_core.anonymizer import spacy_engine  # noqa: E402
 from anonyfiles_cli.managers.config_manager import ConfigManager  # noqa: E402
 
 
+class DummyRuler:
+    def add_patterns(self, patterns):
+        self.patterns = patterns
+
+
 class DummyModel:
+    def __init__(self):
+        self.pipe_names = ["ner"]
+
+    def add_pipe(self, name, before=None):
+        self.pipe_names.insert(0, name)
+        return DummyRuler()
+
     def __call__(self, text):
         return SimpleNamespace(ents=[])
+
+
+def _fake_spacy(load):
+    """Faux module ``spacy`` complet (``util.is_package`` + ``load``)."""
+    return SimpleNamespace(
+        util=SimpleNamespace(is_package=lambda name: True),
+        load=load,
+    )
 
 
 def test_cli_anonymize_dry_run(tmp_path):
     sample = tmp_path / "sample.txt"
     sample.write_text("Jean Dupont à Paris", encoding="utf-8")
-    with patch.object(
-        spacy_engine, "spacy", SimpleNamespace(load=lambda name: DummyModel())
-    ):
+    with patch.object(spacy_engine, "spacy", _fake_spacy(lambda name: DummyModel())):
         runner = CliRunner()
         result = runner.invoke(
             app,
@@ -54,9 +65,7 @@ def test_cli_anonymize_bundle(tmp_path):
     map_file = tmp_path / "map.csv"
     log_file = tmp_path / "log.csv"
     bundle = tmp_path / "bundle.zip"
-    with patch.object(
-        spacy_engine, "spacy", SimpleNamespace(load=lambda name: DummyModel())
-    ):
+    with patch.object(spacy_engine, "spacy", _fake_spacy(lambda name: DummyModel())):
         runner = CliRunner()
         result = runner.invoke(
             app,
@@ -253,7 +262,7 @@ def test_cli_missing_spacy_model(tmp_path):
         raise OSError("model missing")
 
     spacy_engine._load_spacy_model_cached.cache_clear()
-    with patch.object(spacy_engine, "spacy", SimpleNamespace(load=fail_load)):
+    with patch.object(spacy_engine, "spacy", _fake_spacy(fail_load)):
         runner = CliRunner()
         result = runner.invoke(
             app,

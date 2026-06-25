@@ -116,13 +116,12 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 
 ### Phase 2 — Dette technique ciblée
 - [x] Pydantic v2 : `class Config` → `ConfigDict` (supprime les warnings).
-- [ ] **(différé)** Nettoyer le smell de `spacy_engine.py` (`_active_spacy_module`, gardes
-      `getattr/hasattr`). Tentative annulée (commit revert) : ces contournements assurent en
-      fait une **résilience réelle** contre le stubbing de `spacy` via `sys.modules` dans
-      plusieurs tests (`test_cli_e2e`, `test_job_cli`, `test_health`). Le faire proprement =
-      retravailler ces stubs (les rendre complets / supprimer les stubs obsolètes maintenant
-      que spaCy est une dépendance dure) **et** valider `test_full_flow` avec le vrai modèle
-      sur le stack moderne — à faire en local avec Python 3.11 + modèle spaCy installé.
+- [x] Nettoyer le smell de `spacy_engine.py` : suppression de `_active_spacy_module` et des
+      gardes `getattr/hasattr` ; le code utilise `spacy.util.is_package` / `spacy.load` /
+      `self.nlp.pipe_names` directement. Les stubs de test ont été rendus complets
+      (`util.is_package` + `pipe_names`/`add_pipe`) et les stubs `sys.modules["spacy"]`
+      obsolètes retirés (spaCy est une dépendance dure). Validé : suite complète **78 passed**
+      sur Python 3.11 + modèle réel (dont `test_full_flow`), mypy/ruff/black OK.
 - [x] Supprimer les méthodes `replace_entities` legacy restantes (pdf/excel/json) — mortes.
 - [x] Corriger la ligne dupliquée `anonyfiles_api/routers/anonymization.py:132`.
 - [x] Retirer les fichiers parasites versionnés : `debug_job_mock.py`, `input.txt`,

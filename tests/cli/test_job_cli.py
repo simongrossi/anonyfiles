@@ -5,9 +5,9 @@ from typer.testing import CliRunner
 import types
 import sys
 
-# Stub heavy dependencies used during CLI import with minimal attributes
-sys.modules.setdefault("spacy", types.ModuleType("spacy"))
-
+# Stub heavy dependencies used during CLI import with minimal attributes.
+# NB: spaCy n'est PAS stubbé — un stub partiel masquerait `spacy.util` et casserait
+# le chargement réel ailleurs (spaCy est désormais une dépendance dure).
 fake_docx = types.ModuleType("docx")
 fake_docx.Document = lambda *a, **k: None
 sys.modules.setdefault("docx", fake_docx)
