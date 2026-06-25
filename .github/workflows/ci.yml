@@ -46,6 +46,10 @@ jobs:
       - name: Check formatting with Black
         run: black --check .
 
+      - name: Type-check with mypy
+        # Typage progressif : voir [tool.mypy] dans pyproject.toml (liste de fichiers).
+        run: mypy
+
       - name: Security Scan (SAST) with Bandit
         run: bandit -r . -ll
 
@@ -62,6 +66,33 @@ jobs:
 
       - name: Run Tests
         run: pytest -q tests
+
+  # -------------------------------------------------------------
+  # 1b. GUI (Svelte/Vite) — typage TypeScript + tests Vitest
+  # -------------------------------------------------------------
+  gui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: anonyfiles_gui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: anonyfiles_gui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check (tsc)
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Run GUI tests (Vitest)
+        run: npm test
 
   # -------------------------------------------------------------
   # 2. BUILD WHEEL
