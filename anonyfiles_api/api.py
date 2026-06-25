@@ -26,6 +26,7 @@ from .core_config import (
     clear_request_context,
     AppConfig,
 )
+from .job_queue import JobQueue
 from .retention import run_purge_loop
 
 # Plus besoin d'importer load_config_api_safe depuis anonyfiles_cli.main
@@ -97,6 +98,13 @@ async def startup_event():
         if app_config.debug:
             logger.info("Mode DEBUG activé via la configuration.")
 
+        app.state.job_queue = JobQueue(
+            worker_count=app_config.job_worker_count,
+            timeout_seconds=app_config.job_timeout_seconds,
+            retry_attempts=app_config.job_retry_attempts,
+        )
+        await app.state.job_queue.start()
+
         # Démarrage de la purge périodique des jobs expirés (confidentialité).
         app.state.purge_stop_event = asyncio.Event()
         app.state.purge_task = asyncio.create_task(
@@ -119,7 +127,11 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Arrête proprement la tâche de purge des jobs."""
+    """Arrête proprement la file de jobs et la tâche de purge."""
+    job_queue = getattr(app.state, "job_queue", None)
+    if job_queue is not None:
+        await job_queue.stop(timeout_seconds=5)
+
     stop_event = getattr(app.state, "purge_stop_event", None)
     task = getattr(app.state, "purge_task", None)
     if stop_event is not None:

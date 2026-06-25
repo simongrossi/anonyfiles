@@ -5,7 +5,6 @@ from fastapi import (
     UploadFile,
     File,
     Form,
-    BackgroundTasks,
     HTTPException,
     Request,
 )
@@ -20,6 +19,7 @@ import aiofiles.os as aio_os
 from pydantic import ValidationError
 
 from ..core_config import logger, set_job_id, AnonymizationOptions
+from ..job_queue import ensure_job_queue
 from ..job_utils import Job, BASE_INPUT_STEM_FOR_JOB_FILES
 from ..upload_utils import (
     UploadTooLargeError,
@@ -267,6 +267,12 @@ def run_anonymization_job_sync(
         logger.info(
             f"Tâche {job_id}: Démarrage pour {input_path.name}. Règles perso: {custom_rules}. Utilisation de la config de base passée."
         )
+        current_job.update_status_sync(
+            status="pending",
+            state="preparing",
+            progress=25,
+            error=None,
+        )
         engine_opts = _prepare_engine_options(config_options, custom_rules)
         processor_kwargs = _prepare_processor_kwargs(input_path, has_header)
 
@@ -276,6 +282,12 @@ def run_anonymization_job_sync(
         log_entities_path = default_log(input_path, current_job.job_dir)
         mapping_output_path = default_mapping(input_path, current_job.job_dir)
 
+        current_job.update_status_sync(
+            status="pending",
+            state="processing",
+            progress=45,
+            error=None,
+        )
         engine = AnonyfilesEngine(config=passed_base_config, **engine_opts)
         engine_result = _execute_engine_anonymization(
             engine,
@@ -286,6 +298,12 @@ def run_anonymization_job_sync(
             processor_kwargs,
         )
 
+        current_job.update_status_sync(
+            status="pending",
+            state="finalizing",
+            progress=90,
+            error=None,
+        )
         _process_engine_result(
             current_job,
             engine_result,
@@ -334,7 +352,6 @@ def run_anonymization_job_sync(
 @router.post("/anonymize/", tags=["Anonymisation"])
 async def anonymize_file_endpoint(
     request: Request,
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     config_options: str = Form(...),
     # MODIFICATION CLÉ ICI :
@@ -347,7 +364,6 @@ async def anonymize_file_endpoint(
 
     Args:
         request: Current request object used to access application state.
-        background_tasks: FastAPI background task manager.
         file: Uploaded file to anonymize.
         config_options: JSON string with anonymization options.
         custom_replacement_rules: Optional JSON list of replacement rules.
@@ -489,18 +505,28 @@ async def anonymize_file_endpoint(
             detail="Erreur serveur: Configuration de base non disponible pour traiter la requête.",
         )
 
-    background_tasks.add_task(
-        run_anonymization_job_sync,
-        job_id=job_id,
-        input_path=input_path_for_job,
-        config_options=config_opts_dict,
-        has_header=has_header_bool,
-        custom_rules=custom_rules_list,  # <<< C'est ici que la liste parsée est passée
-        passed_base_config=current_base_config_for_task.copy(),
-    )
-    logger.info(f"Tâche {job_id}: Tâche de fond ajoutée pour {input_path_for_job}.")
+    job_queue = await ensure_job_queue(request.app)
+    try:
+        await job_queue.enqueue(
+            job_id=job_id,
+            kind="anonymization",
+            func=run_anonymization_job_sync,
+            kwargs={
+                "job_id": job_id,
+                "input_path": input_path_for_job,
+                "config_options": config_opts_dict,
+                "has_header": has_header_bool,
+                "custom_rules": custom_rules_list,
+                "passed_base_config": current_base_config_for_task.copy(),
+            },
+        )
+    except RuntimeError as exc:
+        await current_job.set_status_as_error_async(str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    return {"job_id": job_id, "status": "pending"}
+    logger.info(f"Tâche {job_id}: Tâche ajoutée à la file pour {input_path_for_job}.")
+
+    return {"job_id": job_id, "status": "pending", "state": "queued"}
 
 
 @router.get("/anonymize_status/{job_id}", tags=["Anonymisation"])
@@ -538,14 +564,14 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
         f"Statut tâche {job_id_str} lu depuis status.json: {current_status.get('status')}"
     )
 
-    if current_status.get("status") == "error":
+    if current_status.get("status") in {"error", "cancelled", "timeout"}:
         return JSONResponse(content=current_status)
 
     if current_status.get("status") == "pending":
         return JSONResponse(content=current_status)
 
     if current_status.get("status") == "finished":
-        response_payload: Dict[str, Any] = {"status": "finished"}
+        response_payload: Dict[str, Any] = {**current_status, "status": "finished"}
         if "error" in current_status and current_status["error"] is not None:
             response_payload["error"] = current_status["error"]
 

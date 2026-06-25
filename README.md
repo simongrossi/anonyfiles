@@ -72,10 +72,11 @@ Ce document décrit le chemin complet d'une requête depuis le client jusqu'au s
 ## Flux complet d'une requête d'anonymisation
 
 1. **Client** : envoie une requête `POST /anonymize` avec le fichier et les options.
-2. **API FastAPI** : sauvegarde le fichier dans un dossier de job (`jobs/<job_id>`), écrit `status.json` et lance `run_anonymization_job_sync` en tâche de fond.
-3. **Moteur `AnonyfilesEngine`** : lit le fichier, applique les règles d'anonymisation, écrit les fichiers de sortie (texte anonymisé, mapping CSV, log CSV, audit).
-4. **Job utils** : met à jour `status.json` à `finished` ou `error` et stocke le journal d'audit.
-5. **Client** : récupère le statut via `GET /anonymize_status/{job_id}` ou la WebSocket `/ws/{job_id}` puis télécharge éventuellement les fichiers avec `GET /files/{job_id}/{file_key}`.
+2. **API FastAPI** : sauvegarde le fichier dans un dossier de job (`jobs/<job_id>`), écrit `status.json` et ajoute le travail à la file de jobs interne.
+3. **Job queue** : exécute le moteur dans un worker, applique retry/timeout, gère les annulations et met à jour `state`/`progress`.
+4. **Moteur `AnonyfilesEngine`** : lit le fichier, applique les règles d'anonymisation, écrit les fichiers de sortie (texte anonymisé, mapping CSV, log CSV, audit).
+5. **Job utils** : met à jour `status.json` à `finished`, `error`, `cancelled` ou `timeout` et stocke le journal d'audit.
+6. **Client** : récupère le statut via `GET /anonymize_status/{job_id}` ou la WebSocket `/ws/{job_id}` puis télécharge éventuellement les fichiers avec `GET /files/{job_id}/{file_key}`.
 
 Les fichiers générés sont stockés dans le dossier `jobs/` (aucune base de données n'est utilisée par défaut).
 
@@ -83,16 +84,18 @@ Les fichiers générés sont stockés dans le dossier `jobs/` (aucune base de do
 sequenceDiagram
     participant C as Client
     participant A as API FastAPI
-    participant J as Job handler
+    participant J as Job queue
     participant E as AnonyfilesEngine
     participant F as Jobs directory
 
     C->>A: POST /anonymize (fichier)
-    A->>J: crée job + status pending
+    A->>F: crée job + status pending/queued
+    A->>J: enqueue job
+    J->>F: status running + progress
     J->>E: lance anonymisation
     E->>F: écrit fichiers de sortie
     E-->>J: résultat (success ou error)
-    J->>F: met à jour status.json
+    J->>F: status terminal + audit_log
     C->>A: GET /anonymize_status/{job_id}
     A->>F: lit status.json
     A-->>C: statut + contenus

@@ -60,6 +60,9 @@ DEFAULT_MAX_UPLOAD_MB = 100
 # et le mapping (clé de dé-anonymisation). On les purge passé ce délai.
 DEFAULT_JOB_RETENTION_HOURS = 24
 DEFAULT_PURGE_INTERVAL_MINUTES = 60
+DEFAULT_JOB_WORKER_COUNT = 1
+DEFAULT_JOB_TIMEOUT_SECONDS = 1800
+DEFAULT_JOB_RETRY_ATTEMPTS = 0
 
 
 # --- Modèles de Configuration ---
@@ -135,6 +138,23 @@ class AppConfig(BaseSettings):
         default=DEFAULT_PURGE_INTERVAL_MINUTES,
         description="Intervalle entre deux balayages de purge des jobs, en minutes.",
         ge=1,
+    )
+    job_worker_count: int = Field(
+        default=DEFAULT_JOB_WORKER_COUNT,
+        description="Nombre de workers internes pour la file de jobs API.",
+        ge=1,
+    )
+    job_timeout_seconds: int = Field(
+        default=DEFAULT_JOB_TIMEOUT_SECONDS,
+        description=(
+            "Timeout soft des jobs API, en secondes. Mettre 0 pour désactiver."
+        ),
+        ge=0,
+    )
+    job_retry_attempts: int = Field(
+        default=DEFAULT_JOB_RETRY_ATTEMPTS,
+        description="Nombre de nouvelles tentatives après un échec moteur.",
+        ge=0,
     )
 
     model_config = SettingsConfigDict(

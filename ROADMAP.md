@@ -20,8 +20,9 @@ a été réalisée par le commit `Modernize Python dependency stack`.
 | `claude/flamboyant-torvalds` | `_sanitize_for_ner` (tokens custom rules avant NER) | ✅ déjà dans `main` |
 | commit `Modernize Python dependency stack` | Unification déps + spaCy 3.8/NumPy 2/pandas + lock unique + fix nixpacks + nettoyage | ✅ sur `main` |
 
-> ⚠️ **À valider en CI** : `pandas 3.0` / `numpy 2.4` n'ont pas pu être testés en local
-> (Python 3.9 ici, le projet exige 3.11). La CI (Python 3.11) est le filet de sécurité.
+> ✅ **Validation locale effectuée** : stack Python 3.11, `numpy 2.4.6`,
+> `pandas 3.0.3`, `spacy 3.8.14`, modèle `fr_core_news_md 3.8.0`,
+> `pytest -q tests` vert (`47 passed, 2 skipped`).
 
 ---
 
@@ -106,7 +107,7 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 - [x] Régénérer **et commiter** un lock unique (`pip-compile pyproject.toml`) **ou** assumer
       100 % pyproject. Créer le `requirements-full.txt` manquant **ou** corriger
       `nixpacks.toml` en `pip install .` (déploiement actuellement cassé).
-- [ ] Valider : `pip install .` + `python -m spacy download fr_core_news_md` + suite de tests
+- [x] Valider : `pip install .` + `python -m spacy download fr_core_news_md` + suite de tests
       verte **sous numpy 2**.
 
 ### Phase 1 — Cohérence doc (rapide, juste après Phase 0)
@@ -114,7 +115,7 @@ on est coincé sur numpy 1.26 et un écosystème daté.
       (Python 3.11, vraie stratégie de déps). Tout doit raconter **la même** histoire.
 
 ### Phase 2 — Dette technique ciblée
-- [ ] Pydantic v2 : `class Config` → `ConfigDict` (supprime les warnings).
+- [x] Pydantic v2 : `class Config` → `ConfigDict` (supprime les warnings).
 - [ ] **(différé)** Nettoyer le smell de `spacy_engine.py` (`_active_spacy_module`, gardes
       `getattr/hasattr`). Tentative annulée (commit revert) : ces contournements assurent en
       fait une **résilience réelle** contre le stubbing de `spacy` via `sys.modules` dans
@@ -135,6 +136,37 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 ### Phase 4 — Sécurité / robustesse
 - [ ] Merger les branches en cours (`fix/docx…`, `feat/job-retention`) + pousser/PR.
 - [ ] Auth optionnelle sur l'API (clé API activable par config) pour les déploiements publics.
+
+### Phase 5 — Robustesse moteur / confiance anonymisation
+- [ ] **Redaction PDF sûre** : privilégier une redaction basée sur les coordonnées du texte
+      original plutôt qu'une reconstruction destructive, puis vérifier qu'aucune donnée sensible
+      ne reste dans le texte extrait du PDF final.
+- [ ] **Corpus qualité anonymisation** : créer des fixtures réalistes avec résultats attendus
+      (noms, emails, IBAN, dates, adresses, organisations, faux positifs) pour mesurer les
+      régressions et les améliorations de détection.
+- [ ] **Tests golden par format** : snapshots attendus pour TXT/CSV/DOCX/XLSX/PDF/JSON afin de
+      sécuriser la reconstruction et éviter les fuites ou corruptions silencieuses.
+- [ ] **Meilleure gestion des modèles spaCy** : commande/écran indiquant modèle installé,
+      version, compatibilité spaCy et instruction d'installation/réparation.
+- [ ] **Typage progressif du core** : introduire `mypy` ou `pyright` progressivement sur
+      `anonyfiles_core`, en priorité les processors, le moteur et les retours d'API internes.
+
+### Phase 6 — Jobs API / exploitation
+- [x] **Vraie file de jobs API** : `BackgroundTasks` FastAPI remplacé par une file interne
+      avec workers, statuts persistants enrichis, annulation, retry, timeouts, progression
+      par phase, arrêt propre et endpoints `/jobs/queue` + `/jobs/{job_id}/cancel`.
+- [ ] **Lifecycle FastAPI moderne** : remplacer `@app.on_event(...)` par `lifespan` pour
+      supprimer les warnings et gérer proprement la tâche de purge.
+- [ ] **Observabilité structurée** : journaliser durée par étape, taille fichier, nombre
+      d'entités, type de sortie, statut final et erreurs catégorisées.
+
+### Phase 7 — Produit / UX
+- [ ] **Profils d'anonymisation** : proposer des presets (`strict RGPD`, `léger`,
+      `documents RH`, `contrats`, `logs techniques`) au-dessus des options détaillées.
+- [ ] **Prévisualisation des entités détectées** : afficher les entités avant traitement final,
+      permettre de décocher/corriger, puis lancer l'anonymisation.
+- [ ] **Batch complet** : traitement multi-fichiers avec rapport global, erreurs par fichier,
+      ZIP final et reprise possible.
 
 ---
 

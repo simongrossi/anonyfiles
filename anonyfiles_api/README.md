@@ -13,7 +13,8 @@ fonctionnalités que la CLI mais via des endpoints REST.
 - API REST pour **anonymiser** et **désanonymiser** des fichiers texte, tableurs ou documents bureautiques (.txt, .csv, .docx, .xlsx, .json, .pdf)
 - Basée sur FastAPI avec documentation Swagger intégrée
 - Utilise le moteur d’anonymisation du dossier `anonymizer/`
-- Traitement **asynchrone** avec suivi par `job_id`
+- Traitement **asynchrone** avec file de jobs interne, suivi par `job_id`,
+  retry, timeout, annulation et progression par phase
 - Nettoyage automatique des fichiers temporaires
 - CORS activé pour utilisation avec le frontend GUI
 - Limitation de débit intégrée pour prévenir les abus (slowapi)
@@ -78,6 +79,9 @@ Le entry point PyInstaller est [`anonyfiles_api/__main__.py`](__main__.py), qui 
 | GET     | `/anonymize_status/{job_id}` | Vérifie le statut d’un job                       |
 | WS      | `/ws/{job_id}`               | Statut temps réel d'un job (WebSocket) |
 | POST    | `/deanonymize`               | Désanonymise un texte en utilisant un mapping    |
+| GET     | `/deanonymize_status/{job_id}` | Vérifie le statut d’un job de désanonymisation |
+| GET     | `/jobs/queue`                | Compteurs de la file de jobs interne             |
+| POST    | `/jobs/{job_id}/cancel`      | Demande l’annulation d’un job                    |
 | GET     | `/health`                    | Vérifie le bon fonctionnement de l’API           |
 
 📘 Documentation interactive disponible sur : [http://localhost:8000/docs](http://localhost:8000/docs)
@@ -101,7 +105,8 @@ Lance un job d’anonymisation en arrière-plan.
 ```json
 {
   "job_id": "uuid-unique-du-job",
-  "status": "pending"
+  "status": "pending",
+  "state": "queued"
 }
 ```
 
@@ -109,9 +114,16 @@ Lance un job d’anonymisation en arrière-plan.
 
 Retourne le statut du job :
 
-- `pending` : en cours
+- `pending` : en attente ou en cours
 - `finished` : terminé
 - `error` : échec
+- `cancelled` : annulé
+- `timeout` : interrompu par timeout
+
+Le payload contient aussi `state`, `progress`, `attempt`, `max_attempts` et des
+timestamps quand ils sont disponibles. `state` décrit la phase courante
+(`queued`, `running`, `preparing`, `processing`, `finalizing`, `retrying`,
+`cancelling`, etc.).
 
 **Exemple de réponse (job terminé) :**
 ```json
@@ -130,7 +142,25 @@ Retourne le statut du job :
 ```
 ### `WS /ws/{job_id}`
 
-Ouvre une connexion WebSocket pour suivre en temps réel le statut d'un job. La connexion se ferme lorsque le statut devient `finished` ou `error`.
+Ouvre une connexion WebSocket pour suivre en temps réel le statut d'un job. La connexion se ferme lorsque le statut devient `finished`, `error`, `cancelled` ou `timeout`.
+
+### `GET /jobs/queue`
+
+Retourne les compteurs de la file en mémoire :
+
+```json
+{
+  "queued": 0,
+  "running": 1,
+  "workers": 1
+}
+```
+
+### `POST /jobs/{job_id}/cancel`
+
+Demande l'annulation d'un job. L'annulation est immédiate pour un job encore en
+file. Pour un job déjà en cours, l'API publie `state: "cancelling"` puis protège
+le statut final `cancelled` lorsque le worker reprend la main.
 
 ---
 
@@ -159,7 +189,11 @@ API_URL = "http://localhost:8000"
 # 1. ENVOI DU FICHIER
 # On envoie le fichier et on récupère immédiatement un Job ID
 with open("contrat.pdf", "rb") as f:
-    response = requests.post(f"{API_URL}/anonymize", files={"file": f})
+    response = requests.post(
+        f"{API_URL}/anonymize",
+        files={"file": f},
+        data={"config_options": "{}"},
+    )
 job_data = response.json()
 job_id = job_data["job_id"]
 print(f"✅ Job créé : {job_id} (Statut: {job_data['status']})")
@@ -174,11 +208,11 @@ while True:
     if state == "finished":
         print("🎉 Traitement terminé !")
         break
-    elif state == "error":
+    elif state in {"error", "cancelled", "timeout"}:
         print(f"❌ Erreur : {status_data.get('error')}")
         exit(1)
     
-    print("⏳ Traitement en cours...")
+    print(f"⏳ {status_data.get('state')} - {status_data.get('progress', 0)}%")
     time.sleep(1)
 
 # 3. RÉCUPÉRATION DES FICHIERS
@@ -198,15 +232,22 @@ print("📂 Fichier anonymisé sauvegardé.")
 **Étape 1 : Envoyer le fichier**
 ```bash
 curl -X POST "http://localhost:8000/anonymize" \
-     -F "file=@mon_document.txt"
-# Réponse : {"job_id": "1234-5678", "status": "pending"}
+     -F "file=@mon_document.txt" \
+     -F 'config_options={}'
+# Réponse : {"job_id": "1234-5678", "status": "pending", "state": "queued"}
 ```
 
 **Étape 2 : Vérifier le statut**
 ```bash
 curl "http://localhost:8000/anonymize_status/1234-5678"
-# Réponse tant que ça tourne : {"status": "pending"}
+# Réponse tant que ça tourne : {"status": "pending", "state": "processing", "progress": 45}
 # Réponse quand fini : {"status": "finished", "files": ["mon_document_anonymized.txt"]}
+```
+
+**Annuler un job**
+```bash
+curl -X POST "http://localhost:8000/jobs/1234-5678/cancel"
+# Réponse : {"status": "cancelled", "state": "cancelled", "cancel_requested": true}
 ```
 
 **Étape 3 : Télécharger**
@@ -220,7 +261,8 @@ curl -O "http://localhost:8000/files/1234-5678/mon_document_anonymized.txt"
 anonyfiles_api/
 ├── api.py                 # Point d’entrée FastAPI (app, middlewares)
 ├── core_config.py         # Configuration globale (logger, chemins, etc.)
-├── job_utils.py           # Gestion et suivi des jobs
+├── job_queue.py           # File de jobs interne (workers, retry, timeout)
+├── job_utils.py           # Gestion et suivi des statuts de jobs
 └── routers/               # Routers FastAPI
     ├── anonymization.py     # Endpoints /anonymize et /anonymize_status
     ├── deanonymization.py   # Endpoint /deanonymize
@@ -228,20 +270,24 @@ anonyfiles_api/
     └── jobs.py              # Suppression et gestion avancée des jobs
 ```
 
-Extrait montrant l’utilisation du moteur partagé :
+Extrait simplifié de l'orchestration côté API :
 
 ```python
-from anonyfiles_core import AnonyfilesEngine
+from anonyfiles_api.job_queue import ensure_job_queue
 
 @router.post("/anonymize")
-async def anonymize(file: UploadFile):
-    engine = AnonyfilesEngine(config_path)
-    # temporary async wrapper around `anonymize`
-
-    return await engine.anonymize_async(file)
+async def anonymize(request: Request, file: UploadFile):
+    job_queue = await ensure_job_queue(request.app)
+    await job_queue.enqueue(
+        job_id=job_id,
+        kind="anonymization",
+        func=run_anonymization_job_sync,
+        kwargs={...},
+    )
+    return {"job_id": job_id, "status": "pending", "state": "queued"}
 ```
-Cet appel asynchrone utilise simplement ``asyncio.to_thread`` pour exécuter la
-méthode de base de façon non bloquante.
+La file exécute ensuite le moteur dans un worker thread, avec statut persistant
+dans `status.json`.
 
 ---
 

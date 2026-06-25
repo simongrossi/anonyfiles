@@ -5,7 +5,6 @@ from fastapi import (
     UploadFile,
     File,
     Form,
-    BackgroundTasks,
     HTTPException,
     Request,
 )  # Ajout de Request
@@ -18,6 +17,7 @@ import json
 from typing import Optional  # Ajouté pour la cohérence du typage
 
 # Importer Job depuis job_utils (JOBS_DIR est géré à l'intérieur de Job ou core_config)
+from ..job_queue import ensure_job_queue
 from ..job_utils import Job
 from ..upload_utils import (
     UploadTooLargeError,
@@ -73,7 +73,21 @@ def run_deanonymization_job_sync(
         logger.info(
             f"[{job_id}] Démarrage de la désanonymisation pour {input_path.name}"
         )
+        current_job.update_status_sync(
+            status="pending",
+            state="preparing",
+            progress=25,
+            error=None,
+            original_input_name=original_input_name_for_status,
+        )
         engine = DeanonymizationEngine()
+        current_job.update_status_sync(
+            status="pending",
+            state="processing",
+            progress=45,
+            error=None,
+            original_input_name=original_input_name_for_status,
+        )
         engine_result = engine.deanonymize(
             input_path=input_path,
             mapping_path=mapping_path,
@@ -86,15 +100,23 @@ def run_deanonymization_job_sync(
             logger.error(f"[{job_id}] {warning_message}")
             error_payload_for_status = {
                 "status": "error",
+                "state": "failed",
+                "progress": 100,
                 "error": warning_message,
                 "original_input_name": original_input_name_for_status,
             }
-            with open(current_job.status_file_path, "w", encoding="utf-8") as f_status:
-                json.dump(error_payload_for_status, f_status)
+            current_job.update_status_sync(**error_payload_for_status)
             return
 
         result_text = engine_result.get("restored_text", "")
         report_data_serializable = dict(engine_result.get("report", {}))
+        current_job.update_status_sync(
+            status="pending",
+            state="writing_results",
+            progress=85,
+            error=None,
+            original_input_name=original_input_name_for_status,
+        )
 
         output_filename = (
             input_path.stem + "_deanonymise_" + timestamp() + input_path.suffix
@@ -132,11 +154,12 @@ def run_deanonymization_job_sync(
         # nous allons directement écrire le fichier status.json ici pour plus de contrôle.
         status_payload_finished = {
             "status": "finished",
+            "state": "completed",
+            "progress": 100,
             "error": None,
             "original_input_name": original_input_name_for_status,
         }
-        with open(current_job.status_file_path, "w", encoding="utf-8") as f_status:
-            json.dump(status_payload_finished, f_status)
+        current_job.update_status_sync(**status_payload_finished)
         # Sauvegarder le journal d'audit séparément (si la classe Job ne le fait pas pour deanonymize)
         with open(current_job.audit_log_file_path, "w", encoding="utf-8") as f_audit:
             json.dump(engine_like_result_for_status["audit_log"], f_audit)
@@ -173,13 +196,14 @@ def run_deanonymization_job_sync(
         # Mettre à jour le statut avec original_input_name
         error_payload_for_status = {
             "status": "error",
+            "state": "failed",
+            "progress": 100,
             "error": error_msg,
             "original_input_name": original_input_name_for_status,
         }
         # S'assurer que le répertoire existe avant d'écrire le statut
         current_job.job_dir.mkdir(parents=True, exist_ok=True)
-        with open(current_job.status_file_path, "w", encoding="utf-8") as f_status:
-            json.dump(error_payload_for_status, f_status)
+        current_job.update_status_sync(**error_payload_for_status)
 
         log_run_event(
             logger=CLIUsageLogger,
@@ -209,7 +233,6 @@ def run_deanonymization_job_sync(
 @router.post("/deanonymize/", tags=["Désanonymisation"])
 async def deanonymize_file_endpoint(
     request: Request,  # Ajouté pour potentiellement accéder à app.state si BASE_CONFIG devenait nécessaire
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     mapping: UploadFile = File(...),
     permissive: bool = Form(False),
@@ -218,7 +241,6 @@ async def deanonymize_file_endpoint(
 
     Args:
         request: Incoming request to access application state if needed.
-        background_tasks: FastAPI background task manager.
         file: The anonymized file to restore.
         mapping: Mapping CSV file.
         permissive: Whether the engine should ignore missing mapping entries.
@@ -255,11 +277,12 @@ async def deanonymize_file_endpoint(
     def _write_error_status(message: str) -> None:
         error_payload = {
             "status": "error",
+            "state": "failed",
+            "progress": 100,
             "error": message,
             "original_input_name": input_filename,
         }
-        with open(current_job.status_file_path, "w", encoding="utf-8") as f_status:
-            json.dump(error_payload, f_status)
+        current_job.update_status_sync(**error_payload)
 
     try:
         await stream_upload_to_path(file, input_path, max_bytes=max_upload_bytes)
@@ -326,13 +349,7 @@ async def deanonymize_file_endpoint(
         await mapping.close()
 
     # Écrire le statut initial en incluant original_input_name
-    initial_status_payload = {
-        "status": "pending",
-        "error": None,
-        "original_input_name": input_filename,
-    }
-    with open(current_job.status_file_path, "w", encoding="utf-8") as f_status:
-        json.dump(initial_status_payload, f_status)
+    await current_job.set_initial_status_async(original_input_name=input_filename)
 
     # Si BASE_CONFIG était nécessaire pour run_deanonymization_job_sync:
     # passed_base_config_value = getattr(request.app.state, 'BASE_CONFIG', {})
@@ -341,15 +358,25 @@ async def deanonymize_file_endpoint(
     #     # Gérer l'erreur...
     #     raise HTTPException(status_code=500, detail="Configuration de base du serveur manquante.")
 
-    background_tasks.add_task(
-        run_deanonymization_job_sync,
-        job_id=job_id,
-        input_path=input_path,
-        mapping_path=mapping_path,
-        permissive=permissive,
-        # passed_base_config=passed_base_config_value.copy() # Si BASE_CONFIG était nécessaire
-    )
-    return {"job_id": job_id, "status": "pending"}
+    job_queue = await ensure_job_queue(request.app)
+    try:
+        await job_queue.enqueue(
+            job_id=job_id,
+            kind="deanonymization",
+            func=run_deanonymization_job_sync,
+            kwargs={
+                "job_id": job_id,
+                "input_path": input_path,
+                "mapping_path": mapping_path,
+                "permissive": permissive,
+                # "passed_base_config": passed_base_config_value.copy()
+            },
+        )
+    except RuntimeError as exc:
+        await current_job.set_status_as_error_async(str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {"job_id": job_id, "status": "pending", "state": "queued"}
 
 
 @router.get("/deanonymize_status/{job_id}", tags=["Désanonymisation"])
@@ -437,6 +464,7 @@ async def get_deanonymize_status(job_id: str):
                 report_content_from_file = json.loads(report_content_str)
 
             return {
+                **status_data,
                 "status": "finished",
                 "deanonymized_text": deanonymized_text_content,
                 "report": report_content_from_file,

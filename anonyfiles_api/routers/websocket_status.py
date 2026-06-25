@@ -3,7 +3,7 @@
 import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from ..job_utils import Job
+from ..job_utils import Job, TERMINAL_JOB_STATUSES
 from ..core_config import logger
 
 router = APIRouter()
@@ -34,7 +34,7 @@ async def websocket_job_status(websocket: WebSocket, job_id: str) -> None:
             if status_payload != last_payload:
                 await websocket.send_json(status_payload)
                 last_payload = status_payload
-            if status_payload.get("status") in {"finished", "error"}:
+            if status_payload.get("status") in TERMINAL_JOB_STATUSES:
                 break
             await asyncio.sleep(1)
     except WebSocketDisconnect:

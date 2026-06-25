@@ -4,6 +4,7 @@ pytest.importorskip("httpx")
 import shutil
 import importlib
 import sys
+import time
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -25,6 +26,14 @@ def test_anonymize_sanitizes_filenames(tmp_path):
         ]:
             if mod in sys.modules:
                 del sys.modules[mod]
+        for parent_name, child_name in [
+            ("anonyfiles_api", "api"),
+            ("anonyfiles_api", "job_utils"),
+            ("anonyfiles_api.routers", "anonymization"),
+        ]:
+            parent = sys.modules.get(parent_name)
+            if parent is not None and hasattr(parent, child_name):
+                delattr(parent, child_name)
         _importlib.invalidate_caches()
         sys.modules.setdefault(
             "spacy",
@@ -44,23 +53,30 @@ def test_anonymize_sanitizes_filenames(tmp_path):
             custom_rules,
             passed_base_config,
         ):
+            from anonyfiles_api.job_utils import Job
+
             saved["job_id"] = job_id
             saved["input_path"] = input_path
+            Job(job_id).set_status_as_finished_sync({"audit_log": []})
 
         with patch(
             "anonyfiles_api.routers.anonymization.run_anonymization_job_sync",
             side_effect=fake_run_anonymization_job_sync,
         ):
-            client = TestClient(app)
-            files = {"file": ("../secret.txt", b"data")}
-            data = {
-                "config_options": "{}",
-                "file_type": "txt",
-                "has_header": "",
-                "custom_replacement_rules": "",
-            }
-            resp = client.post("/anonymize/", files=files, data=data)
-            assert resp.status_code == 200
+            with TestClient(app) as client:
+                files = {"file": ("../secret.txt", b"data")}
+                data = {
+                    "config_options": "{}",
+                    "file_type": "txt",
+                    "has_header": "",
+                    "custom_replacement_rules": "",
+                }
+                resp = client.post("/anonymize/", files=files, data=data)
+                assert resp.status_code == 200
+
+                deadline = time.time() + 2
+                while "job_id" not in saved and time.time() < deadline:
+                    time.sleep(0.05)
 
         job_id = saved["job_id"]
         job_dir = tmp_path / job_id

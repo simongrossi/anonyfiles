@@ -2,6 +2,10 @@
 from pathlib import Path
 import shutil
 import json
+import os
+import tempfile
+import threading
+from datetime import datetime, timezone
 import aiofiles
 import aiofiles.os as aio_os
 from fastapi.concurrency import run_in_threadpool
@@ -11,6 +15,13 @@ from . import core_config
 from .core_config import logger, BASE_INPUT_STEM_FOR_JOB_FILES
 
 JOBS_DIR = core_config.JOBS_DIR
+TERMINAL_JOB_STATUSES = {"finished", "error", "cancelled", "timeout"}
+PROTECTED_TERMINAL_JOB_STATUSES = {"cancelled", "timeout"}
+_STATUS_WRITE_LOCK = threading.RLock()
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 class Job:
@@ -20,6 +31,85 @@ class Job:
         self.status_file_path = self.job_dir / "status.json"
         self.audit_log_file_path = self.job_dir / "audit_log.json"
         self.base_input_stem = BASE_INPUT_STEM_FOR_JOB_FILES
+
+    def _read_status_sync(self) -> Dict[str, Any]:
+        if not self.status_file_path.is_file():
+            return {}
+        try:
+            with open(self.status_file_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            return payload if isinstance(payload, dict) else {}
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return {}
+
+    def _write_status_payload_sync(self, payload: Dict[str, Any]) -> None:
+        self.job_dir.mkdir(parents=True, exist_ok=True)
+        payload["updated_at"] = utc_now_iso()
+        tmp_path: Optional[str] = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                dir=self.job_dir,
+                prefix="status.",
+                suffix=".tmp",
+                delete=False,
+            ) as f:
+                tmp_path = f.name
+                json.dump(payload, f, ensure_ascii=False)
+            os.replace(tmp_path, self.status_file_path)
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def update_status_sync(self, protect_terminal: bool = True, **updates: Any) -> bool:
+        try:
+            with _STATUS_WRITE_LOCK:
+                current_payload = self._read_status_sync()
+                current_status = current_payload.get("status")
+                next_status = updates.get("status")
+                if (
+                    protect_terminal
+                    and current_status in PROTECTED_TERMINAL_JOB_STATUSES
+                    and next_status != current_status
+                ):
+                    logger.info(
+                        "Tâche %s: statut terminal '%s' conservé malgré mise à jour '%s'.",
+                        self.job_id,
+                        current_status,
+                        next_status,
+                    )
+                    return True
+
+                if (
+                    protect_terminal
+                    and current_payload.get("cancellation_requested_at")
+                    and next_status != "cancelled"
+                ):
+                    logger.info(
+                        "Tâche %s: annulation demandée, mise à jour '%s' ignorée.",
+                        self.job_id,
+                        next_status,
+                    )
+                    return True
+
+                merged_payload = {**current_payload, **updates}
+                self._write_status_payload_sync(merged_payload)
+            return True
+        except OSError as e:
+            logger.error(
+                f"Tâche {self.job_id}: Impossible d'écrire le statut "
+                f"({type(e).__name__}): {e}",
+                exc_info=True,
+            )
+            return False
+
+    async def update_status_async(
+        self, protect_terminal: bool = True, **updates: Any
+    ) -> bool:
+        return await run_in_threadpool(
+            self.update_status_sync, protect_terminal, **updates
+        )
 
     async def check_exists_async(self, check_status_file: bool = True) -> bool:
         dir_exists = await run_in_threadpool(self.job_dir.exists)
@@ -111,74 +201,56 @@ class Job:
             )
             return None
 
-    def set_initial_status_sync(self) -> bool:
+    def set_initial_status_sync(self, **metadata: Any) -> bool:
         """Sets the initial status to pending (synchronous)."""
-        try:
-            self.job_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.status_file_path, "w", encoding="utf-8") as f:
-                json.dump({"status": "pending", "error": None}, f)
+        payload = {
+            "status": "pending",
+            "state": "created",
+            "progress": 0,
+            "error": None,
+            "created_at": metadata.pop("created_at", utc_now_iso()),
+            **metadata,
+        }
+        if self.update_status_sync(protect_terminal=False, **payload):
             logger.info(f"Tâche {self.job_id}: Statut initial 'pending' écrit.")
             return True
-        except OSError as e:
-            logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut initial "
-                f"({type(e).__name__}): {e}",
-                exc_info=True,
-            )
-            return False
+        return False
 
-    async def set_initial_status_async(self) -> bool:
+    async def set_initial_status_async(self, **metadata: Any) -> bool:
         """Sets the initial status to pending (asynchronous)."""
-        try:
-            await aio_os.makedirs(self.job_dir, exist_ok=True)
-            async with aiofiles.open(self.status_file_path, "w", encoding="utf-8") as f:
-                await f.write(json.dumps({"status": "pending", "error": None}))
+        if await run_in_threadpool(self.set_initial_status_sync, **metadata):
             logger.info(f"Tâche {self.job_id}: Statut initial 'pending' écrit.")
             return True
-        except OSError as e:
-            logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut initial "
-                f"({type(e).__name__}): {e}",
-                exc_info=True,
-            )
-            return False
+        return False
 
     def set_status_as_error_sync(self, error_message: str) -> bool:
-        try:
-            self.job_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.status_file_path, "w", encoding="utf-8") as f:
-                json.dump({"status": "error", "error": error_message}, f)
+        if self.update_status_sync(
+            status="error",
+            state="failed",
+            progress=100,
+            error=error_message,
+            completed_at=utc_now_iso(),
+        ):
             logger.info(f"Tâche {self.job_id}: Statut d'erreur écrit: {error_message}")
             return True
-        except OSError as e:
-            logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut d'erreur "
-                f"'{error_message}' ({type(e).__name__}): {e}",
-                exc_info=True,
-            )
-            return False
+        return False
 
     async def set_status_as_error_async(self, error_message: str) -> bool:
-        try:
-            await aio_os.makedirs(self.job_dir, exist_ok=True)
-            async with aiofiles.open(self.status_file_path, "w", encoding="utf-8") as f:
-                await f.write(json.dumps({"status": "error", "error": error_message}))
+        if await run_in_threadpool(self.set_status_as_error_sync, error_message):
             logger.info(f"Tâche {self.job_id}: Statut d'erreur écrit: {error_message}")
             return True
-        except OSError as e:
-            logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut d'erreur "
-                f"'{error_message}' ({type(e).__name__}): {e}",
-                exc_info=True,
-            )
-            return False
+        return False
 
     def set_status_as_finished_sync(self, engine_result: Dict[str, Any]) -> bool:
-        status_payload = {"status": "finished", "error": None}
         try:
-            self.job_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.status_file_path, "w", encoding="utf-8") as f:
-                json.dump(status_payload, f)
+            if not self.update_status_sync(
+                status="finished",
+                state="completed",
+                progress=100,
+                error=None,
+                completed_at=utc_now_iso(),
+            ):
+                return False
             with open(self.audit_log_file_path, "w", encoding="utf-8") as f:
                 json.dump(engine_result.get("audit_log", []), f)
             logger.info(
@@ -198,29 +270,7 @@ class Job:
             return False
 
     async def set_status_as_finished_async(self, engine_result: Dict[str, Any]) -> bool:
-        status_payload = {"status": "finished", "error": None}
-        try:
-            await aio_os.makedirs(self.job_dir, exist_ok=True)
-            async with aiofiles.open(self.status_file_path, "w", encoding="utf-8") as f:
-                await f.write(json.dumps(status_payload))
-            async with aiofiles.open(
-                self.audit_log_file_path, "w", encoding="utf-8"
-            ) as f:
-                await f.write(json.dumps(engine_result.get("audit_log", [])))
-            logger.info(
-                f"Tâche {self.job_id}: Statut 'finished' et journal d'audit écrits."
-            )
-            return True
-        except OSError as e:
-            logger.error(
-                f"Tâche {self.job_id}: Impossible d'écrire le statut 'finished'/journal d'audit "
-                f"({type(e).__name__}): {e}",
-                exc_info=True,
-            )
-            await self.set_status_as_error_async(
-                f"Erreur critique: Échec de l'écriture du statut 'finished'/journal d'audit après l'exécution réussie du moteur: {str(e)}"
-            )
-            return False
+        return await run_in_threadpool(self.set_status_as_finished_sync, engine_result)
 
     def delete_job_directory_sync(self) -> bool:
         if not self.job_dir.exists():
