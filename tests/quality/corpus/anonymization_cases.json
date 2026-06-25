@@ -1,0 +1,144 @@
+[
+  {
+    "id": "hr_candidate_fr",
+    "description": "Dossier RH avec personne, organisation, lieu, adresse, date, email, telephone et faux positifs techniques.",
+    "input": "Dossier RH 2026.\nJean Dupont travaille chez Beta Services a Lyon.\nAdresse: 4 avenue de la Republique, 69002 Lyon.\nDate de naissance: 15/04/1990.\nContact: jean.dupont@example.com.\nTelephone: 06 12 34 56 78.\nFaux positifs a conserver: test[at]example.fr, EMAIL-2026, Lyonnais.\n",
+    "custom_rules": [
+      {
+        "pattern": "4 avenue de la Republique, 69002 Lyon",
+        "replacement": "ADDRESS_TOKEN",
+        "isRegex": false
+      },
+      {
+        "pattern": "Beta Services",
+        "replacement": "ORG_TOKEN",
+        "isRegex": false
+      },
+      {
+        "pattern": "\\bLyon\\b",
+        "replacement": "LOC_TOKEN",
+        "isRegex": true
+      }
+    ],
+    "expect": {
+      "absent_literals": [
+        "Jean Dupont",
+        "Beta Services",
+        "4 avenue de la Republique, 69002 Lyon",
+        "15/04/1990",
+        "jean.dupont@example.com",
+        "06 12 34 56 78"
+      ],
+      "absent_patterns": [
+        "\\bLyon\\b"
+      ],
+      "present_literals": [
+        "PER_TOKEN_1",
+        "ORG_TOKEN_1",
+        "LOC_TOKEN_1",
+        "ADDRESS_TOKEN_1",
+        "DATE_TOKEN_1",
+        "EMAIL_TOKEN_1",
+        "PHONE_TOKEN_1"
+      ],
+      "preserved_literals": [
+        "test[at]example.fr",
+        "EMAIL-2026",
+        "Lyonnais"
+      ],
+      "spacy_labels": [
+        "PER",
+        "DATE",
+        "EMAIL",
+        "PHONE"
+      ],
+      "mapping_originals": [
+        "Jean Dupont",
+        "Beta Services",
+        "Lyon",
+        "4 avenue de la Republique, 69002 Lyon",
+        "15/04/1990",
+        "jean.dupont@example.com",
+        "06 12 34 56 78"
+      ],
+      "custom_originals": [
+        "Beta Services",
+        "Lyon",
+        "4 avenue de la Republique, 69002 Lyon"
+      ]
+    }
+  },
+  {
+    "id": "finance_vendor_fr",
+    "description": "Validation fournisseur avec personne, organisation, lieu, adresse, date, email, telephone, IBAN et faux positifs bancaires.",
+    "input": "Validation paiement fournisseur.\nSophie Laurent represente Alpha Audit a Nantes.\nSignature: 25 juin 2026.\nEmail: sophie.laurent@example.fr.\nTelephone: 07 98 76 54 32.\nIBAN: FR76 3000 6000 0112 3456 7890 189.\nAdresse siege: 18 boulevard Pasteur, 44000 Nantes.\nFaux positifs a conserver: FR7630006000011234567890189bis, test[at]example.fr, IBAN-2026.\n",
+    "custom_rules": [
+      {
+        "pattern": "18 boulevard Pasteur, 44000 Nantes",
+        "replacement": "ADDRESS_TOKEN",
+        "isRegex": false
+      },
+      {
+        "pattern": "Alpha Audit",
+        "replacement": "ORG_TOKEN",
+        "isRegex": false
+      },
+      {
+        "pattern": "\\bNantes\\b",
+        "replacement": "LOC_TOKEN",
+        "isRegex": true
+      }
+    ],
+    "expect": {
+      "absent_literals": [
+        "Sophie Laurent",
+        "Alpha Audit",
+        "18 boulevard Pasteur, 44000 Nantes",
+        "25 juin 2026",
+        "sophie.laurent@example.fr",
+        "07 98 76 54 32",
+        "FR76 3000 6000 0112 3456 7890 189"
+      ],
+      "absent_patterns": [
+        "\\bNantes\\b"
+      ],
+      "present_literals": [
+        "PER_TOKEN_1",
+        "ORG_TOKEN_1",
+        "LOC_TOKEN_1",
+        "ADDRESS_TOKEN_1",
+        "DATE_TOKEN_1",
+        "EMAIL_TOKEN_1",
+        "PHONE_TOKEN_1",
+        "IBAN_TOKEN_1"
+      ],
+      "preserved_literals": [
+        "FR7630006000011234567890189bis",
+        "test[at]example.fr",
+        "IBAN-2026"
+      ],
+      "spacy_labels": [
+        "PER",
+        "DATE",
+        "EMAIL",
+        "PHONE",
+        "IBAN"
+      ],
+      "mapping_originals": [
+        "Sophie Laurent",
+        "Alpha Audit",
+        "Nantes",
+        "18 boulevard Pasteur, 44000 Nantes",
+        "25 juin 2026",
+        "sophie.laurent@example.fr",
+        "07 98 76 54 32",
+        "FR76 3000 6000 0112 3456 7890 189"
+      ],
+      "custom_originals": [
+        "Alpha Audit",
+        "Nantes",
+        "18 boulevard Pasteur, 44000 Nantes"
+      ]
+    }
+  }
+]
