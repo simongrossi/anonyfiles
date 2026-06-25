@@ -6,7 +6,7 @@ import {
   deanonymizedText,
   deanonymizationError
 } from '$lib/stores/deanonymizationStore';
-import { apiUrl, pollJob } from './api';
+import { apiFetch, apiUrl, pollJob } from './api';
 
 export async function runDeanonymization(permissive: boolean = false) {
   const currentFileToDeanonymize = get(fileToDeanonymize);
@@ -27,7 +27,7 @@ export async function runDeanonymization(permissive: boolean = false) {
     formData.append('mapping', currentMappingFile);
     formData.append('permissive', String(permissive));
 
-    const response = await fetch(await apiUrl('deanonymize/'), {
+    const response = await apiFetch(await apiUrl('deanonymize/'), {
       method: 'POST',
       body: formData,
     });

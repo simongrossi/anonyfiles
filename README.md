@@ -433,6 +433,9 @@ définir (par exemple dans `/etc/default/anonyfiles-api`) :
 - `ANONYFILES_JOB_RETENTION_HOURS` : durée de conservation des jobs avant purge automatique, en heures (défaut `24`, `0` pour désactiver)
 - `ANONYFILES_JOB_PURGE_INTERVAL_MINUTES` : intervalle entre deux balayages de purge (défaut `60`)
 - `ANONYFILES_CORS_ORIGINS` : domaines autorisés pour les requêtes API (ex: `https://mon-domaine.com,http://localhost:3000`)
+- `ANONYFILES_API_KEY` : clé API optionnelle. Si elle est définie, les endpoints
+  de traitement exigent `X-API-Key: <clé>` ou `Authorization: Bearer <clé>`.
+  `/`, `/health`, `/health/spacy`, `/docs` et `/openapi.json` restent publics.
 
 Un fichier `railway.json.example` est fourni à la racine pour simplifier un
 déploiement via Railway. Copiez-le en `railway.json` puis ajustez les valeurs.
@@ -441,6 +444,8 @@ déploiement via Railway. Copiez-le en `railway.json` puis ajustez les valeurs.
 * **Support Multi-arch (ARM64)** : Compilation native des dépendances (Numpy, SpaCy/Blis) pour Apple Silicon et NAS ARM.
 * **Sécurité & Taille** : Utilisation d'un build multi-stage pour une image finale plus légère (sans GCC) et exécution sous utilisateur non-root `anonyfiles`.
 * **CORS Sécurisé** : Restriction par défaut des origines autorisées via `ANONYFILES_CORS_ORIGINS`.
+* **Auth API optionnelle** : clé activable par `ANONYFILES_API_KEY` pour les
+  déploiements exposés.
 
 ---
 

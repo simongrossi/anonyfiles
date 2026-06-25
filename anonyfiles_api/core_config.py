@@ -119,6 +119,12 @@ class AppConfig(BaseSettings):
     cors_origins: str = Field(
         default="", description="Origines CORS autorisées (séparées par des virgules)"
     )
+    api_key: str = Field(
+        default="",
+        description=(
+            "Clé API optionnelle. Si vide, l'authentification HTTP reste désactivée."
+        ),
+    )
     debug: bool = False
     max_upload_size_mb: int = Field(
         default=DEFAULT_MAX_UPLOAD_MB,

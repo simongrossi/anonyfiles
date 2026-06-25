@@ -41,6 +41,11 @@ npm run tauri dev             # ouvre la fenêtre, spawne le sidecar au démarra
 
 Alternative : lancer un `uvicorn` externe sur le port 8000 et pointer la GUI vers lui via `VITE_ANONYFILES_API_URL=http://127.0.0.1:8000`. Plus rapide pour itérer sur l'API sans rebuilder le sidecar à chaque fois.
 
+Si l'API externe est protégée par `ANONYFILES_API_KEY`, la GUI peut envoyer la
+clé avec `VITE_ANONYFILES_API_KEY=...`. À utiliser pour des déploiements privés
+ou desktop : dans un frontend web public, cette valeur est visible dans le
+bundle navigateur.
+
 ### Application autonome distribuable
 
 Depuis la racine du repo :
@@ -77,6 +82,9 @@ La GUI (Svelte + TypeScript) ne contient aucun code NLP. Toute l'anonymisation p
 En mode **desktop**, Tauri (`src-tauri/src/main.rs`) spawne le sidecar `anonyfiles-api-<triple>` (binaire PyInstaller contenant FastAPI + uvicorn + spaCy + modèle FR) sur un port libre choisi aléatoirement, puis expose ce port au frontend via la commande Tauri `get_api_port`. Le sidecar est tué automatiquement à la fermeture de la fenêtre.
 
 En mode **web**, la GUI (servie par nginx dans le compose Docker) pointe vers l'API distante définie par `VITE_ANONYFILES_API_URL`.
+
+Si `VITE_ANONYFILES_API_KEY` est défini, les appels GUI ajoutent
+automatiquement le header `X-API-Key`.
 
 Voir [`src-tauri/README.md`](src-tauri/README.md) pour le détail Rust et [`anonyfiles_architecture.md`](../anonyfiles_architecture.md) pour la vue d'ensemble.
 

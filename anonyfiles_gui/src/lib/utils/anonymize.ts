@@ -12,7 +12,7 @@ import {
   type AuditLogEntry
 } from '../stores/anonymizationStore';
 import { currentJobId } from '$lib/stores/jobStore';
-import { apiUrl, pollJob, debug, debugError } from './api';
+import { apiFetch, apiUrl, pollJob, debug, debugError } from './api';
 
 interface RunAnonymizationParams {
   fileType?: string;
@@ -70,7 +70,7 @@ export async function runAnonymization({
 
     formData.append('file_type', fileType || '');
 
-    const response = await fetch(await apiUrl('anonymize/'), {
+    const response = await apiFetch(await apiUrl('anonymize/'), {
       method: 'POST',
       body: formData,
     });

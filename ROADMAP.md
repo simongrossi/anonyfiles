@@ -135,7 +135,10 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 
 ### Phase 4 — Sécurité / robustesse
 - [x] Merger les branches en cours (`fix/docx…`, `feat/job-retention`) + pousser/PR.
-- [ ] Auth optionnelle sur l'API (clé API activable par config) pour les déploiements publics.
+- [x] Auth optionnelle sur l'API (clé API activable par `ANONYFILES_API_KEY`)
+      pour les déploiements publics : endpoints de traitement protégés par
+      `X-API-Key` ou `Authorization: Bearer`, santé/docs publiques, support GUI
+      opt-in via `VITE_ANONYFILES_API_KEY`.
 
 ### Phase 5 — Robustesse moteur / confiance anonymisation
 - [x] **Redaction PDF sûre** : redaction basée sur les coordonnées du texte original

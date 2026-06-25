@@ -42,6 +42,14 @@ Les variables d'environnement à définir (dans `/etc/default/anonyfiles-api` pa
 - `ANONYFILES_MAX_UPLOAD_SIZE_MB` : taille max d'un fichier téléversé en Mio (défaut `100`)
 - `ANONYFILES_JOB_RETENTION_HOURS` : conservation des jobs avant purge auto, en heures (défaut `24`, `0`=désactivé)
 - `ANONYFILES_JOB_PURGE_INTERVAL_MINUTES` : intervalle de balayage de purge (défaut `60`)
+- `ANONYFILES_CORS_ORIGINS` : origines autorisées CORS (séparées par des virgules)
+- `ANONYFILES_API_KEY` : clé API optionnelle. Si définie, les endpoints de
+  traitement exigent `X-API-Key: <clé>` ou `Authorization: Bearer <clé>`.
+
+Les endpoints `/`, `/health`, `/health/spacy`, `/docs` et `/openapi.json`
+restent publics pour le monitoring et la découverte. Les uploads, statuts de
+jobs, téléchargements de fichiers, annulations/suppressions et WebSocket de
+statut sont protégés lorsque `ANONYFILES_API_KEY` est non vide.
 
 ## 📦 Déploiement via Nixpacks
 
@@ -72,4 +80,3 @@ Pour mettre en place un déploiement automatisé :
    ```
 3. Définir les variables d'environnement nécessaires depuis le tableau de bord Railway.
 4. Le workflow [`railway.yml`](../.github/workflows/railway.yml) déclenche automatiquement le déploiement à chaque push sur la branche principale.
-

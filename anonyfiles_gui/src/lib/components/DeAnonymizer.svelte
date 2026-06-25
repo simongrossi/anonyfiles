@@ -12,7 +12,7 @@
     Copy,
     ListChecks,
   } from 'lucide-svelte';
-  import { apiUrl, pollJob, debug } from '$lib/utils/api';
+  import { apiFetch, apiUrl, pollJob, debug } from '$lib/utils/api';
 
   let inputFile: File | null = null;
   let mappingFile: File | null = null;
@@ -89,7 +89,7 @@
       const deanonymizeEndpoint = await apiUrl('deanonymize/');
       debug('DeAnonymizer: Appel API:', deanonymizeEndpoint);
 
-      const response = await fetch(deanonymizeEndpoint, { method: 'POST', body: formData, signal });
+      const response = await apiFetch(deanonymizeEndpoint, { method: 'POST', body: formData, signal });
       const data = await response.json();
 
       if (!response.ok) throw new Error(data?.detail || data?.error || `Erreur HTTP ${response.status}`);

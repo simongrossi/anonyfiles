@@ -3,7 +3,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -29,6 +29,7 @@ from .core_config import (
 )
 from .job_queue import JobQueue
 from .retention import run_purge_loop
+from .auth import require_api_key
 
 # Plus besoin d'importer load_config_api_safe depuis anonyfiles_cli.main
 # CLI_MODULE_PATH = Path(__file__).resolve().parent.parent / "anonyfiles_cli"
@@ -54,7 +55,7 @@ async def _start_runtime(fastapi_app: FastAPI) -> None:
         # Stocker l'objet config typé (ou convertir en dict si le reste du code attend un dict)
         # Pour compatibilité immédiate avec le code existant qui attend souvent un dict :
         fastapi_app.state.settings = app_config
-        fastapi_app.state.BASE_CONFIG = app_config.model_dump()
+        fastapi_app.state.BASE_CONFIG = app_config.model_dump(exclude={"api_key"})
 
         logger.info("Configuration validée avec succès via Pydantic Settings.")
         if app_config.debug:
@@ -177,10 +178,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(anonymization.router)
-app.include_router(deanonymization.router)
-app.include_router(files.router)
-app.include_router(jobs.router)
+protected_dependencies = [Depends(require_api_key)]
+
+app.include_router(anonymization.router, dependencies=protected_dependencies)
+app.include_router(deanonymization.router, dependencies=protected_dependencies)
+app.include_router(files.router, dependencies=protected_dependencies)
+app.include_router(jobs.router, dependencies=protected_dependencies)
 app.include_router(health.router)
 app.include_router(websocket_status.router)
 

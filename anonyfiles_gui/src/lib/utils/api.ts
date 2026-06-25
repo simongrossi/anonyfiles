@@ -21,6 +21,23 @@ export async function apiUrl(path: string): Promise<string> {
   return `${base}/api/${path.replace(/^\/+/, '')}`;
 }
 
+function apiKey(): string {
+  return String(import.meta.env.VITE_ANONYFILES_API_KEY ?? '').trim();
+}
+
+export function withApiAuth(init: RequestInit = {}): RequestInit {
+  const key = apiKey();
+  if (!key) return init;
+
+  const headers = new Headers(init.headers);
+  if (!headers.has('X-API-Key')) headers.set('X-API-Key', key);
+  return { ...init, headers };
+}
+
+export function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  return fetch(input, withApiAuth(init));
+}
+
 export async function waitForApiReady(timeoutMs = 60_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   const url = await apiUrl('health');
@@ -90,7 +107,7 @@ export async function pollJob<T extends JobStatusPayload = JobStatusPayload>(
     });
     attempt++;
 
-    const resp = await fetch(statusUrl, { signal });
+    const resp = await apiFetch(statusUrl, { signal });
 
     if (resp.status === 429) {
       const retryAfter = Number(resp.headers.get('Retry-After'));

@@ -238,3 +238,4 @@ Pour la mise en production, consulter `deploy/`.
 | `ANONYFILES_JOB_RETENTION_HOURS` | TTL des jobs avant purge auto (h, défaut 24, 0=off) |
 | `ANONYFILES_JOB_PURGE_INTERVAL_MINUTES` | Intervalle de purge (min, défaut 60) |
 | `ANONYFILES_CORS_ORIGINS` | Origines autorisées CORS |
+| `ANONYFILES_API_KEY` | Clé API optionnelle. Si définie, envoyer `X-API-Key` ou `Authorization: Bearer`. |

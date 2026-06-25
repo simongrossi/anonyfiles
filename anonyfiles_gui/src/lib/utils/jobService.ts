@@ -1,6 +1,6 @@
 // anonyfiles_gui/src/lib/utils/jobService.ts
 import { writable } from 'svelte/store';
-import { apiUrl, debugError } from './api';
+import { apiFetch, apiUrl, debugError } from './api';
 
 export const notificationStore = writable<{ message: string, type: 'success' | 'error' } | null>(null);
 
@@ -18,7 +18,7 @@ export async function deleteJobFiles(jobId: string): Promise<boolean> {
     }
 
     try {
-        const response = await fetch(await apiUrl(`jobs/${jobId}`), {
+        const response = await apiFetch(await apiUrl(`jobs/${jobId}`), {
             method: 'DELETE',
         });
 

@@ -20,6 +20,7 @@ fonctionnalités que la CLI mais via des endpoints REST.
 - Nettoyage automatique des fichiers temporaires
 - CORS activé pour utilisation avec le frontend GUI
 - Limitation de débit intégrée pour prévenir les abus (slowapi)
+- Auth API optionnelle par clé, activable via `ANONYFILES_API_KEY`
 
 ---
 
@@ -88,6 +89,35 @@ Le entry point PyInstaller est [`anonyfiles_api/__main__.py`](__main__.py), qui 
 | GET     | `/health/spacy`              | Diagnostic détaillé du modèle spaCy configuré    |
 
 📘 Documentation interactive disponible sur : [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 🔐 Authentification optionnelle
+
+Par défaut, l'API reste ouverte pour préserver le développement local et le
+sidecar desktop. Pour un déploiement exposé, définissez `ANONYFILES_API_KEY`.
+Les endpoints de traitement exigent alors l'un des headers suivants :
+
+```http
+X-API-Key: votre-cle
+Authorization: Bearer votre-cle
+```
+
+Restent publics : `/`, `/health`, `/health/spacy`, `/docs`, `/openapi.json`.
+Le WebSocket `/ws/{job_id}` accepte aussi `X-API-Key`, `Authorization: Bearer`,
+ou les query params `api_key` / `token` pour les clients qui ne peuvent pas
+poser de headers WebSocket.
+
+Exemple :
+
+```bash
+ANONYFILES_API_KEY="$(openssl rand -hex 32)" uvicorn anonyfiles_api.api:app --host 0.0.0.0 --port 8000
+curl -H "X-API-Key: $ANONYFILES_API_KEY" http://localhost:8000/jobs/queue
+```
+
+La GUI peut transmettre une clé via `VITE_ANONYFILES_API_KEY` pour les
+déploiements privés. Ne considérez pas cette variable comme secrète dans un
+frontend web public : elle est incluse dans le bundle navigateur.
 
 ---
 
@@ -242,12 +272,14 @@ import requests
 import time
 
 API_URL = "http://localhost:8000"
+HEADERS = {"X-API-Key": "votre-cle"}  # optionnel, seulement si ANONYFILES_API_KEY est défini
 
 # 1. ENVOI DU FICHIER
 # On envoie le fichier et on récupère immédiatement un Job ID
 with open("contrat.pdf", "rb") as f:
     response = requests.post(
         f"{API_URL}/anonymize",
+        headers=HEADERS,
         files={"file": f},
         data={"config_options": "{}"},
     )
@@ -258,7 +290,7 @@ print(f"✅ Job créé : {job_id} (Statut: {job_data['status']})")
 # 2. ATTENTE DU RÉSULTAT (Polling)
 # On vérifie le statut toutes les secondes
 while True:
-    status_res = requests.get(f"{API_URL}/anonymize_status/{job_id}")
+    status_res = requests.get(f"{API_URL}/anonymize_status/{job_id}", headers=HEADERS)
     status_data = status_res.json()
     state = status_data["status"]
     
@@ -277,7 +309,7 @@ while True:
 # L'URL de téléchargement suit souvent le format : /files/{job_id}/{filename}
 # Ou est fournie dans la réponse 'finished' (selon implémentation)
 download_url = f"{API_URL}/files/{job_id}/anonymized_contrat.pdf"
-content = requests.get(download_url).content
+content = requests.get(download_url, headers=HEADERS).content
 
 with open("contrat_anonymise.pdf", "wb") as f:
     f.write(content)
@@ -289,6 +321,7 @@ print("📂 Fichier anonymisé sauvegardé.")
 **Étape 1 : Envoyer le fichier**
 ```bash
 curl -X POST "http://localhost:8000/anonymize" \
+     -H "X-API-Key: votre-cle" \
      -F "file=@mon_document.txt" \
      -F 'config_options={}'
 # Réponse : {"job_id": "1234-5678", "status": "pending", "state": "queued"}
@@ -296,20 +329,21 @@ curl -X POST "http://localhost:8000/anonymize" \
 
 **Étape 2 : Vérifier le statut**
 ```bash
-curl "http://localhost:8000/anonymize_status/1234-5678"
+curl -H "X-API-Key: votre-cle" "http://localhost:8000/anonymize_status/1234-5678"
 # Réponse tant que ça tourne : {"status": "pending", "state": "processing", "progress": 45}
 # Réponse quand fini : {"status": "finished", "files": ["mon_document_anonymized.txt"]}
 ```
 
 **Annuler un job**
 ```bash
-curl -X POST "http://localhost:8000/jobs/1234-5678/cancel"
+curl -X POST "http://localhost:8000/jobs/1234-5678/cancel" \
+     -H "X-API-Key: votre-cle"
 # Réponse : {"status": "cancelled", "state": "cancelled", "cancel_requested": true}
 ```
 
 **Étape 3 : Télécharger**
 ```bash
-curl -O "http://localhost:8000/files/1234-5678/mon_document_anonymized.txt"
+curl -H "X-API-Key: votre-cle" -O "http://localhost:8000/files/1234-5678/mon_document_anonymized.txt"
 ```
 
 ## 🏗️ Structure du dossier
@@ -317,6 +351,7 @@ curl -O "http://localhost:8000/files/1234-5678/mon_document_anonymized.txt"
 ```
 anonyfiles_api/
 ├── api.py                 # Point d’entrée FastAPI (app, middlewares)
+├── auth.py                # Auth API optionnelle par clé
 ├── core_config.py         # Configuration globale (logger, chemins, etc.)
 ├── job_queue.py           # File de jobs interne (workers, retry, timeout)
 ├── job_utils.py           # Gestion et suivi des statuts de jobs

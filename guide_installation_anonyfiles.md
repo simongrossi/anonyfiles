@@ -231,3 +231,4 @@ Un exemple deploy/anonyfiles-api.service est fourni.
 | ANONYFILES_JOB_RETENTION_HOURS | TTL des jobs avant purge auto (h) | 24 |
 | ANONYFILES_JOB_PURGE_INTERVAL_MINUTES | Intervalle de purge (min) | 60 |
 | ANONYFILES_CORS_ORIGINS | Origines autorisées | — |
+| ANONYFILES_API_KEY | Clé API optionnelle pour protéger les endpoints de traitement | — |

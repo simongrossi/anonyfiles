@@ -63,6 +63,11 @@ La GUI parle à l'API FastAPI (`anonyfiles_api`). En desktop, Tauri lance le
 sidecar Python embarqué ; en développement, vous pouvez aussi lancer Uvicorn à
 part avec `python -m anonyfiles_api --host 127.0.0.1 --port 8000`.
 
+Si cette API externe active `ANONYFILES_API_KEY`, définissez
+`VITE_ANONYFILES_API_KEY` côté GUI pour ajouter automatiquement le header
+`X-API-Key`. Cette valeur est visible dans un bundle web public ; réservez-la
+aux déploiements privés ou au desktop.
+
 ---
 
 ## 🧩 Roadmap / Améliorations prévues

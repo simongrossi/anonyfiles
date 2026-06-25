@@ -1,8 +1,9 @@
 # anonyfiles/anonyfiles_api/routers/websocket_status.py
 
 import asyncio
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
+from ..auth import websocket_has_valid_api_key
 from ..job_utils import Job, TERMINAL_JOB_STATUSES
 from ..core_config import logger
 
@@ -17,6 +18,10 @@ async def websocket_job_status(websocket: WebSocket, job_id: str) -> None:
         websocket: Active WebSocket connection to the client.
         job_id: Identifier of the job to monitor.
     """
+    if not websocket_has_valid_api_key(websocket):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     await websocket.accept()
     job = Job(job_id)
     if not await job.check_exists_async():
