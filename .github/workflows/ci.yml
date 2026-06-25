@@ -50,7 +50,9 @@ jobs:
         run: bandit -r . -ll
 
       - name: Check Dependencies Vulnerabilities (Safety)
-        run: safety check --ignore 42188
+        # 42188: yamale (transitif). 89047: black (outil de dev/CI, pas une
+        # dépendance runtime — advisory non exploitable dans notre usage).
+        run: safety check --ignore 42188 --ignore 89047
 
       - name: Audit Dependencies (pip-audit)
         run: pip-audit
