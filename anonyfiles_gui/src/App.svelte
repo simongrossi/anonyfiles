@@ -48,7 +48,7 @@
 </script>
 
 {#if !apiReady}
-  <div class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
+  <div class="fixed inset-0 z-100 flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100">
     {#if apiStartupError}
       <div class="max-w-md text-center p-6">
         <p class="text-lg font-semibold mb-2">Le moteur n'a pas démarré</p>

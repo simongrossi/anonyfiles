@@ -91,7 +91,7 @@
     <label for="sheetSelect" class="text-sm font-medium text-zinc-700 dark:text-zinc-200">Feuille :</label>
     <select
       id="sheetSelect"
-      class="ui-input !py-1 !w-auto"
+      class="ui-input py-1! w-auto!"
       bind:value={selectedSheet}
       on:change={handleSheetChange}
     >

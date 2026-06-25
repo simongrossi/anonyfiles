@@ -113,7 +113,7 @@
       {#if viewMode === 'anonymized'}
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="ui-field-label !mb-0" for="anonymized-text">Texte anonymisé</label>
+            <label class="ui-field-label mb-0!" for="anonymized-text">Texte anonymisé</label>
             <span class="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
               {$outputLineCount} lignes · {$outputCharCount} car.
             </span>
@@ -122,7 +122,7 @@
             id="anonymized-text"
             class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20
                    text-emerald-900 dark:text-emerald-100 font-mono text-sm px-4 py-3 max-h-72 overflow-auto
-                   whitespace-pre-wrap break-words"
+                   whitespace-pre-wrap wrap-break-word"
           >{$outputText}</pre>
         </div>
       {/if}
@@ -134,7 +134,7 @@
             id="original-text"
             class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900
                    text-zinc-800 dark:text-zinc-100 font-mono text-sm px-4 py-3 max-h-72 overflow-auto
-                   whitespace-pre-wrap break-words"
+                   whitespace-pre-wrap wrap-break-word"
           >{$inputText}</pre>
         </div>
       {/if}
@@ -146,7 +146,7 @@
             <pre
               class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900
                      text-zinc-800 dark:text-zinc-100 font-mono text-sm px-4 py-3 max-h-72 overflow-auto
-                     whitespace-pre-wrap break-words"
+                     whitespace-pre-wrap wrap-break-word"
             >{$inputText}</pre>
           </div>
           <div>
@@ -159,7 +159,7 @@
             <pre
               class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20
                      text-emerald-900 dark:text-emerald-100 font-mono text-sm px-4 py-3 max-h-72 overflow-auto
-                     whitespace-pre-wrap break-words"
+                     whitespace-pre-wrap wrap-break-word"
             >{$outputText}</pre>
           </div>
         </div>
@@ -168,7 +168,7 @@
       {#if viewMode === 'mapping'}
         <div>
           <div class="flex items-center justify-between mb-1">
-            <label class="ui-field-label !mb-0" for="mapping-text">Fichier de mapping généré</label>
+            <label class="ui-field-label mb-0!" for="mapping-text">Fichier de mapping généré</label>
             {#if $mappingCSV && $mappingCSV.trim()}
               <button type="button" class="ui-btn-ghost text-xs px-2 py-1" on:click={exportMapping}>
                 <Download size={14} />
@@ -180,7 +180,7 @@
             id="mapping-text"
             class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900
                    text-zinc-700 dark:text-zinc-200 font-mono text-xs px-4 py-3 max-h-72 overflow-auto
-                   whitespace-pre-wrap break-words"
+                   whitespace-pre-wrap wrap-break-word"
           >{$mappingCSV || 'Aucun mapping généré ou disponible.'}</pre>
         </div>
       {/if}

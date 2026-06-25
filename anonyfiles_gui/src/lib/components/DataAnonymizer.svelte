@@ -233,7 +233,7 @@
       />
 
       <div class="flex items-center justify-between mb-1">
-        <label for="inputText" class="ui-field-label !mb-0">Texte à anonymiser</label>
+        <label for="inputText" class="ui-field-label mb-0!">Texte à anonymiser</label>
         <span class="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
           {$inputLineCount} ligne{$inputLineCount > 1 ? 's' : ''} · {$inputCharCount} car.
         </span>
@@ -335,7 +335,7 @@
                   </td>
                   <td class="px-3 py-2">
                     <select
-                      class="ui-input !py-1 !text-xs"
+                      class="ui-input py-1! text-xs!"
                       value={entity.label}
                       disabled={!entity.enabled}
                       on:change={(event) => updatePreviewEntity(index, { label: event.currentTarget.value })}

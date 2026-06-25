@@ -114,7 +114,7 @@
             </span>
             <button
               type="button"
-              class="ui-icon-btn hover:!text-red-600 hover:!bg-red-50 dark:hover:!bg-red-900/30"
+              class="ui-icon-btn hover:text-red-600! hover:bg-red-50! dark:hover:bg-red-900/30!"
               on:click={() => removeRule(index)}
               title="Supprimer la règle"
               aria-label="Supprimer la règle"

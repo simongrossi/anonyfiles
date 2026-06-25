@@ -292,7 +292,7 @@
       </header>
       <div class="ui-section-body">
         <textarea
-          class="ui-textarea font-mono text-sm min-h-[12rem]"
+          class="ui-textarea font-mono text-sm min-h-48"
           readonly
           value={outputText}
           rows="10"

@@ -129,7 +129,7 @@
             type="button"
             role="radio"
             aria-checked={on}
-            class="min-h-[3.25rem] rounded-lg border px-2 py-2 text-xs font-semibold transition flex flex-col items-center justify-center gap-1 text-center {on ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-100' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'}"
+            class="min-h-13 rounded-lg border px-2 py-2 text-xs font-semibold transition flex flex-col items-center justify-center gap-1 text-center {on ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-100' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'}"
             title={profile.description}
             on:click={() => applyProfile(profile)}
             disabled={isLoading}

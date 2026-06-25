@@ -8,7 +8,7 @@
 
 <header
   class="w-full h-16 px-4 sm:px-6 flex items-center justify-between fixed top-0 z-50
-         bg-zinc-950/95 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/80
+         bg-zinc-950/95 backdrop-blur supports-backdrop-filter:bg-zinc-950/80
          text-white border-b border-zinc-800"
 >
   <!-- Logo -->

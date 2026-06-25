@@ -1,6 +1,61 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: Inter, Montserrat, ui-sans-serif, system-ui;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-primary: #1c7ed6;
+  --color-accent: #74c0fc;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-surface-subtle: #f1f5f9;
+  --color-surface-inverted: #0b1220;
+
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-ink-subtle: #64748b;
+  --color-ink-inverted: #f8fafc;
+
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-900: #1e3a8a;
+
+  --radius-xl2: 1rem;
+
+  --shadow-card:
+    0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 1px rgba(15, 23, 42, 0.02);
+  --shadow-card-lg:
+    0 4px 24px -8px rgba(15, 23, 42, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.06);
+  --shadow-ring: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 /* -------- THEMING / COULEURS GLOBALES -------- */
 :root {
@@ -63,10 +118,10 @@ html.dark a { /* ou utilisez les variantes dark: de Tailwind directement sur les
 }
 
 /* -------- PANELS / CARTES -------- */
-/* Ces classes utilisent déjà les variantes dark: de Tailwind, elles fonctionneront correctement */
-/* si .dark est sur <html> et que darkMode: 'class' est configuré dans tailwind.config.js */
+/* Ces classes utilisent les variantes dark: de Tailwind, pilotées par la classe .dark */
+/* sur <html> (cf. `@custom-variant dark` défini en tête de ce fichier, Tailwind v4). */
 .card-panel {
-  @apply border rounded-2xl p-4 bg-white dark:bg-gray-800 shadow-sm;
+  @apply border rounded-2xl p-4 bg-white dark:bg-gray-800 shadow-xs;
 }
 .card-success {
   @apply border-green-200 bg-green-50 dark:bg-green-900 dark:border-green-800 text-green-900 dark:text-green-200;
@@ -81,22 +136,22 @@ html.dark a { /* ou utilisez les variantes dark: de Tailwind directement sur les
 /* -------- BOUTONS -------- */
 /* Ces classes utilisent déjà les variantes dark: de Tailwind (pour celles qui en ont besoin explicitement ici) */
 .btn-primary {
-  @apply px-6 py-2 font-semibold text-white rounded-xl bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-sm transition-all disabled:bg-zinc-400 disabled:cursor-wait;
+  @apply px-6 py-2 font-semibold text-white rounded-xl bg-blue-700 hover:bg-blue-800 active:bg-blue-900 shadow-xs transition-all disabled:bg-zinc-400 disabled:cursor-wait;
 }
 .btn-secondary {
   @apply px-5 py-2 rounded-lg border border-zinc-300 text-zinc-700 bg-zinc-100 hover:bg-zinc-200 transition dark:border-gray-600 dark:text-zinc-100 dark:bg-gray-700 dark:hover:bg-gray-600;
 }
 .btn-success {
-  @apply flex items-center gap-1 px-4 py-1.5 rounded-md bg-green-700 hover:bg-green-800 text-white font-semibold shadow transition;
+  @apply flex items-center gap-1 px-4 py-1.5 rounded-md bg-green-700 hover:bg-green-800 text-white font-semibold shadow-sm transition;
 }
 .btn-copy {
-  @apply flex items-center gap-1 px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow transition disabled:opacity-60;
+  @apply flex items-center gap-1 px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm transition disabled:opacity-60;
 }
 .btn-toggle {
   @apply px-4 py-1 rounded-md bg-zinc-200 hover:bg-zinc-300 font-medium text-zinc-800 transition mr-2 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-zinc-100;
 }
 .btn-toggle-alt {
-  @apply px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold ml-2;
+  @apply px-3 py-1 rounded-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold ml-2;
 }
 
 /* -------- ZONE DE DROP -------- */
@@ -194,7 +249,7 @@ html.dark a { /* ou utilisez les variantes dark: de Tailwind directement sur les
 /* ---------- Sections & cards ---------- */
 .ui-section {
   @apply rounded-2xl bg-white/80 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700
-         shadow-card backdrop-blur-sm;
+         shadow-card backdrop-blur-xs;
 }
 .ui-section-header {
   @apply flex items-center gap-2 px-5 py-3 border-b border-zinc-200 dark:border-zinc-700;
@@ -213,47 +268,52 @@ html.dark a { /* ou utilisez les variantes dark: de Tailwind directement sur les
 .ui-field-label {
   @apply block text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1;
 }
-.ui-input {
+.ui-input,
+.ui-textarea {
   @apply w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600
          bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100
          placeholder:text-zinc-400 dark:placeholder:text-zinc-500
-         focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500
-         transition shadow-sm;
+         focus:outline-hidden focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500
+         transition shadow-xs;
 }
 .ui-textarea {
-  @apply ui-input resize-y min-h-[9rem] leading-relaxed;
+  @apply resize-y min-h-36 leading-relaxed;
   font-family: "Inter", "Montserrat", ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ---------- Buttons ---------- */
-.ui-btn {
+.ui-btn,
+.ui-btn-primary,
+.ui-btn-secondary,
+.ui-btn-ghost,
+.ui-btn-danger {
   @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-         transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50
+         transition-all focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500/50
          disabled:opacity-60 disabled:cursor-not-allowed;
 }
 .ui-btn-primary {
-  @apply ui-btn bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow;
+  @apply bg-brand-600 hover:bg-brand-700 text-white shadow-xs hover:shadow-sm;
 }
 .ui-btn-secondary {
-  @apply ui-btn bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200
+  @apply bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200
          dark:bg-zinc-700 dark:hover:bg-zinc-600 dark:text-zinc-100 dark:border-zinc-600;
 }
 .ui-btn-ghost {
-  @apply ui-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700;
+  @apply text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700;
 }
 .ui-btn-danger {
-  @apply ui-btn bg-red-600 hover:bg-red-700 text-white shadow-sm;
+  @apply bg-red-600 hover:bg-red-700 text-white shadow-xs;
 }
 .ui-icon-btn {
   @apply inline-flex items-center justify-center h-8 w-8 rounded-lg text-zinc-500 hover:text-zinc-900
          hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-700
-         transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50;
+         transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500/50;
 }
 
 /* ---------- Chips (entity toggles) ---------- */
 .ui-chip {
   @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-         border transition-all select-none focus:outline-none focus-visible:ring-2
+         border transition-all select-none focus:outline-hidden focus-visible:ring-2
          focus-visible:ring-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 .ui-chip-off {
@@ -262,7 +322,7 @@ html.dark a { /* ou utilisez les variantes dark: de Tailwind directement sur les
          dark:hover:bg-zinc-700;
 }
 .ui-chip-on {
-  @apply bg-brand-600 text-white border-brand-600 shadow-sm;
+  @apply bg-brand-600 text-white border-brand-600 shadow-xs;
 }
 
 /* ---------- Category label (chips group) ---------- */
@@ -271,12 +331,15 @@ html.dark a { /* ou utilisez les variantes dark: de Tailwind directement sur les
 }
 
 /* ---------- Badge ---------- */
+.ui-badge,
+.ui-badge-brand {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium;
+}
 .ui-badge {
-  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium
-         bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200;
+  @apply bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200;
 }
 .ui-badge-brand {
-  @apply ui-badge bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-100;
+  @apply bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-100;
 }
 
 /* ---------- Drop zone (prototype) ---------- */

@@ -128,9 +128,13 @@ on est coincé sur numpy 1.26 et un écosystème daté.
       `input_test.txt`, `validate_fix_final.py`.
 
 ### Phase 3 — Modernisation front (chantiers séparés, un par un)
-- [ ] Vite 4 → 6/7.
-- [ ] Svelte 4 → 5 (migration runes).
-- [ ] Tailwind 3 → 4.
+- [~] Vite 4 → **5** fait (plugin-svelte 3, Svelte reste 4). Vite 6/7 viendra avec Svelte 5
+      (le plugin couple les deux). Étape `Build (Vite)` ajoutée à la CI.
+- [ ] Svelte 4 → 5 (+ Vite 6/7 + vite-plugin-svelte 5 ; runes optionnelles, mode legacy d'abord).
+- [x] Tailwind 3 → **4** : migration via l'outil officiel (`@theme` CSS-first, `@plugin`,
+      `@custom-variant dark`, couche de compat couleur de bordure, renames d'utilitaires dans
+      les templates), PostCSS `@tailwindcss/postcss`, suppression du `tailwind.config.cjs` mort.
+      Build/tsc/vitest verts. ⚠️ Vérif visuelle de l'app recommandée (la CI ne couvre pas le rendu).
 
 ### Phase 4 — Sécurité / robustesse
 - [x] Merger les branches en cours (`fix/docx…`, `feat/job-retention`) + pousser/PR.

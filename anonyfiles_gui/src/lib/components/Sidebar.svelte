@@ -78,7 +78,7 @@
     transition-all duration-300 ease-in-out
     ${$sidebarState.isMobile && !$sidebarState.showSidebar ? '-translate-x-full' : 'translate-x-0'}`}
 >
-  <div class="flex-grow overflow-y-auto py-3 px-2 space-y-0.5">
+  <div class="grow overflow-y-auto py-3 px-2 space-y-0.5">
     {#each navItems as item (item.key)}
       {@const Icon = item.icon}
       {@const isActive = activeTab === item.key}
