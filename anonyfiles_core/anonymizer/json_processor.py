@@ -3,10 +3,11 @@
 import json
 import logging
 from pathlib import Path
-from typing import List, Any, Optional, Tuple
+from typing import Any
 import aiofiles
 
 from .base_processor import BaseProcessor
+from .type_defs import JsonPath, JsonPathSegment, TextBlocks
 
 # from .utils import apply_positional_replacements # Probablement plus nécessaire ici
 
@@ -16,16 +17,16 @@ logger = logging.getLogger(__name__)
 class JsonProcessor(BaseProcessor):
     def __init__(self) -> None:
         self._original_json: Any = None
-        self._value_paths: List[List[Any]] = []
-        self._key_paths: List[Tuple[List[Any], str]] = []
+        self._value_paths: list[JsonPath] = []
+        self._key_paths: list[tuple[JsonPath, str]] = []
 
     def _traverse(
         self,
         node: Any,
-        path: List[Any],
+        path: JsonPath,
         collect_all: bool,
-        values: List[str],
-        target_keys: Optional[set],
+        values: TextBlocks,
+        target_keys: set[str] | None,
         anonymize_keys: bool,
     ) -> None:
         """Recursively collect values and key names from the JSON tree."""
@@ -36,7 +37,9 @@ class JsonProcessor(BaseProcessor):
                     self._key_paths.append((path, k))
                     values.append(str(k))
 
-                next_collect = collect_all or (target_keys and k in target_keys)
+                next_collect = collect_all or (
+                    target_keys is not None and k in target_keys
+                )
 
                 if isinstance(v, (dict, list)):
                     self._traverse(
@@ -71,9 +74,9 @@ class JsonProcessor(BaseProcessor):
         input_path: Path,
         *,
         anonymize_keys: bool = False,
-        target_keys: Optional[List[str]] = None,
-        **kwargs,
-    ) -> List[str]:
+        target_keys: list[str] | None = None,
+        **kwargs: Any,
+    ) -> TextBlocks:
         try:
             with open(input_path, "r", encoding="utf-8") as f:
                 self._original_json = json.load(f)
@@ -86,7 +89,7 @@ class JsonProcessor(BaseProcessor):
 
         self._value_paths = []
         self._key_paths = []
-        collected_values: List[str] = []
+        collected_values: TextBlocks = []
         keys_set = set(target_keys) if target_keys else None
         self._traverse(
             self._original_json, [], False, collected_values, keys_set, anonymize_keys
@@ -98,9 +101,9 @@ class JsonProcessor(BaseProcessor):
         input_path: Path,
         *,
         anonymize_keys: bool = False,
-        target_keys: Optional[List[str]] = None,
-        **kwargs,
-    ) -> List[str]:
+        target_keys: list[str] | None = None,
+        **kwargs: Any,
+    ) -> TextBlocks:
         try:
             async with aiofiles.open(input_path, "r", encoding="utf-8") as f:
                 self._original_json = json.loads(await f.read())
@@ -113,7 +116,7 @@ class JsonProcessor(BaseProcessor):
 
         self._value_paths = []
         self._key_paths = []
-        collected_values: List[str] = []
+        collected_values: TextBlocks = []
         keys_set = set(target_keys) if target_keys else None
         self._traverse(
             self._original_json, [], False, collected_values, keys_set, anonymize_keys
@@ -123,9 +126,9 @@ class JsonProcessor(BaseProcessor):
     def reconstruct_and_write_anonymized_file(
         self,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if self._original_json is None:
             with open(original_input_path, "r", encoding="utf-8") as f:
@@ -133,7 +136,7 @@ class JsonProcessor(BaseProcessor):
 
         anonymized_json = json.loads(json.dumps(self._original_json))
 
-        def get_parent(obj: Any, path: List[Any]) -> Tuple[Any, Any]:
+        def get_parent(obj: Any, path: JsonPath) -> tuple[Any, JsonPathSegment]:
             cur = obj
             for p in path[:-1]:
                 cur = cur[p]
@@ -166,9 +169,9 @@ class JsonProcessor(BaseProcessor):
     async def reconstruct_and_write_anonymized_file_async(
         self,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         if self._original_json is None:
             async with aiofiles.open(original_input_path, "r", encoding="utf-8") as f:
@@ -176,7 +179,7 @@ class JsonProcessor(BaseProcessor):
 
         anonymized_json = json.loads(json.dumps(self._original_json))
 
-        def get_parent(obj: Any, path: List[Any]) -> Tuple[Any, Any]:
+        def get_parent(obj: Any, path: JsonPath) -> tuple[Any, JsonPathSegment]:
             cur = obj
             for p in path[:-1]:
                 cur = cur[p]

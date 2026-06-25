@@ -1,11 +1,13 @@
 # anonymizer/base_processor.py
-from typing import List
+from typing import Any
 from pathlib import Path
 import asyncio
 
+from .type_defs import TextBlocks
+
 
 class BaseProcessor:
-    def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
+    def extract_blocks(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         """
         Extrait les blocs de texte bruts du fichier d'entrée.
         Chaque chaîne de la liste représente une unité de texte à traiter
@@ -18,14 +20,12 @@ class BaseProcessor:
     def reconstruct_and_write_anonymized_file(
         self,
         output_path: Path,
-        final_processed_blocks: List[
-            str
-        ],  # Blocs après règles custom ET remplacements spaCy
+        final_processed_blocks: TextBlocks,  # Blocs après règles custom ET remplacements spaCy
         original_input_path: Path,  # Pour la structure du fichier original si besoin (DOCX, PDF, en-têtes CSV)
         # **kwargs peut contenir des options spécifiques au processeur,
         # par exemple 'has_header' pour CsvProcessor,
         # ou 'spacy_entities_on_custom_text_per_block' pour PdfProcessor si nécessaire
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         Reconstruit le fichier dans son format d'origine en utilisant les blocs de texte
@@ -35,16 +35,16 @@ class BaseProcessor:
             "reconstruct_and_write_anonymized_file doit être implémenté par la sous-classe."
         )
 
-    async def extract_blocks_async(self, input_path: Path, **kwargs) -> List[str]:
+    async def extract_blocks_async(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         """Asynchronous wrapper calling :meth:`extract_blocks` in a thread."""
         return await asyncio.to_thread(self.extract_blocks, input_path, **kwargs)
 
     async def reconstruct_and_write_anonymized_file_async(
         self,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Asynchronous wrapper calling :meth:`reconstruct_and_write_anonymized_file` in a thread."""
         await asyncio.to_thread(

@@ -2,12 +2,13 @@
 
 import csv
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import Any
 import aiofiles
 import io
 
 from .base_processor import BaseProcessor
 from .pdf_processor import PdfProcessor  # Spécifique pour kwargs de PDF
+from .type_defs import Entity, EntitySpansByBlock, ReplacementMap, TextBlocks
 
 
 class AnonymizedFileWriter:
@@ -22,12 +23,10 @@ class AnonymizedFileWriter:
         self,
         processor: BaseProcessor,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
-        spacy_entities_per_block_with_offsets: Optional[
-            List[List[Tuple[str, str, int, int]]]
-        ] = None,
-        **kwargs,
+        spacy_entities_per_block_with_offsets: EntitySpansByBlock | None = None,
+        **kwargs: Any,
     ) -> None:
         """
         Écrit le fichier anonymisé en utilisant le processeur approprié.
@@ -62,12 +61,10 @@ class AnonymizedFileWriter:
         self,
         processor: BaseProcessor,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
-        spacy_entities_per_block_with_offsets: Optional[
-            List[List[Tuple[str, str, int, int]]]
-        ] = None,
-        **kwargs,
+        spacy_entities_per_block_with_offsets: EntitySpansByBlock | None = None,
+        **kwargs: Any,
     ) -> None:
         if self.dry_run:
             return
@@ -94,7 +91,7 @@ class AnonymizedFileWriter:
         )
 
     def write_log_entities_file(
-        self, log_entities_path: Path, unique_spacy_entities: List[Tuple[str, str]]
+        self, log_entities_path: Path, unique_spacy_entities: list[Entity]
     ) -> None:
         """
         Écrit le fichier CSV de log des entités détectées.
@@ -112,7 +109,7 @@ class AnonymizedFileWriter:
     async def write_log_entities_file_async(
         self,
         log_entities_path: Path,
-        unique_spacy_entities: List[Tuple[str, str]],
+        unique_spacy_entities: list[Entity],
     ) -> None:
         if self.dry_run:
             return
@@ -131,9 +128,9 @@ class AnonymizedFileWriter:
     def write_mapping_file(
         self,
         mapping_output_path: Path,
-        custom_replacements_mapping: Dict[str, str],
-        mapping_dict_spacy: Dict[str, str],
-        unique_spacy_entities: List[Tuple[str, str]],
+        custom_replacements_mapping: ReplacementMap,
+        mapping_dict_spacy: ReplacementMap,
+        unique_spacy_entities: list[Entity],
     ) -> None:
         """
         Écrit le fichier CSV de mapping complet (règles custom + spaCy).
@@ -162,9 +159,9 @@ class AnonymizedFileWriter:
     async def write_mapping_file_async(
         self,
         mapping_output_path: Path,
-        custom_replacements_mapping: Dict[str, str],
-        mapping_dict_spacy: Dict[str, str],
-        unique_spacy_entities: List[Tuple[str, str]],
+        custom_replacements_mapping: ReplacementMap,
+        mapping_dict_spacy: ReplacementMap,
+        unique_spacy_entities: list[Entity],
     ) -> None:
         if self.dry_run:
             return

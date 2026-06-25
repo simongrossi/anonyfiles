@@ -4,7 +4,9 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import logging
+from typing import Any
 from .base_processor import BaseProcessor
+from .type_defs import ExcelSheetMetadata, TextBlocks
 
 logger = logging.getLogger(__name__)
 
@@ -17,19 +19,17 @@ class ExcelProcessor(BaseProcessor):
     - Les données sont lues en STR pour éviter l'inférence de type (perte de '0' initial, etc.).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # On va stocker ici les infos de chaque feuille (nom de feuille -> DataFrame original vide ou métadonnées)
         # Mais extract_blocks est souvent appelé sans persistence de l'instance entre l'extract et le write
         # dans une architecture 'stateless' pure.
         # CEPENDANT, AnonyfilesEngine instancie le processor à chaque fichier via la Factory.
         # Donc on peut stocker l'état dans self.sheets_metadata.
-        self.sheets_metadata = (
-            {}
-        )  # {sheet_name: {'index': ..., 'columns': ..., 'shape': ...}}
-        self.sheet_names_order = []
+        self.sheets_metadata: dict[str, ExcelSheetMetadata] = {}
+        self.sheet_names_order: list[str] = []
 
-    def extract_blocks(self, input_path, **kwargs):
+    def extract_blocks(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         """
         Extrait chaque cellule Excel comme un bloc (texte à plat, row-major).
         Lit TOUTES les feuilles. Force le type string pour préserver les données brutes (ex: numéros de téléphone).
@@ -40,7 +40,7 @@ class ExcelProcessor(BaseProcessor):
         # dtype=str -> Crucial pour ne pas perdre les zéros initiaux (06...) ou corrompre les SIRET
         dfs = pd.read_excel(input_path, sheet_name=None, header=None, dtype=str)
 
-        all_blocks = []
+        all_blocks: TextBlocks = []
         self.sheets_metadata = {}
         self.sheet_names_order = []
 
@@ -58,14 +58,18 @@ class ExcelProcessor(BaseProcessor):
 
             # Aplatissement (row-major par défaut avec values.flatten())
             # flatten() retourne une copie 1D numpy array, tolist() en fait une liste python
-            flat_values = df.values.flatten().tolist()
+            flat_values = [str(value) for value in df.values.flatten().tolist()]
             all_blocks.extend(flat_values)
 
         return all_blocks
 
     def reconstruct_and_write_anonymized_file(
-        self, output_path, final_processed_blocks, original_input_path, **kwargs
-    ):
+        self,
+        output_path: Path,
+        final_processed_blocks: TextBlocks,
+        original_input_path: Path,
+        **kwargs: Any,
+    ) -> None:
         """
         Reconstruit un fichier Excel complet (multi-feuilles) à partir des blocs traités.
         Utilise les métadonnées stockées lors de l'extraction ou relit le fichier si nécessaire.
@@ -141,5 +145,5 @@ class ExcelProcessor(BaseProcessor):
                     )
 
         except Exception as e:
-            logger.error(f"Erreur lors de l'écriture Excel: {e}")
-            raise e
+            logger.error("Erreur lors de l'écriture Excel: %s", e)
+            raise

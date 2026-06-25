@@ -13,3 +13,5 @@ Il implémente la logique pure de détection et de remplacement, indépendante d
 - **Orchestration** : Coordination du processus d'analyse et de transformation.
 - **PDF** : Redaction PyMuPDF sur les coordonnées du texte original, avec suppression
   du texte sensible extractible dans le PDF final.
+- **Typage progressif** : `mypy` couvre les types partagés, processors formats,
+  factory et writer via la cible configurée dans `pyproject.toml`.

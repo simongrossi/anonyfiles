@@ -212,6 +212,11 @@ pip install -e .
 pip install -e .[dev]
 ```
 
+Vérification typage core progressive :
+```bash
+uv run --python python3.11 --extra dev mypy
+```
+
 ### 📥 Étape post-installation : Modèle NLP
 
 Après l'installation des paquets Python, vous **devez** télécharger le modèle de langue française pour spaCy :

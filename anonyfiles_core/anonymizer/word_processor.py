@@ -2,8 +2,10 @@
 
 from pathlib import Path
 import logging
+from typing import Any, Iterator
 from docx import Document
 from .base_processor import BaseProcessor
+from .type_defs import TextBlocks
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +18,16 @@ class DocxProcessor(BaseProcessor):
     """
 
     @staticmethod
-    def _open_document(path):
+    def _open_document(path: Path) -> Any:
         """Ouvre un document .docx en remontant une erreur claire si illisible."""
         try:
-            return Document(path)
+            return Document(str(path))
         except Exception as exc:  # noqa: BLE001 - on veut un message unifié
             raise ValueError(
                 f"Fichier .docx illisible ou corrompu: {Path(path).name} ({exc})"
             ) from exc
 
-    def _iter_block_items(self, parent_elt):
+    def _iter_block_items(self, parent_elt: Any) -> Iterator[Any]:
         """
         Générateur récursif qui parcourt tous les éléments contenant du texte
         (Paragraphes directs, et Cellules de Tableaux) dans un ordre déterministe.
@@ -43,7 +45,7 @@ class DocxProcessor(BaseProcessor):
                         # Récursion: une cellule contient des paragraphes et potentiellement d'autres tables
                         yield from self._iter_block_items(cell)
 
-    def _iter_header_footer_parts(self, doc):
+    def _iter_header_footer_parts(self, doc: Any) -> Iterator[Any]:
         """
         Itère sur les en-têtes et pieds de page *propres* à chaque section.
 
@@ -66,7 +68,7 @@ class DocxProcessor(BaseProcessor):
                     continue
                 yield part
 
-    def _iter_document_paragraphs(self, doc):
+    def _iter_document_paragraphs(self, doc: Any) -> Iterator[Any]:
         """
         Ordre déterministe couvrant TOUT le texte anonymisable d'un document :
         corps (paragraphes + tableaux), puis en-têtes et pieds de page.
@@ -78,13 +80,13 @@ class DocxProcessor(BaseProcessor):
         for part in self._iter_header_footer_parts(doc):
             yield from self._iter_block_items(part)
 
-    def extract_blocks(self, input_path):
+    def extract_blocks(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         """
         Extrait TOUS les blocs de texte (Body + Tables + En-têtes/Pieds de page).
         Retourne une liste plate de chaînes de caractères.
         """
         doc = self._open_document(input_path)
-        blocks = []
+        blocks: TextBlocks = []
 
         for paragraph in self._iter_document_paragraphs(doc):
             blocks.append(paragraph.text)
@@ -92,8 +94,12 @@ class DocxProcessor(BaseProcessor):
         return blocks
 
     def reconstruct_and_write_anonymized_file(
-        self, output_path, final_processed_blocks, original_input_path, **kwargs
-    ):
+        self,
+        output_path: Path,
+        final_processed_blocks: TextBlocks,
+        original_input_path: Path,
+        **kwargs: Any,
+    ) -> None:
         """
         Reconstruit le document DOCX en injectant les blocs anonymisés.
         Gère le corps du texte ET les tableaux.

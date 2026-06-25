@@ -151,8 +151,9 @@ on est coincé sur numpy 1.26 et un écosystème daté.
       `anonyfiles-cli utils spacy-status`, endpoint `/health/spacy` et bloc
       `spacy` de `/health` indiquant modèle installé, version, compatibilité spaCy
       et instructions d'installation/réparation.
-- [ ] **Typage progressif du core** : introduire `mypy` ou `pyright` progressivement sur
-      `anonyfiles_core`, en priorité les processors, le moteur et les retours d'API internes.
+- [x] **Typage progressif du core** : `mypy` introduit dans les dépendances dev
+      avec une cible progressive configurée dans `pyproject.toml` sur les types
+      partagés, les processors formats, la factory et le writer.
 
 ### Phase 6 — Jobs API / exploitation
 - [x] **Vraie file de jobs API** : `BackgroundTasks` FastAPI remplacé par une file interne
@@ -184,6 +185,8 @@ on est coincé sur numpy 1.26 et un écosystème daté.
   `uv run --python python3.11 --extra dev pytest -q tests/golden`
 - Diagnostic spaCy :
   `anonyfiles-cli utils spacy-status --model fr_core_news_md`
+- Typage progressif core :
+  `uv run --python python3.11 --extra dev mypy`
 - Tests GUI : `cd anonyfiles_gui && npm test` (Vitest).
 - L'environnement de dev complet : `pip install -e .[dev]` puis
   `python -m spacy download fr_core_news_md`.

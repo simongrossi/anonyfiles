@@ -1,11 +1,12 @@
 # anonymizer/txt_processor.py
 
 from pathlib import Path
-from typing import List
+from typing import Any
 import logging
 import aiofiles
 
 from .base_processor import BaseProcessor
+from .type_defs import TextBlocks
 
 # from .utils import apply_positional_replacements # Probablement plus nécessaire ici directement
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class TxtProcessor(BaseProcessor):
-    def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
+    def extract_blocks(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         try:
             with open(input_path, "r", encoding="utf-8") as f:
                 return [f.read()]
@@ -33,9 +34,9 @@ class TxtProcessor(BaseProcessor):
     def reconstruct_and_write_anonymized_file(
         self,
         output_path: Path,
-        final_processed_blocks: List[str],  # Devrait contenir un seul élément pour TXT
+        final_processed_blocks: TextBlocks,  # Devrait contenir un seul élément pour TXT
         original_input_path: Path,  # Non spécifiquement utilisé pour la reconstruction TXT simple
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         content_to_write = ""
         if final_processed_blocks:  # S'assurer que la liste n'est pas vide
@@ -55,7 +56,7 @@ class TxtProcessor(BaseProcessor):
         with open(output_path, "w", encoding="utf-8") as fout:
             fout.write(content_to_write)
 
-    async def extract_blocks_async(self, input_path: Path, **kwargs) -> List[str]:
+    async def extract_blocks_async(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         try:
             async with aiofiles.open(input_path, "r", encoding="utf-8") as f:
                 content = await f.read()
@@ -69,9 +70,9 @@ class TxtProcessor(BaseProcessor):
     async def reconstruct_and_write_anonymized_file_async(
         self,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         content_to_write = final_processed_blocks[0] if final_processed_blocks else ""
         output_dir = output_path.parent

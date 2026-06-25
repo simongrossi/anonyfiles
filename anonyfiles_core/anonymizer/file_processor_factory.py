@@ -1,7 +1,5 @@
 # anonyfiles_cli/anonymizer/file_processor_factory.py
 
-from typing import Dict, Type  # Corrected: Added Dict import
-
 from .base_processor import BaseProcessor
 from .txt_processor import TxtProcessor
 from .csv_processor import CsvProcessor
@@ -10,7 +8,7 @@ from .excel_processor import ExcelProcessor
 from .pdf_processor import PdfProcessor
 from .json_processor import JsonProcessor
 
-PROCESSOR_MAP: Dict[str, Type[BaseProcessor]] = {
+PROCESSOR_MAP: dict[str, type[BaseProcessor]] = {
     ".txt": TxtProcessor,
     ".csv": CsvProcessor,
     ".docx": DocxProcessor,

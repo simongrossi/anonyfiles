@@ -36,3 +36,13 @@ et faux positifs stables.
 Les tests golden reconstruisent des fichiers TXT, CSV, DOCX, XLSX, PDF et JSON
 depuis des entrées minimales générées en test, puis comparent une représentation
 stable du fichier final au snapshot attendu.
+
+## 🔎 Typage progressif
+
+La cible `mypy` est volontairement progressive et configurée dans `pyproject.toml`.
+Elle couvre les types partagés du core, les processors formats, la factory et le
+writer :
+
+```bash
+uv run --python python3.11 --extra dev mypy
+```

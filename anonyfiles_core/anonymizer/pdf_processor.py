@@ -2,8 +2,9 @@
 
 import fitz  # PyMuPDF
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Iterable
 from .base_processor import BaseProcessor
+from .type_defs import EntitySpansByBlock, ReplacementMap, TextBlocks
 
 
 class PdfProcessor(BaseProcessor):
@@ -12,22 +13,25 @@ class PdfProcessor(BaseProcessor):
     Chaque page est un bloc de texte.
     """
 
-    def extract_blocks(self, input_path):
+    def extract_blocks(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         doc = fitz.open(input_path)
-        blocks = []
-        for page in doc:
-            text = page.get_text("text")
-            blocks.append(text)
-        return blocks
+        try:
+            blocks: TextBlocks = []
+            for page in doc:
+                text = page.get_text("text")
+                blocks.append(text)
+            return blocks
+        finally:
+            doc.close()
 
     def reconstruct_and_write_anonymized_file(
         self,
-        output_path,
-        final_processed_blocks,
-        original_input_path,
-        entities_per_block_with_offsets=None,
-        **kwargs,
-    ):
+        output_path: Path,
+        final_processed_blocks: TextBlocks,
+        original_input_path: Path,
+        entities_per_block_with_offsets: EntitySpansByBlock | None = None,
+        **kwargs: Any,
+    ) -> None:
         """Reconstruit un PDF à partir des blocs traités."""
         if entities_per_block_with_offsets is None:
             entities_per_block_with_offsets = kwargs.get(
@@ -60,11 +64,11 @@ class PdfProcessor(BaseProcessor):
 
     def _build_replacement_map(
         self,
-        custom_replacements_mapping: Optional[Dict[str, str]],
-        spacy_replacements_map: Optional[Dict[str, str]],
-        legacy_spacy_replacements_map: Optional[Dict[str, str]],
-    ) -> Dict[str, str]:
-        replacement_map: Dict[str, str] = {}
+        custom_replacements_mapping: ReplacementMap | None,
+        spacy_replacements_map: ReplacementMap | None,
+        legacy_spacy_replacements_map: ReplacementMap | None,
+    ) -> ReplacementMap:
+        replacement_map: ReplacementMap = {}
         for source in (
             custom_replacements_mapping,
             spacy_replacements_map,
@@ -81,10 +85,8 @@ class PdfProcessor(BaseProcessor):
         self,
         output_path: Path,
         original_input_path: Path,
-        entities_per_block_with_offsets: Optional[
-            List[List[Tuple[str, str, int, int]]]
-        ],
-        replacement_map: Dict[str, str],
+        entities_per_block_with_offsets: EntitySpansByBlock | None,
+        replacement_map: ReplacementMap,
     ) -> None:
         doc = fitz.open(original_input_path)
         try:
@@ -92,7 +94,7 @@ class PdfProcessor(BaseProcessor):
                 page_pairs = self._replacement_pairs_for_page(
                     page_num, entities_per_block_with_offsets, replacement_map
                 )
-                redacted_areas: List[fitz.Rect] = []
+                redacted_areas: list[fitz.Rect] = []
                 for original_text, replacement_text in page_pairs:
                     for area in page.search_for(original_text):
                         rect = fitz.Rect(area)
@@ -118,12 +120,10 @@ class PdfProcessor(BaseProcessor):
     def _replacement_pairs_for_page(
         self,
         page_num: int,
-        entities_per_block_with_offsets: Optional[
-            List[List[Tuple[str, str, int, int]]]
-        ],
-        replacement_map: Dict[str, str],
-    ) -> List[Tuple[str, str]]:
-        pairs: Dict[str, str] = {}
+        entities_per_block_with_offsets: EntitySpansByBlock | None,
+        replacement_map: ReplacementMap,
+    ) -> list[tuple[str, str]]:
+        pairs: ReplacementMap = {}
         if entities_per_block_with_offsets and page_num < len(
             entities_per_block_with_offsets
         ):
@@ -148,7 +148,7 @@ class PdfProcessor(BaseProcessor):
         return max(4.0, min(11.0, rect.height * 0.7))
 
     def _assert_no_sensitive_text_remains(
-        self, doc: fitz.Document, replacement_map: Dict[str, str]
+        self, doc: fitz.Document, replacement_map: ReplacementMap
     ) -> None:
         remaining_text = "\n".join(page.get_text("text") for page in doc)
         leaked_values = sorted(
@@ -168,7 +168,7 @@ class PdfProcessor(BaseProcessor):
     def _reconstruct_text_pdf(
         self,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
     ) -> None:
         original_doc = fitz.open(original_input_path)

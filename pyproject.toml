@@ -50,6 +50,7 @@ dev = [
     "pip-audit",
     "pypdf",
     "build",
+    "mypy>=1.10.0",
     "types-requests",
     "types-PyYAML",
     "reportlab"
@@ -72,3 +73,23 @@ line-length = 88
 [tool.ruff]
 target-version = "py311"
 line-length = 88
+
+[tool.mypy]
+python_version = "3.11"
+files = [
+    "anonyfiles_core/anonymizer/type_defs.py",
+    "anonyfiles_core/anonymizer/base_processor.py",
+    "anonyfiles_core/anonymizer/file_processor_factory.py",
+    "anonyfiles_core/anonymizer/txt_processor.py",
+    "anonyfiles_core/anonymizer/csv_processor.py",
+    "anonyfiles_core/anonymizer/json_processor.py",
+    "anonyfiles_core/anonymizer/pdf_processor.py",
+    "anonyfiles_core/anonymizer/excel_processor.py",
+    "anonyfiles_core/anonymizer/word_processor.py",
+    "anonyfiles_core/anonymizer/writer.py",
+]
+check_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true
+warn_unused_ignores = true

@@ -1,20 +1,23 @@
 import logging
 import hashlib
-from typing import Dict, Any, Callable
+from typing import Any, Callable
 from faker import Faker
 
 from .format_utils import create_placeholder
+from .type_defs import Entity, ReplacementMap
 
 logger = logging.getLogger(__name__)
 
+GeneratorFunc = Callable[["ReplacementSession", str, int, dict[str, Any], str], str]
+
 # Registry pour stocker les generateurs
-_GENERATOR_REGISTRY: Dict[str, Callable] = {}
+_GENERATOR_REGISTRY: dict[str, GeneratorFunc] = {}
 
 
-def register_generator(rule_type: str):
+def register_generator(rule_type: str) -> Callable[[GeneratorFunc], GeneratorFunc]:
     """Décorateur pour enregistrer une fonction de génération."""
 
-    def decorator(func: Callable):
+    def decorator(func: GeneratorFunc) -> GeneratorFunc:
         _GENERATOR_REGISTRY[rule_type] = func
         return func
 
@@ -29,7 +32,7 @@ def generate_code_replacement(
     session: "ReplacementSession",
     label: str,
     index: int,
-    options: Dict[str, Any],
+    options: dict[str, Any],
     entity_text: str,
 ) -> str:
     """Génère un code séquentiel (ex: {{NOM_001}}). Incrémente le compteur."""
@@ -55,7 +58,7 @@ def generate_redaction_replacement(
     session: "ReplacementSession",
     label: str,
     index: int,
-    options: Dict[str, Any],
+    options: dict[str, Any],
     entity_text: str,
 ) -> str:
     """
@@ -84,7 +87,7 @@ def generate_placeholder_replacement(
     session: "ReplacementSession",
     label: str,
     index: int,
-    options: Dict[str, Any],
+    options: dict[str, Any],
     entity_text: str,
 ) -> str:
     """
@@ -107,10 +110,10 @@ def generate_placeholder_replacement(
 
 
 # Cache pour éviter de recréer l'objet Faker à chaque appel
-_faker_instances = {}
+_faker_instances: dict[str, Faker] = {}
 
 
-def get_faker(locale="fr_FR"):
+def get_faker(locale: str = "fr_FR") -> Faker:
     if locale not in _faker_instances:
         _faker_instances[locale] = Faker(locale)
     return _faker_instances[locale]
@@ -121,7 +124,7 @@ def generate_faker_replacement(
     session: "ReplacementSession",
     label: str,
     index: int,
-    options: Dict[str, Any],
+    options: dict[str, Any],
     entity_text: str,
 ) -> str:
     locale = options.get("locale", "fr_FR")
@@ -162,20 +165,24 @@ class ReplacementSession:
     Gère la génération des codes anonymes pour les entités détectées via un registre extensible.
     """
 
-    def __init__(self):
-        self.entity_to_code = {}
+    def __init__(self) -> None:
+        self.entity_to_code: ReplacementMap = {}
 
     def _generate_code(self, label: str, index: int) -> str:
         return generate_code_replacement(self, label, index, {}, "")
 
-    def generate_replacements(self, unique_spacy_entities, replacement_rules=None):
+    def generate_replacements(
+        self,
+        unique_spacy_entities: list[Entity],
+        replacement_rules: dict[str, dict[str, Any]] | None = None,
+    ) -> tuple[ReplacementMap, ReplacementMap]:
         if not replacement_rules:
             replacement_rules = {}
 
-        replacements = {}
-        mapping = {}
+        replacements: ReplacementMap = {}
+        mapping: ReplacementMap = {}
         # Compteurs locaux pour la génération séquentielle
-        label_counters = {}
+        label_counters: dict[str, int] = {}
 
         for entity_text, label in unique_spacy_entities:
             # Réutilisation si déjà vu

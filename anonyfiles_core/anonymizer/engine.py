@@ -263,6 +263,10 @@ class AnonyfilesEngine:
 
         # Cas nominal: processed
         if not dry_run:
+            if output_path is None:
+                return self._error_response(
+                    ValueError("output_path est requis hors dry-run.")
+                )
             self.writer.write_anonymized_file(
                 processor=processor,
                 output_path=output_path,
@@ -366,6 +370,10 @@ class AnonyfilesEngine:
 
         # Cas nominal
         if not dry_run:
+            if output_path is None:
+                return self._error_response(
+                    ValueError("output_path est requis hors dry-run.")
+                )
             await self.writer.write_anonymized_file_async(
                 processor=processor,
                 output_path=output_path,

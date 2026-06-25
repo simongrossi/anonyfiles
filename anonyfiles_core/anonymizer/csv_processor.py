@@ -2,8 +2,9 @@
 
 import csv
 from pathlib import Path  # Corrected: Removed invalid non-printable character
-from typing import List
+from typing import Any
 from .base_processor import BaseProcessor
+from .type_defs import TextBlocks
 import aiofiles
 import io
 import logging
@@ -19,14 +20,14 @@ class CsvProcessor(BaseProcessor):
     - Ne touche jamais l'entête (header) si présent.
     """
 
-    def extract_blocks(self, input_path: Path, **kwargs) -> List[str]:
+    def extract_blocks(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         """
         Extrait chaque cellule du CSV comme un bloc de texte à traiter.
         Retourne une liste à plat contenant toutes les cellules de données (pas de header si has_header=True).
         L'option 'has_header' est récupérée via kwargs.
         """
         has_header = kwargs.get("has_header", False)
-        cell_texts: List[str] = []
+        cell_texts: TextBlocks = []
         try:
             with open(input_path, mode="r", encoding="utf-8", newline="") as f:
                 reader = csv.reader(f)
@@ -46,9 +47,9 @@ class CsvProcessor(BaseProcessor):
             return []
         return cell_texts
 
-    async def extract_blocks_async(self, input_path: Path, **kwargs) -> List[str]:
+    async def extract_blocks_async(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         has_header = kwargs.get("has_header", False)
-        cell_texts: List[str] = []
+        cell_texts: TextBlocks = []
         try:
             async with aiofiles.open(
                 input_path, mode="r", encoding="utf-8", newline=""
@@ -73,18 +74,18 @@ class CsvProcessor(BaseProcessor):
     def reconstruct_and_write_anonymized_file(
         self,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """
         Reconstruit le fichier CSV en utilisant les blocs de texte (cellules) finalisés
         et l'écrit dans output_path.
         """
         has_header = kwargs.get("has_header", False)
-        anonymized_rows: List[List[str]] = []
-        original_row_structures: List[int] = []
-        header_row: List[str] = []
+        anonymized_rows: list[list[str]] = []
+        original_row_structures: list[int] = []
+        header_row: list[str] = []
 
         try:
             with open(
@@ -170,14 +171,14 @@ class CsvProcessor(BaseProcessor):
     async def reconstruct_and_write_anonymized_file_async(
         self,
         output_path: Path,
-        final_processed_blocks: List[str],
+        final_processed_blocks: TextBlocks,
         original_input_path: Path,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         has_header = kwargs.get("has_header", False)
-        anonymized_rows: List[List[str]] = []
-        original_row_structures: List[int] = []
-        header_row: List[str] = []
+        anonymized_rows: list[list[str]] = []
+        original_row_structures: list[int] = []
+        header_row: list[str] = []
 
         try:
             async with aiofiles.open(
