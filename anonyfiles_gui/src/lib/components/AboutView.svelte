@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Info, Sparkles, Github, Wrench } from 'lucide-svelte';
+  import { Info, Sparkles, ExternalLink, Wrench } from 'lucide-svelte';
 </script>
 
 <div class="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
@@ -69,7 +69,7 @@
         rel="noopener noreferrer"
         class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-100 hover:underline"
       >
-        <Github size={12} />
+        <ExternalLink size={12} />
         Code source
       </a>
     </span>

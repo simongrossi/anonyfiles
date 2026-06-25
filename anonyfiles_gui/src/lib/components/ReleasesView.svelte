@@ -1,6 +1,6 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/ReleasesView.svelte -->
 <script lang="ts">
-  import { Sparkles, Github } from 'lucide-svelte';
+  import { Sparkles, ExternalLink } from 'lucide-svelte';
 
   const highlights = [
     'Démarrage du projet avec anonymisation texte simple (.txt), configuration YAML, moteur spaCy et remplacement basique.',
@@ -60,7 +60,7 @@
       rel="noopener noreferrer"
       class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-100 hover:underline"
     >
-      <Github size={12} />
+      <ExternalLink size={12} />
       GitHub
     </a>
     .

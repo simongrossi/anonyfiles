@@ -1,6 +1,7 @@
-import sveltePreprocess from 'svelte-preprocess';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 export default {
-  preprocess: sveltePreprocess(),
-  // Ajoute d'autres options si nécessaire
+  // vitePreprocess (fourni par vite-plugin-svelte) gère TS/PostCSS et remplace
+  // svelte-preprocess, recommandé avec Svelte 5.
+  preprocess: vitePreprocess(),
 };

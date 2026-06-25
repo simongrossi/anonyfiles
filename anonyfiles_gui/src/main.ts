@@ -1,12 +1,11 @@
-import App from './App.svelte'; // Importe le composant App.svelte, qui est la racine de votre application
-import './app.css'
+import { mount } from 'svelte';
+import App from './App.svelte'; // Composant racine de l'application
+import './app.css';
 
-// Crée une nouvelle instance de l'application Svelte
-const app = new App({
-  // 'target' spécifie l'élément HTML où l'application Svelte sera insérée.
-  // Nous avons configuré index.html pour avoir une <div id="app"></div>
-  target: document.getElementById('app')!, // Le '!' indique à TypeScript que cet élément existera bien
+// Svelte 5 : on monte l'application via `mount()` (l'API `new App({...})` de
+// Svelte 4 n'existe plus — les composants ne sont plus des classes).
+const app = mount(App, {
+  target: document.getElementById('app')!,
 });
 
-// Exporte l'instance de l'application (utile pour les tests ou si d'autres modules l'importent)
 export default app;

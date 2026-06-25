@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { Eye, ListChecks, Sparkles, RotateCcw, Trash2, FileText, Loader2 } from 'lucide-svelte';
+  import { Eye, ListChecks, Sparkles, RotateCcw, Trash2, FileText, LoaderCircle } from 'lucide-svelte';
   import FileDropZone from './FileDropZone.svelte';
   import CustomRulesManager from './CustomRulesManager.svelte';
   import AnonymizationOptions from './AnonymizationOptions.svelte';
@@ -199,7 +199,7 @@
 {#if $isLoading}
   <div class="fixed inset-0 z-50 bg-zinc-900/50 backdrop-blur-sm flex flex-col items-center justify-center">
     <div class="flex flex-col items-center gap-3 p-8 bg-white dark:bg-zinc-800 rounded-2xl shadow-card-lg border border-zinc-200 dark:border-zinc-700">
-      <Loader2 class="h-8 w-8 text-brand-600 dark:text-brand-100 animate-spin" />
+      <LoaderCircle class="h-8 w-8 text-brand-600 dark:text-brand-100 animate-spin" />
       <span class="font-semibold text-lg text-zinc-800 dark:text-zinc-100 text-center">Anonymisation en cours…</span>
       <span class="text-zinc-500 dark:text-zinc-400 text-sm text-center max-w-xs">Merci de patienter pendant le traitement.</span>
     </div>
@@ -290,7 +290,7 @@
           disabled={$isLoading || isPreviewLoading || !canAnonymize}
         >
           {#if isPreviewLoading}
-            <Loader2 size={16} class="animate-spin" />
+            <LoaderCircle size={16} class="animate-spin" />
             Analyse…
           {:else}
             <Eye size={16} />
@@ -374,7 +374,7 @@
         disabled={$isLoading || !canAnonymize}
       >
         {#if $isLoading}
-          <Loader2 size={16} class="animate-spin" />
+          <LoaderCircle size={16} class="animate-spin" />
           Traitement…
         {:else}
           <Sparkles size={16} />

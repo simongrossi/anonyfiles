@@ -5,7 +5,7 @@
     Unlock,
     FileText,
     FileSpreadsheet,
-    Loader2,
+    LoaderCircle,
     RotateCcw,
     AlertTriangle,
     Download,
@@ -247,7 +247,7 @@
         aria-busy={isLoading}
       >
         {#if isLoading}
-          <Loader2 size={16} class="animate-spin" />
+          <LoaderCircle size={16} class="animate-spin" />
           Traitement…
         {:else}
           <Unlock size={16} />

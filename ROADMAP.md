@@ -127,14 +127,19 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 - [x] Retirer les fichiers parasites versionnés : `debug_job_mock.py`, `input.txt`,
       `input_test.txt`, `validate_fix_final.py`.
 
-### Phase 3 — Modernisation front (chantiers séparés, un par un)
-- [~] Vite 4 → **5** fait (plugin-svelte 3, Svelte reste 4). Vite 6/7 viendra avec Svelte 5
-      (le plugin couple les deux). Étape `Build (Vite)` ajoutée à la CI.
-- [ ] Svelte 4 → 5 (+ Vite 6/7 + vite-plugin-svelte 5 ; runes optionnelles, mode legacy d'abord).
+### Phase 3 — Modernisation front (chantiers séparés, un par un) — ✅ TERMINÉE
+- [x] Vite 4 → **6** (via étapes : 5 d'abord avec plugin-svelte 3, puis 6 avec le couple
+      Svelte 5 / plugin-svelte 5). Étape `Build (Vite)` ajoutée à la CI.
+- [x] Svelte 4 → **5** (mode legacy : composants non réécrits en runes pour l'instant).
+      `main.ts` → API `mount()`, `svelte.config.js` → `vitePreprocess` (svelte-preprocess retiré),
+      `lucide-svelte` 0.469 → 1.x avec remap des icônes retirées (`Github`→`ExternalLink`,
+      `Loader2`→`LoaderCircle`). Build/tsc/vitest verts + **smoke test visuel OK**.
 - [x] Tailwind 3 → **4** : migration via l'outil officiel (`@theme` CSS-first, `@plugin`,
-      `@custom-variant dark`, couche de compat couleur de bordure, renames d'utilitaires dans
-      les templates), PostCSS `@tailwindcss/postcss`, suppression du `tailwind.config.cjs` mort.
-      Build/tsc/vitest verts. ⚠️ Vérif visuelle de l'app recommandée (la CI ne couvre pas le rendu).
+      `@custom-variant dark`, couche de compat couleur de bordure, renames d'utilitaires),
+      PostCSS `@tailwindcss/postcss`, suppression du `tailwind.config.cjs` mort. Smoke test visuel OK.
+
+> Reste optionnel (Phase 3+) : migrer les composants vers les **runes** Svelte 5
+> (`$state`/`$derived`/`$props`) et remplacer `createEventDispatcher` par des callback props.
 
 ### Phase 4 — Sécurité / robustesse
 - [x] Merger les branches en cours (`fix/docx…`, `feat/job-retention`) + pousser/PR.
