@@ -1,11 +1,30 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/AnonymizationOptions.svelte -->
 <script lang="ts">
-  import { Check, User, MapPin, AtSign, Landmark, Tag } from 'lucide-svelte';
+  import {
+    Briefcase,
+    Check,
+    FileText,
+    Landmark,
+    MapPin,
+    ShieldCheck,
+    SlidersHorizontal,
+    Tag,
+    Terminal,
+    User,
+    AtSign,
+  } from 'lucide-svelte';
+  import {
+    ANONYMIZATION_PROFILES,
+    findMatchingAnonymizationProfile,
+    selectionFromProfile,
+    type AnonymizationOption,
+    type AnonymizationOptionKey,
+    type AnonymizationProfile,
+    type AnonymizationSelection,
+  } from '$lib/data/anonymizationProfiles';
 
-  type Option = { key: string; label: string; default: boolean };
-
-  export let options: Array<Option>;
-  export let selected: { [key: string]: boolean };
+  export let options: Array<AnonymizationOption>;
+  export let selected: AnonymizationSelection;
   export let isLoading: boolean = false;
 
   // Regroupement sémantique des entités — purement cosmétique, ne change rien
@@ -14,7 +33,7 @@
     id: string;
     label: string;
     icon: typeof User;
-    keys: string[];
+    keys: AnonymizationOptionKey[];
   };
   const categories: Category[] = [
     { id: 'identity', label: 'Identité', icon: User, keys: ['anonymizePersons', 'anonymizeOrgs'] },
@@ -24,20 +43,40 @@
     { id: 'misc', label: 'Divers', icon: Tag, keys: ['anonymizeMisc'] },
   ];
 
+  const profileIcons: Record<string, typeof User> = {
+    'strict-rgpd': ShieldCheck,
+    leger: SlidersHorizontal,
+    'documents-rh': Briefcase,
+    contrats: FileText,
+    'logs-techniques': Terminal,
+  };
+
   $: optionsByKey = Object.fromEntries(options.map((o) => [o.key, o]));
   $: activeCount = options.filter((o) => selected[o.key]).length;
+  $: activeProfile = findMatchingAnonymizationProfile(selected);
+  $: activeProfileLabel = activeProfile?.label ?? 'Personnalisé';
 
-  function toggle(key: string) {
-    selected[key] = !selected[key];
+  function commit(next: Partial<AnonymizationSelection>) {
+    selected = { ...selected, ...next };
+  }
+
+  function toggle(key: AnonymizationOptionKey) {
+    commit({ [key]: !selected[key] });
   }
 
   function enableAll() {
-    options.forEach((o) => (selected[o.key] = true));
-    selected = selected;
+    commit(Object.fromEntries(options.map((o) => [o.key, true])) as Partial<AnonymizationSelection>);
   }
   function disableAll() {
-    options.forEach((o) => (selected[o.key] = false));
-    selected = selected;
+    commit(Object.fromEntries(options.map((o) => [o.key, false])) as Partial<AnonymizationSelection>);
+  }
+
+  function applyProfile(profile: AnonymizationProfile) {
+    selected = selectionFromProfile(profile);
+  }
+
+  function profileIcon(profile: AnonymizationProfile) {
+    return profileIcons[profile.id] ?? ShieldCheck;
   }
 </script>
 
@@ -70,6 +109,40 @@
   </header>
 
   <div class="ui-section-body space-y-4">
+    <div>
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <div class="flex items-center gap-2">
+          <ShieldCheck size={14} class="text-zinc-400 dark:text-zinc-500" />
+          <span class="ui-chip-group-label">Profil</span>
+        </div>
+        <span class="ui-badge-brand">{activeProfileLabel}</span>
+      </div>
+
+      <div
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2"
+        role="radiogroup"
+        aria-label="Profils d'anonymisation"
+      >
+        {#each ANONYMIZATION_PROFILES as profile}
+          {@const on = activeProfile?.id === profile.id}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={on}
+            class="min-h-[3.25rem] rounded-lg border px-2 py-2 text-xs font-semibold transition flex flex-col items-center justify-center gap-1 text-center {on ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-100' : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'}"
+            title={profile.description}
+            on:click={() => applyProfile(profile)}
+            disabled={isLoading}
+          >
+            <svelte:component this={profileIcon(profile)} size={15} strokeWidth={2.2} />
+            <span class="leading-tight">{profile.label}</span>
+          </button>
+        {/each}
+      </div>
+    </div>
+
+    <div class="h-px bg-zinc-100 dark:bg-zinc-700"></div>
+
     {#each categories as cat}
       {@const keys = cat.keys.filter((k) => optionsByKey[k])}
       {#if keys.length > 0}

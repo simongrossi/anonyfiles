@@ -10,6 +10,7 @@ développée en Svelte, Rust et Tauri pour une expérience utilisateur moderne e
 - Glisser-déposer de fichiers (.txt, .csv, .docx, .xlsx, .pdf, .json) ou sélection par dialogue  
 - Zone de saisie manuelle pour anonymisation à la volée  
 - Sélection intuitive des types d’entités à anonymiser (Personnes, Lieux, Organisations, Emails, Dates, etc.)  
+- Profils d’anonymisation prêts à l’emploi : strict RGPD, léger, documents RH, contrats, logs techniques
 - Affichage immédiat du texte anonymisé  
 - Copie en un clic du résultat (avec confirmation visuelle)  
 - Indicateurs de progression et gestion avancée des erreurs  
@@ -103,6 +104,7 @@ Voir [`src-tauri/README.md`](src-tauri/README.md) pour le détail Rust et [`anon
 - ✅ Sélection du format à l’export (TXT, CSV, XLSX…)  
 - ✅ Aperçu avant/après (“split view”)  
 - ✅ Comparaison directe original/anonymisé, bascule possible  
+- ✅ Profils d’anonymisation prêts à l’emploi avec réglages manuels conservés
 - ✅ Indicateur du volume traité (lignes, caractères, entités anonymisées)  
 - ✅ Affichage des entités anonymisées (tableau récapitulatif, audit trail, export du mapping)  
 - ✅ Barre de progression (progression réelle ou spinner)  

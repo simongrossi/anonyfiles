@@ -19,6 +19,11 @@
   import { runAnonymization } from '../utils/anonymize';
   import { debug, debugError } from '../utils/api';
   import {
+    ANONYMIZATION_OPTIONS,
+    createDefaultAnonymizationSelection,
+    type AnonymizationSelection
+  } from '../data/anonymizationProfiles';
+  import {
     fileType,
     fileName,
     hasHeader,
@@ -34,20 +39,8 @@
 
   const dispatch = createEventDispatcher();
 
-  let options = [
-    { key: "anonymizePersons", label: "Personnes (PER)", default: false },
-    { key: "anonymizeLocations", label: "Lieux (LOC)", default: false },
-    { key: "anonymizeOrgs", label: "Organisations (ORG)", default: false },
-    { key: "anonymizeEmails", label: "Emails", default: false },
-    { key: "anonymizeDates", label: "Dates", default: false },
-    { key: "anonymizeMisc", label: "MISC", default: false },
-    { key: "anonymizePhones", label: "Téléphones (PHONE)", default: false },
-    { key: "anonymizeIbans", label: "IBAN", default: false },
-    { key: "anonymizeAddresses", label: "Adresses (ADDRESS)", default: false }
-  ];
-
-  let selected: { [key: string]: boolean } = {};
-  options.forEach((opt) => (selected[opt.key] = opt.default));
+  const options = ANONYMIZATION_OPTIONS;
+  let selected: AnonymizationSelection = createDefaultAnonymizationSelection();
 
   // AJOUTÉ : Fonction pour mettre à jour les compteurs pour la saisie manuelle
   function updateInputCountsFromTextarea(currentText: string) {
@@ -117,7 +110,7 @@
     xlsxFile.set(null);
     previewTable.set([]);
     previewHeaders.set([]);
-    options.forEach((opt) => (selected[opt.key] = opt.default));
+    selected = createDefaultAnonymizationSelection();
     dragActive = false;
     customReplacementRules.set([]);
     currentJobId.set(null);

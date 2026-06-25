@@ -33,6 +33,8 @@ La GUI Tauri 2 (dans `anonyfiles_gui`) parle HTTP à l'API. En mode desktop auto
 * Mapping complet pour désanonymisation ou audit
 * Export CSV des entités détectées
 * Sélection fine des entités à anonymiser (interface graphique ou CLI)
+* Profils d'anonymisation GUI : strict RGPD, léger, documents RH, contrats,
+  logs techniques
 * **Moteur Hybride Optimisé** : Combinaison puissante de Regex compilées nativement dans SpaCy (EntityRuler) et de validation contextuelle (e.g. validateur de dates).
 * Prise en charge du français (et autres langues via spaCy)
 * **Données réalistes** : Intégration de la librairie **Faker** pour générer des faux noms, adresses, etc. cohérents.
@@ -407,7 +409,7 @@ passés à la CLI lorsque ces informations sont disponibles.
 | 7        | Filtre exclusion (YAML / CLI)                    | ✅ Fait        | Configurable, évite faux positifs        |
 | 8        | Support PDF / JSON                               | ✅ Fait        | PDF natif (fitz), JSON complet           |
 | 9        | Désanonymisation CLI (mapping inverse)           | ✅ Fait        | Commande `deanonymize` opérationnelle    |
-| 10       | GUI avancée (drag & drop, prévisualisation)      | 🚧 En cours   | Tauri/Svelte, UX moderne                 |
+| 10       | GUI avancée (drag & drop, prévisualisation)      | 🚧 En cours   | Tauri/Svelte, profils d'anonymisation, UX moderne |
 | 11       | Copie, export, gestion multi-fichier dans la GUI | 🚧 En cours   | Copier/coller, sélection, batch          |
 | 12       | Support anglais, espagnol, allemand              | 🔜 À venir    | Modèles spaCy additionnels               |
 | 13       | API asynchrone avec suivi de jobs (`job_id`)     | ✅ Fait        | File de jobs interne : retry, timeout, annulation, progression/phases, audit complet |

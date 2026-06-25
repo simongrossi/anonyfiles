@@ -169,8 +169,10 @@ on est coincé sur numpy 1.26 et un écosystème daté.
       et erreurs catégorisées.
 
 ### Phase 7 — Produit / UX
-- [ ] **Profils d'anonymisation** : proposer des presets (`strict RGPD`, `léger`,
-      `documents RH`, `contrats`, `logs techniques`) au-dessus des options détaillées.
+- [x] **Profils d'anonymisation** : presets (`strict RGPD`, `léger`,
+      `documents RH`, `contrats`, `logs techniques`) au-dessus des options
+      détaillées dans la GUI, avec options manuelles toujours modifiables et
+      retour automatique en mode personnalisé.
 - [ ] **Prévisualisation des entités détectées** : afficher les entités avant traitement final,
       permettre de décocher/corriger, puis lancer l'anonymisation.
 - [ ] **Batch complet** : traitement multi-fichiers avec rapport global, erreurs par fichier,

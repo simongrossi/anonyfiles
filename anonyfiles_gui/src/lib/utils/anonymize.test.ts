@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // dans l'issue #73 : le champ `file` n'était jamais ajouté pour docx/pdf/json.
 vi.mock('./api', () => ({
   apiUrl: vi.fn(async (p: string) => `http://test/api/${p}`),
+  apiFetch: vi.fn((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init)),
   pollJob: vi.fn(async () => ({
     status: 'finished',
     anonymized_text: 'ok',
