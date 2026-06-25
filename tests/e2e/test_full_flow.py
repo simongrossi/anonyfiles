@@ -85,9 +85,9 @@ def test_full_anonymization_flow(setup_test_env):
         page_text = reader.pages[0].extract_text()
         print(f"[E2E] Texte extrait du PDF anonymisé (extrait) : {page_text[:100]}...")
 
-        # Vérification optionnelle que la redaction a fonctionné (selon le moteur utilisé, ici PyMuPDF fait du masquage graphique)
-        # Mais le texte sous-jacent peut ou non être supprimé selon l'implémentation de PdfProcessor.
-        # Ce test valide principalement que le fichier est un PDF valide qui s'ouvre.
+        assert "Jean Dupont" not in page_text
+        assert "jean.dupont@email.com" not in page_text
+        assert "MASQUÉ" in page_text or "MASQUE" in page_text
 
     except Exception as e:
         pytest.fail(f"Le PDF généré est corrompu ou illisible : {e}")

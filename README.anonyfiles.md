@@ -25,6 +25,7 @@ Et comme je suis curieux et passionné, je me suis dit : autant en profiter pour
 ## 🚀 Fonctionnalités principales
 
 * Anonymisation de fichiers : `.txt`, `.csv`, `.docx`, `.xlsx`, `.pdf`, `.json`
+* Redaction PDF sûre : suppression du texte sensible extractible, pas seulement masquage visuel
 * Détection automatique de noms, lieux, organisations, dates, emails, etc.
 * Stratégies configurables : remplacement factice, `[REDACTED]`, codes séquentiels, etc.
 * Mapping complet pour désanonymisation ou audit

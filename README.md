@@ -27,6 +27,7 @@ La GUI Tauri 2 (dans `anonyfiles_gui`) parle HTTP à l'API. En mode desktop auto
 ## 🚀 Fonctionnalités principales
 
 * Anonymisation de fichiers : `.txt`, `.csv`, `.docx` (y compris dans les tableaux), `.xlsx` (multi-feuilles), `.pdf`, `.json`
+* Redaction PDF sûre : suppression du texte sensible extractible, pas seulement masquage visuel
 * Détection automatique de noms, lieux, organisations, dates, emails, etc.
 * Stratégies configurables : remplacement factice, `[REDACTED]`, codes séquentiels, etc.
 * Mapping complet pour désanonymisation ou audit

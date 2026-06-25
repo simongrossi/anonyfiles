@@ -44,6 +44,12 @@ class AnonymizedFileWriter:
             processor_specific_kwargs["entities_per_block_with_offsets"] = (
                 spacy_entities_per_block_with_offsets
             )
+            processor_specific_kwargs["spacy_replacements_map"] = kwargs.get(
+                "spacy_replacements_map"
+            )
+            processor_specific_kwargs["custom_replacements_mapping"] = kwargs.get(
+                "custom_replacements_mapping"
+            )
 
         processor.reconstruct_and_write_anonymized_file(
             output_path=output_path,
@@ -72,6 +78,12 @@ class AnonymizedFileWriter:
         if isinstance(processor, PdfProcessor):
             processor_specific_kwargs["entities_per_block_with_offsets"] = (
                 spacy_entities_per_block_with_offsets
+            )
+            processor_specific_kwargs["spacy_replacements_map"] = kwargs.get(
+                "spacy_replacements_map"
+            )
+            processor_specific_kwargs["custom_replacements_mapping"] = kwargs.get(
+                "custom_replacements_mapping"
             )
 
         await processor.reconstruct_and_write_anonymized_file_async(

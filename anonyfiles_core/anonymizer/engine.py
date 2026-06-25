@@ -271,6 +271,8 @@ class AnonyfilesEngine:
                 spacy_entities_per_block_with_offsets=result[
                     "spacy_entities_per_block"
                 ],
+                spacy_replacements_map=result["replacements_map_spacy"],
+                custom_replacements_mapping=self.custom_rules_processor.get_custom_replacements_mapping(),
                 **kwargs,
             )
             if log_entities_path:
@@ -372,6 +374,8 @@ class AnonyfilesEngine:
                 spacy_entities_per_block_with_offsets=result[
                     "spacy_entities_per_block"
                 ],
+                spacy_replacements_map=result["replacements_map_spacy"],
+                custom_replacements_mapping=self.custom_rules_processor.get_custom_replacements_mapping(),
                 **kwargs,
             )
             if log_entities_path:

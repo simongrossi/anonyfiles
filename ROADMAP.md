@@ -134,13 +134,12 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 - [ ] Tailwind 3 → 4.
 
 ### Phase 4 — Sécurité / robustesse
-- [ ] Merger les branches en cours (`fix/docx…`, `feat/job-retention`) + pousser/PR.
+- [x] Merger les branches en cours (`fix/docx…`, `feat/job-retention`) + pousser/PR.
 - [ ] Auth optionnelle sur l'API (clé API activable par config) pour les déploiements publics.
 
 ### Phase 5 — Robustesse moteur / confiance anonymisation
-- [ ] **Redaction PDF sûre** : privilégier une redaction basée sur les coordonnées du texte
-      original plutôt qu'une reconstruction destructive, puis vérifier qu'aucune donnée sensible
-      ne reste dans le texte extrait du PDF final.
+- [x] **Redaction PDF sûre** : redaction basée sur les coordonnées du texte original
+      avec suppression vérifiée du texte sensible extractible du PDF final.
 - [ ] **Corpus qualité anonymisation** : créer des fixtures réalistes avec résultats attendus
       (noms, emails, IBAN, dates, adresses, organisations, faux positifs) pour mesurer les
       régressions et les améliorations de détection.
