@@ -12,7 +12,7 @@
     Info,
   } from 'lucide-svelte';
 
-  export let activeTab: string = '';
+  let { activeTab = '' }: { activeTab?: string } = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -32,8 +32,8 @@
     { icon: Info, label: 'À Propos', key: 'about' },
   ];
 
-  let isMobile = false;
-  let showMobileMenu = false;
+  let isMobile = $state(false);
+  let showMobileMenu = $state(false);
 
   onMount(() => {
     const checkScreen = () => {
@@ -46,10 +46,12 @@
     return () => window.removeEventListener('resize', checkScreen);
   });
 
-  $: sidebarState.update((state) => ({
-    ...state,
-    showSidebar: isMobile ? showMobileMenu : true,
-  }));
+  $effect(() => {
+    sidebarState.update((state) => ({
+      ...state,
+      showSidebar: isMobile ? showMobileMenu : true,
+    }));
+  });
 
   function closeMenu() {
     if (isMobile) showMobileMenu = false;
