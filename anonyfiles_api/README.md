@@ -15,6 +15,8 @@ fonctionnalités que la CLI mais via des endpoints REST.
 - Utilise le moteur d’anonymisation du dossier `anonymizer/`
 - Traitement **asynchrone** avec file de jobs interne, suivi par `job_id`,
   retry, timeout, annulation et progression par phase
+- Runtime FastAPI géré par `lifespan` : démarrage/arrêt ordonné de la file de
+  jobs et de la purge périodique
 - Nettoyage automatique des fichiers temporaires
 - CORS activé pour utilisation avec le frontend GUI
 - Limitation de débit intégrée pour prévenir les abus (slowapi)
@@ -120,15 +122,39 @@ Retourne le statut du job :
 - `cancelled` : annulé
 - `timeout` : interrompu par timeout
 
-Le payload contient aussi `state`, `progress`, `attempt`, `max_attempts` et des
-timestamps quand ils sont disponibles. `state` décrit la phase courante
-(`queued`, `running`, `preparing`, `processing`, `finalizing`, `retrying`,
-`cancelling`, etc.).
+Le payload contient aussi les métadonnées d'exploitation quand elles sont
+disponibles :
+
+- `state`, `progress`, `attempt`, `max_attempts` et timestamps ;
+- `file_size_bytes`, `file_type`, `job_kind`, `timeout_seconds` ;
+- `duration_seconds`, `queue_wait_seconds`, `phase_durations_seconds` ;
+- `entities_detected_count`, `total_replacements` ;
+- `final_status_category` (`success`, `engine_error`, `unexpected_error`,
+  `timeout`, `cancelled`, etc.).
+
+`state` décrit la phase courante (`queued`, `running`, `preparing`,
+`processing`, `finalizing`, `retrying`, `cancelling`, etc.). Les logs API
+publient aussi des événements structurés préfixés par `job_event`.
 
 **Exemple de réponse (job terminé) :**
 ```json
 {
   "status": "finished",
+  "state": "completed",
+  "progress": 100,
+  "final_status_category": "success",
+  "duration_seconds": 2.184,
+  "phase_durations_seconds": {
+    "queued": 0.012,
+    "running": 0.006,
+    "preparing": 0.041,
+    "processing": 2.001,
+    "finalizing": 0.124
+  },
+  "file_size_bytes": 15342,
+  "file_type": "txt",
+  "entities_detected_count": 12,
+  "total_replacements": 12,
   "anonymized_text": "...texte anonymisé...",
   "audit_log": [
     {

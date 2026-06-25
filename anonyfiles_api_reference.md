@@ -25,9 +25,9 @@ Pour gérer efficacement les fichiers volumineux et les temps de traitement NLP,
 
 Étapes :
 
-1. **Soumission (POST)** — envoi du fichier, retour immédiat `job_id` + `pending`
-2. **Traitement** — exécution en arrière-plan
-3. **Suivi (GET / WS)** — récupération du statut
+1. **Soumission (POST)** — envoi du fichier, retour immédiat `job_id` + `pending/queued`
+2. **Traitement** — file de jobs interne avec workers, retry, timeout et annulation
+3. **Suivi (GET / WS)** — récupération du statut enrichi (`state`, `progress`, métriques)
 4. **Récupération** — téléchargement des fichiers résultants
 
 ---
@@ -45,7 +45,7 @@ Crée un nouveau job d'anonymisation.
 | Champ | Requis | Type | Description |
 |---|---|---|---|
 | `file` | ✔ | fichier | Document à traiter |
-| `config_options` | ✖ | JSON | Surcharge de config |
+| `config_options` | ✔ | JSON | Options d'anonymisation (`{}` pour les valeurs par défaut) |
 | `has_header` | ✖ | bool | Pour CSV |
 
 **Réponse (200 OK)** :
@@ -53,7 +53,8 @@ Crée un nouveau job d'anonymisation.
 ```json
 {
   "job_id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "pending"
+  "status": "pending",
+  "state": "queued"
 }
 ```
 
@@ -64,7 +65,15 @@ Récupère l'état d'un job.
 **Réponse (pending)** :
 
 ```json
-{"status": "pending"}
+{
+  "status": "pending",
+  "state": "processing",
+  "progress": 45,
+  "attempt": 1,
+  "max_attempts": 1,
+  "file_size_bytes": 15342,
+  "file_type": "txt"
+}
 ```
 
 **Réponse (finished)** :
@@ -72,10 +81,18 @@ Récupère l'état d'un job.
 ```json
 {
   "status": "finished",
-  "files": [
-    "http://localhost:8000/files/job_id/fichier_anonymise.txt",
-    "http://localhost:8000/files/job_id/mapping.csv"
-  ],
+  "state": "completed",
+  "progress": 100,
+  "final_status_category": "success",
+  "duration_seconds": 2.184,
+  "queue_wait_seconds": 0.012,
+  "phase_durations_seconds": {
+    "queued": 0.012,
+    "processing": 2.001,
+    "finalizing": 0.124
+  },
+  "entities_detected_count": 12,
+  "total_replacements": 12,
   "audit_log": []
 }
 ```
@@ -83,6 +100,8 @@ Récupère l'état d'un job.
 #### **WS** `/ws/{job_id}`
 
 WebSocket permettant de suivre l'évolution en temps réel.
+
+La connexion se ferme sur `finished`, `error`, `cancelled` ou `timeout`.
 
 ---
 
@@ -111,6 +130,22 @@ Permet de vérifier l'état du service.
 
 ```json
 {"status": "ok", "version": "..."}
+```
+
+#### **GET** `/jobs/queue`
+
+Retourne les compteurs de la file interne.
+
+```json
+{"queued": 0, "running": 1, "workers": 1}
+```
+
+#### **POST** `/jobs/{job_id}/cancel`
+
+Demande l'annulation d'un job en attente ou en cours.
+
+```json
+{"status": "cancelled", "state": "cancelled", "cancel_requested": true}
 ```
 
 ---
@@ -148,12 +183,16 @@ import time
 API = "http://localhost:8000"
 
 with open("data.xlsx", "rb") as f:
-    res = requests.post(f"{API}/anonymize", files={"file": f})
+    res = requests.post(
+        f"{API}/anonymize",
+        files={"file": f},
+        data={"config_options": "{}"},
+    )
     job_id = res.json()["job_id"]
 
 while True:
     status = requests.get(f"{API}/anonymize_status/{job_id}").json()
-    if status["status"] in ["finished", "error"]:
+    if status["status"] in ["finished", "error", "cancelled", "timeout"]:
         break
     time.sleep(1)
 
@@ -179,4 +218,3 @@ Pour la mise en production, consulter `deploy/`.
 | `ANONYFILES_JOB_RETENTION_HOURS` | TTL des jobs avant purge auto (h, défaut 24, 0=off) |
 | `ANONYFILES_JOB_PURGE_INTERVAL_MINUTES` | Intervalle de purge (min, défaut 60) |
 | `ANONYFILES_CORS_ORIGINS` | Origines autorisées CORS |
-

@@ -92,13 +92,13 @@ Optimisée pour le traitement de fichiers volumineux via un système de **Jobs**
 
 - Client → `POST /anonymize`
 - Retour immédiat `{job_id}`
-- Traitement en tâche de fond
-- Polling (`GET /status`) ou WebSocket (`/ws/{job_id}`)
+- Traitement via file de jobs interne (workers, retry, timeout, annulation)
+- Polling (`GET /anonymize_status/{job_id}`) ou WebSocket (`/ws/{job_id}`), avec statut enrichi
 
 Avantages :
 
 ✔ pas de blocage du serveur HTTP  
-✔ compatible workers / filesystems / clusters  
+✔ statut fiable, métriques d'exécution, annulation et timeouts
 
 ---
 
@@ -139,23 +139,24 @@ Traitement complet d’une anonymisation via l’API :
 sequenceDiagram
     participant Client
     participant API as API (FastAPI)
-    participant Worker as Background Task
+    participant Worker as Job Queue
     participant Core as Core Engine
     participant FS as File System
 
     Client->>API: POST /anonymize (Fichier)
     API->>FS: Sauvegarde fichier temporaire
-    API->>Client: job_id + pending
+    API->>Client: job_id + pending/queued
     
-    API->>Worker: Lance traitement async
+    API->>Worker: Enqueue job
+    Worker->>FS: Status running + progress
     Worker->>Core: Core.anonymize()
     Core->>Core: Détection NLP
     Core->>Core: Replacements
     Core->>FS: Écrit outputs (mapping + anonymized)
     
-    Worker->>FS: Status = finished
+    Worker->>FS: Status terminal + métriques
     
-    Client->>API: GET /status/{job_id}
+    Client->>API: GET /anonymize_status/{job_id}
     API->>Client: status + liens fichiers
 ```
 
@@ -179,4 +180,3 @@ anonyfiles/
 ```
 
 ---
-

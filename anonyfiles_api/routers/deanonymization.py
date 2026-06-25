@@ -103,6 +103,7 @@ def run_deanonymization_job_sync(
                 "state": "failed",
                 "progress": 100,
                 "error": warning_message,
+                "final_status_category": "engine_error",
                 "original_input_name": original_input_name_for_status,
             }
             current_job.update_status_sync(**error_payload_for_status)
@@ -157,6 +158,13 @@ def run_deanonymization_job_sync(
             "state": "completed",
             "progress": 100,
             "error": None,
+            "final_status_category": "success",
+            "entities_detected_count": len(
+                report_data_serializable.get("distinct_codes_in_text_list", [])
+            ),
+            "total_replacements": report_data_serializable.get(
+                "replacements_successful_count", 0
+            ),
             "original_input_name": original_input_name_for_status,
         }
         current_job.update_status_sync(**status_payload_finished)
@@ -199,6 +207,7 @@ def run_deanonymization_job_sync(
             "state": "failed",
             "progress": 100,
             "error": error_msg,
+            "final_status_category": "unexpected_error",
             "original_input_name": original_input_name_for_status,
         }
         # S'assurer que le répertoire existe avant d'écrire le statut
@@ -286,6 +295,8 @@ async def deanonymize_file_endpoint(
 
     try:
         await stream_upload_to_path(file, input_path, max_bytes=max_upload_bytes)
+        input_stat = await run_in_threadpool(input_path.stat)
+        file_size_bytes = input_stat.st_size
         logger.info(
             f"Tâche {job_id}: Fichier d'entrée '{input_filename}' sauvegardé dans '{input_path}'"
         )
@@ -318,6 +329,8 @@ async def deanonymize_file_endpoint(
 
     try:
         await stream_upload_to_path(mapping, mapping_path, max_bytes=max_upload_bytes)
+        mapping_stat = await run_in_threadpool(mapping_path.stat)
+        mapping_size_bytes = mapping_stat.st_size
         logger.info(
             f"Tâche {job_id}: Fichier de mapping '{mapping_filename}' sauvegardé dans '{mapping_path}'"
         )
@@ -349,7 +362,16 @@ async def deanonymize_file_endpoint(
         await mapping.close()
 
     # Écrire le statut initial en incluant original_input_name
-    await current_job.set_initial_status_async(original_input_name=input_filename)
+    file_type_for_status = Path(input_filename).suffix.lstrip(".") or "unknown"
+    await current_job.set_initial_status_async(
+        original_filename=file.filename,
+        original_input_name=input_filename,
+        input_filename=input_filename,
+        file_type=file_type_for_status.lower(),
+        file_size_bytes=file_size_bytes,
+        mapping_filename=mapping_filename,
+        mapping_size_bytes=mapping_size_bytes,
+    )
 
     # Si BASE_CONFIG était nécessaire pour run_deanonymization_job_sync:
     # passed_base_config_value = getattr(request.app.state, 'BASE_CONFIG', {})

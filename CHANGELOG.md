@@ -6,6 +6,16 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [1.5.0] – 2026-06-25
+
+### Ajouté
+- **File de jobs interne pour l'API** (remplace `BackgroundTasks` de FastAPI) : exécution des anonymisations/désanonymisations dans des workers, avec **retry**, **timeout**, **annulation**, et suivi de **progression par phase** (`queued`, `running`, `preparing`, `processing`, `finalizing`, `retrying`, `cancelling`…).
+- **Nouveaux endpoints** : `GET /jobs/queue` (statistiques de la file) et `POST /jobs/{job_id}/cancel` (annulation d'un job).
+- **`status.json` enrichi** : `state`, `progress`, `attempt`/`max_attempts`, horodatages, `duration_seconds`, `queue_wait_seconds`, `phase_durations_seconds`, `entities_detected_count`, `total_replacements`, et `final_status_category` (`success`, `engine_error`, `timeout`, `cancelled`, …). Événements structurés `job_event` dans les logs.
+
+### Modifié
+- États terminaux de job étendus : `finished`, `error`, **`cancelled`**, **`timeout`** (protection des états terminaux). Gestion du démarrage/arrêt de la file câblée sur le cycle de vie de l'app.
+
 ## [1.4.3] – 2026-06-25
 
 ### Ajouté

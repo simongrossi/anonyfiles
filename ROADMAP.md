@@ -155,10 +155,11 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 - [x] **Vraie file de jobs API** : `BackgroundTasks` FastAPI remplacé par une file interne
       avec workers, statuts persistants enrichis, annulation, retry, timeouts, progression
       par phase, arrêt propre et endpoints `/jobs/queue` + `/jobs/{job_id}/cancel`.
-- [ ] **Lifecycle FastAPI moderne** : remplacer `@app.on_event(...)` par `lifespan` pour
-      supprimer les warnings et gérer proprement la tâche de purge.
-- [ ] **Observabilité structurée** : journaliser durée par étape, taille fichier, nombre
-      d'entités, type de sortie, statut final et erreurs catégorisées.
+- [x] **Lifecycle FastAPI moderne** : `@app.on_event(...)` remplacé par `lifespan`;
+      les workers de jobs et la tâche de purge démarrent/s'arrêtent proprement.
+- [x] **Observabilité structurée** : `status.json` et les logs `job_event` exposent
+      durée par étape, taille fichier, nombre d'entités, type de sortie, statut final
+      et erreurs catégorisées.
 
 ### Phase 7 — Produit / UX
 - [ ] **Profils d'anonymisation** : proposer des presets (`strict RGPD`, `léger`,

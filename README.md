@@ -35,7 +35,8 @@ La GUI Tauri 2 (dans `anonyfiles_gui`) parle HTTP à l'API. En mode desktop auto
 * **Moteur Hybride Optimisé** : Combinaison puissante de Regex compilées nativement dans SpaCy (EntityRuler) et de validation contextuelle (e.g. validateur de dates).
 * Prise en charge du français (et autres langues via spaCy)
 * **Données réalistes** : Intégration de la librairie **Faker** pour générer des faux noms, adresses, etc. cohérents.
-* **Asynchrone via l’API REST** (suivi via `job_id`)
+* **Asynchrone via l’API REST** : file de jobs interne, annulation, retry,
+  timeout, progression, métriques d'exécution et suivi via `job_id`
 * **Portable** : aucun chemin codé en dur, multiplateforme (Windows, macOS, Linux)
 * **Validation rapide** : les chemins, la configuration et la présence du modèle spaCy sont vérifiés avant de lancer le traitement
 
@@ -391,7 +392,7 @@ passés à la CLI lorsque ces informations sont disponibles.
 | 1        | Robustesse multi-format (TXT, CSV, DOCX, XLSX)   | ✅ Fait        | Moteur factorisé, détection commune      |
 | 2        | Remplacement positionnel fiable                  | ✅ Fait        | Validé pour PDF et DOCX (conservation format) |
 | 3        | Détection universelle des dates et emails        | ✅ Fait        | Regex avancée + spaCy                    |
-| 4        | Performance / gestion mémoire                    | 🔜 À venir    | Streaming, lazy processing               |
+| 4        | Performance / gestion mémoire                    | 🚧 En cours   | Uploads streamés + workers/timeouts ; traitement lazy à venir |
 | 5        | Règles de remplacement par type (YAML)           | ✅ Fait        | Custom rules implémentées et testées     |
 | 6        | Mapping codes <-> originaux                      | ✅ Fait        | Mapping inverse et audit fonctionnels    |
 | 7        | Filtre exclusion (YAML / CLI)                    | ✅ Fait        | Configurable, évite faux positifs        |
@@ -400,7 +401,8 @@ passés à la CLI lorsque ces informations sont disponibles.
 | 10       | GUI avancée (drag & drop, prévisualisation)      | 🚧 En cours   | Tauri/Svelte, UX moderne                 |
 | 11       | Copie, export, gestion multi-fichier dans la GUI | 🚧 En cours   | Copier/coller, sélection, batch          |
 | 12       | Support anglais, espagnol, allemand              | 🔜 À venir    | Modèles spaCy additionnels               |
-| 13       | API asynchrone avec suivi de jobs (`job_id`)     | ✅ Fait        | CORS, UUID, audit log complet            |
+| 13       | API asynchrone avec suivi de jobs (`job_id`)     | ✅ Fait        | File de jobs interne : retry, timeout, annulation, progression/phases, audit complet |
+| 14       | Rétention / purge automatique des jobs           | ✅ Fait        | TTL configurable (`ANONYFILES_JOB_RETENTION_HOURS`), confidentialité |
 
 ---
 

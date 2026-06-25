@@ -6,7 +6,8 @@ from anonyfiles_api.job_queue import JobQueue
 from anonyfiles_api.job_utils import Job
 
 
-def test_job_queue_retries_failed_job(tmp_path):
+def test_job_queue_retries_failed_job(tmp_path, caplog):
+    caplog.set_level("INFO", logger="anonyfiles_api")
     original_jobs_dir = core_config.JOBS_DIR
     core_config.JOBS_DIR = tmp_path
     attempts = {"count": 0}
@@ -41,8 +42,15 @@ def test_job_queue_retries_failed_job(tmp_path):
 
     assert attempts["count"] == 2
     assert status_payload["status"] == "finished"
+    assert status_payload["final_status_category"] == "success"
     assert status_payload["attempt"] == 2
     assert status_payload["progress"] == 100
+    assert status_payload["duration_seconds"] >= 0
+    assert "running" in status_payload["phase_durations_seconds"]
+    assert any(
+        "job_event" in record.message and '"event": "job_finished"' in record.message
+        for record in caplog.records
+    )
 
 
 def test_job_queue_cancels_queued_job(tmp_path):
@@ -73,6 +81,8 @@ def test_job_queue_cancels_queued_job(tmp_path):
     assert cancelled is True
     assert status_payload["status"] == "cancelled"
     assert status_payload["state"] == "cancelled"
+    assert status_payload["final_status_category"] == "cancelled"
+    assert status_payload["duration_seconds"] >= 0
 
 
 def test_job_queue_timeout_protects_terminal_status(tmp_path):
@@ -107,4 +117,6 @@ def test_job_queue_timeout_protects_terminal_status(tmp_path):
         core_config.JOBS_DIR = original_jobs_dir
 
     assert status_after_timeout["status"] == "timeout"
+    assert status_after_timeout["final_status_category"] == "timeout"
+    assert status_after_timeout["duration_seconds"] >= 0
     assert status_after_thread_exit["status"] == "timeout"

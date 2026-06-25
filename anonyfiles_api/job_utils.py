@@ -24,6 +24,51 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _parse_iso_datetime(value: Any) -> Optional[datetime]:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _duration_seconds(start_value: Any, end_value: Any) -> Optional[float]:
+    start = _parse_iso_datetime(start_value)
+    end = _parse_iso_datetime(end_value)
+    if start is None or end is None:
+        return None
+    return round(max(0.0, (end - start).total_seconds()), 3)
+
+
+def _default_final_status_category(status: Optional[str]) -> Optional[str]:
+    if status == "finished":
+        return "success"
+    if status == "cancelled":
+        return "cancelled"
+    if status == "timeout":
+        return "timeout"
+    if status == "error":
+        return "error"
+    return None
+
+
+def log_job_event(level: str, event: str, job_id: str, **fields: Any) -> None:
+    payload = {
+        "event": event,
+        "job_id": job_id,
+        **{key: value for key, value in fields.items() if value is not None},
+    }
+    log_method = getattr(logger, level, logger.info)
+    log_method(
+        "job_event %s",
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+    )
+
+
 class Job:
     def __init__(self, job_id: str):
         self.job_id = job_id
@@ -42,9 +87,11 @@ class Job:
         except (OSError, UnicodeDecodeError, json.JSONDecodeError):
             return {}
 
-    def _write_status_payload_sync(self, payload: Dict[str, Any]) -> None:
+    def _write_status_payload_sync(
+        self, payload: Dict[str, Any], updated_at: Optional[str] = None
+    ) -> None:
         self.job_dir.mkdir(parents=True, exist_ok=True)
-        payload["updated_at"] = utc_now_iso()
+        payload["updated_at"] = updated_at or utc_now_iso()
         tmp_path: Optional[str] = None
         try:
             with tempfile.NamedTemporaryFile(
@@ -65,6 +112,7 @@ class Job:
     def update_status_sync(self, protect_terminal: bool = True, **updates: Any) -> bool:
         try:
             with _STATUS_WRITE_LOCK:
+                now_iso = utc_now_iso()
                 current_payload = self._read_status_sync()
                 current_status = current_payload.get("status")
                 next_status = updates.get("status")
@@ -93,8 +141,52 @@ class Job:
                     )
                     return True
 
+                next_state = updates.get("state")
+                current_state = current_payload.get("state")
+                if next_state and next_state != current_state:
+                    existing_phase_durations = current_payload.get(
+                        "phase_durations_seconds"
+                    )
+                    phase_durations = (
+                        dict(existing_phase_durations)
+                        if isinstance(existing_phase_durations, dict)
+                        else {}
+                    )
+                    phase_duration = _duration_seconds(
+                        current_payload.get("state_started_at"), now_iso
+                    )
+                    if current_state and phase_duration is not None:
+                        phase_durations[current_state] = round(
+                            phase_durations.get(current_state, 0.0) + phase_duration,
+                            3,
+                        )
+                    updates["phase_durations_seconds"] = phase_durations
+                    updates["state_started_at"] = now_iso
+
+                if next_status in TERMINAL_JOB_STATUSES:
+                    completed_at = updates.get("completed_at") or now_iso
+                    updates["completed_at"] = completed_at
+                    updates.setdefault(
+                        "final_status_category",
+                        _default_final_status_category(next_status),
+                    )
+                    duration = _duration_seconds(
+                        current_payload.get("created_at") or updates.get("created_at"),
+                        completed_at,
+                    )
+                    if duration is not None:
+                        updates["duration_seconds"] = duration
+
+                if updates.get("started_at"):
+                    queue_wait = _duration_seconds(
+                        current_payload.get("queued_at") or updates.get("queued_at"),
+                        updates.get("started_at"),
+                    )
+                    if queue_wait is not None:
+                        updates["queue_wait_seconds"] = queue_wait
+
                 merged_payload = {**current_payload, **updates}
-                self._write_status_payload_sync(merged_payload)
+                self._write_status_payload_sync(merged_payload, updated_at=now_iso)
             return True
         except OSError as e:
             logger.error(
@@ -223,20 +315,27 @@ class Job:
             return True
         return False
 
-    def set_status_as_error_sync(self, error_message: str) -> bool:
+    def set_status_as_error_sync(
+        self, error_message: str, final_status_category: str = "error"
+    ) -> bool:
         if self.update_status_sync(
             status="error",
             state="failed",
             progress=100,
             error=error_message,
+            final_status_category=final_status_category,
             completed_at=utc_now_iso(),
         ):
             logger.info(f"Tâche {self.job_id}: Statut d'erreur écrit: {error_message}")
             return True
         return False
 
-    async def set_status_as_error_async(self, error_message: str) -> bool:
-        if await run_in_threadpool(self.set_status_as_error_sync, error_message):
+    async def set_status_as_error_async(
+        self, error_message: str, final_status_category: str = "error"
+    ) -> bool:
+        if await run_in_threadpool(
+            self.set_status_as_error_sync, error_message, final_status_category
+        ):
             logger.info(f"Tâche {self.job_id}: Statut d'erreur écrit: {error_message}")
             return True
         return False
@@ -248,6 +347,13 @@ class Job:
                 state="completed",
                 progress=100,
                 error=None,
+                final_status_category="success",
+                entities_detected_count=len(
+                    engine_result.get("entities_detected", [])
+                    if isinstance(engine_result.get("entities_detected"), list)
+                    else []
+                ),
+                total_replacements=engine_result.get("total_replacements"),
                 completed_at=utc_now_iso(),
             ):
                 return False

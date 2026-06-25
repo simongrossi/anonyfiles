@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from .core_config import logger
-from .job_utils import Job, TERMINAL_JOB_STATUSES, utc_now_iso
+from .job_utils import Job, TERMINAL_JOB_STATUSES, log_job_event, utc_now_iso
 
 
 @dataclass(slots=True)
@@ -129,6 +129,15 @@ class JobQueue:
             timeout_seconds=queued_job.timeout_seconds,
         )
         await self._queue.put(queued_job)
+        log_job_event(
+            "info",
+            "job_queued",
+            job_id,
+            job_kind=kind,
+            queue_position=queue_position,
+            max_attempts=queued_job.retry_attempts + 1,
+            timeout_seconds=queued_job.timeout_seconds,
+        )
         logger.info("Tâche %s (%s) ajoutée à la file.", job_id, kind)
 
     async def cancel(self, job_id: str, reason: str = "Annulation demandée.") -> bool:
@@ -213,6 +222,15 @@ class JobQueue:
 
     async def _run_attempt(self, queued_job: QueuedJob, attempt: int) -> bool:
         job = Job(queued_job.job_id)
+        log_job_event(
+            "info",
+            "job_attempt_started",
+            queued_job.job_id,
+            job_kind=queued_job.kind,
+            attempt=attempt,
+            max_attempts=queued_job.retry_attempts + 1,
+            timeout_seconds=queued_job.timeout_seconds,
+        )
         await job.update_status_async(
             status="pending",
             state="running",
@@ -235,19 +253,25 @@ class JobQueue:
                 state="timeout",
                 progress=100,
                 error=f"Timeout après {queued_job.timeout_seconds} secondes.",
+                final_status_category="timeout",
                 completed_at=utc_now_iso(),
                 attempt=attempt,
             )
             async with self._lock:
                 self._cancel_requested.add(queued_job.job_id)
+            status_payload = await job.get_status_async() or {}
+            self._log_job_finished(queued_job, status_payload)
             return False
         except Exception as exc:  # noqa: BLE001
             await job.set_status_as_error_async(
-                f"Erreur inattendue dans la file de jobs: {exc}"
+                f"Erreur inattendue dans la file de jobs: {exc}",
+                final_status_category="unexpected_error",
             )
 
         if await self._is_cancel_requested(queued_job.job_id):
             await self._mark_cancelled(queued_job.job_id, reason="Tâche annulée.")
+            status_payload = await job.get_status_async() or {}
+            self._log_job_finished(queued_job, status_payload)
             return False
 
         status_payload = await job.get_status_async() or {}
@@ -259,6 +283,8 @@ class JobQueue:
                 completed_at=status_payload.get("completed_at", utc_now_iso()),
                 attempt=attempt,
             )
+            status_payload = await job.get_status_async() or {}
+            self._log_job_finished(queued_job, status_payload)
             return False
 
         if status == "error" and attempt <= queued_job.retry_attempts:
@@ -271,6 +297,9 @@ class JobQueue:
                 last_error=status_payload.get("error"),
                 error=None,
                 attempt=attempt,
+                completed_at=None,
+                duration_seconds=None,
+                final_status_category=None,
             )
             logger.warning(
                 "Tâche %s en échec, nouvelle tentative %s/%s.",
@@ -278,13 +307,52 @@ class JobQueue:
                 attempt + 1,
                 queued_job.retry_attempts + 1,
             )
+            log_job_event(
+                "warning",
+                "job_retry_scheduled",
+                queued_job.job_id,
+                job_kind=queued_job.kind,
+                attempt=attempt,
+                next_attempt=attempt + 1,
+                max_attempts=queued_job.retry_attempts + 1,
+                retry_after_seconds=queued_job.retry_delay_seconds,
+                last_error=status_payload.get("error"),
+            )
             return True
 
         if status not in TERMINAL_JOB_STATUSES:
             await job.set_status_as_error_async(
-                "La tâche s'est terminée sans écrire de statut terminal."
+                "La tâche s'est terminée sans écrire de statut terminal.",
+                final_status_category="unexpected_error",
             )
+            status_payload = await job.get_status_async() or {}
+        if status_payload.get("status") in TERMINAL_JOB_STATUSES:
+            self._log_job_finished(queued_job, status_payload)
         return False
+
+    def _log_job_finished(
+        self, queued_job: QueuedJob, status_payload: dict[str, Any]
+    ) -> None:
+        level = "info" if status_payload.get("status") == "finished" else "warning"
+        log_job_event(
+            level,
+            "job_finished",
+            queued_job.job_id,
+            job_kind=queued_job.kind,
+            status=status_payload.get("status"),
+            state=status_payload.get("state"),
+            final_status_category=status_payload.get("final_status_category"),
+            attempt=status_payload.get("attempt"),
+            max_attempts=status_payload.get("max_attempts"),
+            duration_seconds=status_payload.get("duration_seconds"),
+            queue_wait_seconds=status_payload.get("queue_wait_seconds"),
+            phase_durations_seconds=status_payload.get("phase_durations_seconds"),
+            file_size_bytes=status_payload.get("file_size_bytes"),
+            file_type=status_payload.get("file_type"),
+            entities_detected_count=status_payload.get("entities_detected_count"),
+            total_replacements=status_payload.get("total_replacements"),
+            error=status_payload.get("error"),
+        )
 
     async def _is_cancel_requested(self, job_id: str) -> bool:
         async with self._lock:
@@ -297,6 +365,7 @@ class JobQueue:
             state="cancelled",
             progress=100,
             error=reason,
+            final_status_category="cancelled",
             completed_at=utc_now_iso(),
         )
 

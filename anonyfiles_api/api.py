@@ -1,6 +1,7 @@
 # anonyfiles_api/api.py
 
 import asyncio
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -38,7 +39,84 @@ from .retention import run_purge_loop
 limiter = Limiter(key_func=get_remote_address, default_limits=[DEFAULT_RATE_LIMIT])
 # Instanciation de la configuration au niveau module pour être disponible pour les middleware
 app_config = AppConfig()
-app = FastAPI(root_path="/api")
+JOBS_DIR.mkdir(exist_ok=True)
+
+
+async def _start_runtime(fastapi_app: FastAPI) -> None:
+    try:
+        # Chargement de la configuration via Pydantic
+        # La validation stricte assure que si le YAML est invalide ou corrompu, l'app crashera (Fail Fast)
+        logger.info(
+            "Validation de la configuration de l'application (chargée au démarrage)..."
+        )
+        # app_config est déjà instancié globalement
+
+        # Stocker l'objet config typé (ou convertir en dict si le reste du code attend un dict)
+        # Pour compatibilité immédiate avec le code existant qui attend souvent un dict :
+        fastapi_app.state.settings = app_config
+        fastapi_app.state.BASE_CONFIG = app_config.model_dump()
+
+        logger.info("Configuration validée avec succès via Pydantic Settings.")
+        if app_config.debug:
+            logger.info("Mode DEBUG activé via la configuration.")
+
+        fastapi_app.state.job_queue = JobQueue(
+            worker_count=app_config.job_worker_count,
+            timeout_seconds=app_config.job_timeout_seconds,
+            retry_attempts=app_config.job_retry_attempts,
+        )
+        await fastapi_app.state.job_queue.start()
+
+        # Démarrage de la purge périodique des jobs expirés (confidentialité).
+        fastapi_app.state.purge_stop_event = asyncio.Event()
+        fastapi_app.state.purge_task = asyncio.create_task(
+            run_purge_loop(
+                jobs_dir=JOBS_DIR,
+                max_age_seconds=app_config.job_retention_hours * 3600,
+                interval_seconds=app_config.job_purge_interval_minutes * 60,
+                stop_event=fastapi_app.state.purge_stop_event,
+            )
+        )
+
+    except Exception as e:
+        logger.critical(
+            f"ÉCHEC CRITIQUE: Configuration invalide. L'application ne peut pas démarrer.\nErreur: {e}",
+            exc_info=True,
+        )
+        # On relève l'exception pour stopper Uvicorn (Fail Fast)
+        await _stop_runtime(fastapi_app)
+        raise e
+
+
+async def _stop_runtime(fastapi_app: FastAPI) -> None:
+    """Arrête proprement la file de jobs et la tâche de purge."""
+    job_queue = getattr(fastapi_app.state, "job_queue", None)
+    if job_queue is not None:
+        await job_queue.stop(timeout_seconds=5)
+
+    stop_event = getattr(fastapi_app.state, "purge_stop_event", None)
+    task = getattr(fastapi_app.state, "purge_task", None)
+    if stop_event is not None:
+        stop_event.set()
+    if task is not None:
+        try:
+            await asyncio.wait_for(task, timeout=5)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            task.cancel()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Arrêt de la tâche de purge: {exc}")
+
+
+@asynccontextmanager
+async def lifespan(fastapi_app: FastAPI):
+    await _start_runtime(fastapi_app)
+    try:
+        yield
+    finally:
+        await _stop_runtime(fastapi_app)
+
+
+app = FastAPI(root_path="/api", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
@@ -74,75 +152,6 @@ async def add_logging_context(request: Request, call_next):
     finally:
         clear_request_context()
     return response
-
-
-JOBS_DIR.mkdir(exist_ok=True)
-
-
-@app.on_event("startup")
-async def startup_event():
-    try:
-        # Chargement de la configuration via Pydantic
-        # La validation stricte assure que si le YAML est invalide ou corrompu, l'app crashera (Fail Fast)
-        logger.info(
-            "Validation de la configuration de l'application (chargée au démarrage)..."
-        )
-        # app_config est déjà instancié globalement
-
-        # Stocker l'objet config typé (ou convertir en dict si le reste du code attend un dict)
-        # Pour compatibilité immédiate avec le code existant qui attend souvent un dict :
-        app.state.settings = app_config
-        app.state.BASE_CONFIG = app_config.model_dump()
-
-        logger.info("Configuration validée avec succès via Pydantic Settings.")
-        if app_config.debug:
-            logger.info("Mode DEBUG activé via la configuration.")
-
-        app.state.job_queue = JobQueue(
-            worker_count=app_config.job_worker_count,
-            timeout_seconds=app_config.job_timeout_seconds,
-            retry_attempts=app_config.job_retry_attempts,
-        )
-        await app.state.job_queue.start()
-
-        # Démarrage de la purge périodique des jobs expirés (confidentialité).
-        app.state.purge_stop_event = asyncio.Event()
-        app.state.purge_task = asyncio.create_task(
-            run_purge_loop(
-                jobs_dir=JOBS_DIR,
-                max_age_seconds=app_config.job_retention_hours * 3600,
-                interval_seconds=app_config.job_purge_interval_minutes * 60,
-                stop_event=app.state.purge_stop_event,
-            )
-        )
-
-    except Exception as e:
-        logger.critical(
-            f"ÉCHEC CRITIQUE: Configuration invalide. L'application ne peut pas démarrer.\nErreur: {e}",
-            exc_info=True,
-        )
-        # On relève l'exception pour stopper Uvicorn (Fail Fast)
-        raise e
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Arrête proprement la file de jobs et la tâche de purge."""
-    job_queue = getattr(app.state, "job_queue", None)
-    if job_queue is not None:
-        await job_queue.stop(timeout_seconds=5)
-
-    stop_event = getattr(app.state, "purge_stop_event", None)
-    task = getattr(app.state, "purge_task", None)
-    if stop_event is not None:
-        stop_event.set()
-    if task is not None:
-        try:
-            await asyncio.wait_for(task, timeout=5)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            task.cancel()
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(f"Arrêt de la tâche de purge: {exc}")
 
 
 # Le reste du fichier (middleware, inclusion des routeurs, endpoint racine)

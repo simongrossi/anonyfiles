@@ -31,7 +31,8 @@ Et comme je suis curieux et passionné, je me suis dit : autant en profiter pour
 * Export CSV des entités détectées
 * Sélection fine des entités à anonymiser (interface graphique ou CLI)
 * Prise en charge du français (et autres langues via spaCy)
-* **Asynchrone via l’API REST** (suivi via `job_id`)
+* **Asynchrone via l’API REST** : file de jobs interne, annulation, retry,
+  timeout, progression, métriques d'exécution et suivi via `job_id`
 * **Portable** : aucun chemin codé en dur, multiplateforme (Windows, macOS, Linux)
 
 ---
@@ -192,7 +193,7 @@ Les fichiers suivants sont disponibles à la racine du projet :
 | 10       | GUI avancée (drag & drop, prévisualisation)      | 🚧 En cours   | Tauri/Svelte, UX moderne                 |
 | 11       | Copie, export, gestion multi-fichier dans la GUI | 🚧 En cours   | Copier/coller, sélection, batch          |
 | 12       | Support anglais, espagnol, allemand              | 🔜 À venir    | Modèles spaCy additionnels               |
-| 13       | API asynchrone avec suivi de jobs (`job_id`)     | ✅ Fait        | CORS, UUID, audit log complet            |
+| 13       | API asynchrone avec file de jobs (`job_id`)      | ✅ Fait        | Retry, timeout, annulation, observabilité |
 
 ---
 

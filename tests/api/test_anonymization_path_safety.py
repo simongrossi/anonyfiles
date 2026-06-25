@@ -1,6 +1,7 @@
 import pytest
 
 pytest.importorskip("httpx")
+import json
 import shutil
 import importlib
 import sys
@@ -80,8 +81,13 @@ def test_anonymize_sanitizes_filenames(tmp_path):
 
         job_id = saved["job_id"]
         job_dir = tmp_path / job_id
+        status_payload = json.loads((job_dir / "status.json").read_text())
         assert (job_dir / "input.txt").is_file()
         assert saved["input_path"] == job_dir / "input.txt"
+        assert status_payload["file_size_bytes"] == len(b"data")
+        assert status_payload["file_type"] == "txt"
+        assert status_payload["final_status_category"] == "success"
+        assert "duration_seconds" in status_payload
     finally:
         core_config.JOBS_DIR = original_jobs_dir
         shutil.rmtree(tmp_path / saved.get("job_id", ""), ignore_errors=True)

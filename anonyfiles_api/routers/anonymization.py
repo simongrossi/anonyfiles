@@ -145,7 +145,9 @@ def _process_engine_result(
             engine_error_message
             or f"Erreur moteur ou statut inattendu: {engine_status_reported}"
         )
-        current_job.set_status_as_error_sync(error_msg_to_set)
+        current_job.set_status_as_error_sync(
+            error_msg_to_set, final_status_category="engine_error"
+        )
         final_status_for_log_event = "error"
         final_error_for_log_event = error_msg_to_set
 
@@ -198,7 +200,9 @@ def _handle_job_error(
     else:
         error_message = f"Erreur inattendue pendant {error_context}: {str(e)}"
 
-    current_job.set_status_as_error_sync(error_message)
+    current_job.set_status_as_error_sync(
+        error_message, final_status_category="unexpected_error"
+    )
 
     log_run_event(
         logger=CLIUsageLogger,
@@ -402,6 +406,8 @@ async def anonymize_file_endpoint(
         await stream_upload_to_path(
             file, input_path_for_job, max_bytes=max_upload_bytes
         )
+        input_stat = await run_in_threadpool(input_path_for_job.stat)
+        file_size_bytes = input_stat.st_size
         logger.info(
             f"Tâche {job_id}: Fichier '{input_filename_for_job}' (orig: {file.filename}) téléversé."
         )
@@ -431,7 +437,15 @@ async def anonymize_file_endpoint(
     finally:
         await file.close()
 
-    if not await current_job.set_initial_status_async():
+    file_type_for_status = (
+        file_type or file_extension.lstrip(".") or "unknown"
+    ).lower()
+    if not await current_job.set_initial_status_async(
+        original_filename=file.filename,
+        input_filename=input_filename_for_job,
+        file_type=file_type_for_status,
+        file_size_bytes=file_size_bytes,
+    ):
         logger.error(
             f"Tâche {job_id}: Échec de l'écriture du statut initial 'pending'."
         )
