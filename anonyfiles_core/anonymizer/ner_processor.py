@@ -10,12 +10,6 @@ from .spacy_engine import EMAIL_REGEX, DATE_REGEX, PHONE_REGEX, IBAN_REGEX
 
 logger = logging.getLogger(__name__)  #
 
-try:
-    from faker.providers.person.fr_FR import Provider as FrenchPersonProvider
-except ImportError:  # pragma: no cover - faker is a project dependency
-    FrenchPersonProvider = None
-
-
 _EXTRA_FRENCH_FIRST_NAMES = {
     "ambre",
 }
@@ -33,13 +27,18 @@ def _normalize_name_key(value: str) -> str:
     return without_accents.replace("’", "'").lower()
 
 
+def _get_faker_french_first_names() -> tuple[str, ...]:
+    try:
+        from faker.providers.person.fr_FR import Provider as FrenchPersonProvider
+    except ImportError:  # pragma: no cover - faker is a project dependency
+        return ()
+
+    return tuple(getattr(FrenchPersonProvider, "first_names", ()))
+
+
 def _load_french_first_names() -> set[str]:
     names = set(_EXTRA_FRENCH_FIRST_NAMES)
-    if FrenchPersonProvider is not None:
-        names.update(
-            _normalize_name_key(name)
-            for name in getattr(FrenchPersonProvider, "first_names", ())
-        )
+    names.update(_normalize_name_key(name) for name in _get_faker_french_first_names())
     return names
 
 
