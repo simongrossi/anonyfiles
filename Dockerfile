@@ -21,8 +21,11 @@ COPY . .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir --no-deps .
-# Si vous devez télécharger le modèle spacy ici pour qu'il soit dans l'image :
-RUN python -m spacy download fr_core_news_md
+# Modèle spaCy embarqué dans l'image. Installation directe depuis la wheel
+# officielle pour bénéficier des retries/timeout de pip pendant les builds serveur.
+ARG SPACY_MODEL_VERSION=3.8.0
+RUN pip install --no-cache-dir --retries 8 --timeout 120 \
+    "https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-${SPACY_MODEL_VERSION}/fr_core_news_md-${SPACY_MODEL_VERSION}-py3-none-any.whl"
 
 # Étape 2 : Image finale (Runtime)
 FROM python:3.11-slim
