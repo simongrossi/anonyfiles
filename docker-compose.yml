@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Service API (Backend Python)
   api:
@@ -25,6 +23,6 @@ services:
     build:
       context: ./anonyfiles_gui
     ports:
-      - "3000:80" # Accessible via http://localhost:3000
+      - "127.0.0.1:3000:80" # Accessible only from the host reverse proxy
     depends_on:
       - api
