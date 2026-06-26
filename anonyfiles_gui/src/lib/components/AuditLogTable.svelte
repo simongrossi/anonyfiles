@@ -1,6 +1,6 @@
 <!-- #anonyfiles/anonyfiles_gui/src/lib/components/AuditLogTable.svelte -->
 <script lang="ts">
-  export let logs: any[] = [];
+  let { logs = [] }: { logs?: any[] } = $props();
 </script>
 
 <table class="min-w-full divide-y divide-zinc-200 bg-zinc-50 rounded-lg overflow-hidden">

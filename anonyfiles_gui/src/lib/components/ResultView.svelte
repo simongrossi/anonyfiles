@@ -17,11 +17,13 @@
     CircleCheck,
   } from 'lucide-svelte';
 
-  let viewMode: 'anonymized' | 'original' | 'split' | 'mapping' = 'anonymized';
+  let viewMode: 'anonymized' | 'original' | 'split' | 'mapping' = $state('anonymized');
 
-  $: hasOutput = $outputText && $outputText.trim().length > 0;
+  const hasOutput = $derived($outputText && $outputText.trim().length > 0);
 
-  $: totalReplacements = $auditLog.reduce((sum, item) => sum + (item.count || 0), 0);
+  const totalReplacements = $derived(
+    $auditLog.reduce((sum, item) => sum + (item.count || 0), 0)
+  );
 
   const tabs: Array<{ id: typeof viewMode; label: string; icon: typeof FileText }> = [
     { id: 'anonymized', label: 'Anonymisé', icon: FileText },
@@ -57,7 +59,7 @@
     }, 200);
   }
 
-  let copied = false;
+  let copied = $state(false);
   async function copyOutput() {
     try {
       await navigator.clipboard.writeText($outputText);

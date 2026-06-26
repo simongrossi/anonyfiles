@@ -2,13 +2,20 @@
   import { createEventDispatcher } from 'svelte';
   import { FileUp, FileText, X } from 'lucide-svelte';
 
-  export let fileName: string = '';
-  export let id: string = 'file-upload-' + Math.random().toString(36).substring(2, 9);
-  export let accept: string = ".txt,.csv,.xlsx,.docx,.pdf,.json";
-  export let dropZoneId: string;
+  let {
+    fileName = '',
+    id = 'file-upload-' + Math.random().toString(36).substring(2, 9),
+    accept = '.txt,.csv,.xlsx,.docx,.pdf,.json',
+    dropZoneId,
+  }: {
+    fileName?: string;
+    id?: string;
+    accept?: string;
+    dropZoneId: string;
+  } = $props();
 
   const dispatch = createEventDispatcher();
-  let internalDragActive = false;
+  let internalDragActive = $state(false);
 
   function handleDrop(event: DragEvent) {
     event.preventDefault();
@@ -52,11 +59,15 @@
     dispatch('clear', { zoneId: dropZoneId });
   }
 
-  $: formats = accept && accept !== '*/*'
-    ? accept.split(',').map((ext) => ext.trim().replace(/^\./, '').toUpperCase()).join(' · ')
-    : 'Tous formats';
+  const formats = $derived(
+    accept && accept !== '*/*'
+      ? accept.split(',').map((ext) => ext.trim().replace(/^\./, '').toUpperCase()).join(' · ')
+      : 'Tous formats'
+  );
 
-  $: shortName = fileName && fileName.length > 44 ? fileName.slice(0, 41) + '…' : fileName;
+  const shortName = $derived(
+    fileName && fileName.length > 44 ? fileName.slice(0, 41) + '…' : fileName
+  );
 </script>
 
 <div

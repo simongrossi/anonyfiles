@@ -1,7 +1,9 @@
 <script lang="ts">
-  export let headers: string[] = [];
-  export let rows: string[][] = [];
-  export let hasHeader: boolean = true;
+  let {
+    headers = [],
+    rows = [],
+    hasHeader = true,
+  }: { headers?: string[]; rows?: string[][]; hasHeader?: boolean } = $props();
 </script>
 
 <div class="overflow-x-auto mb-4 rounded-xl border border-zinc-200 dark:border-zinc-700">

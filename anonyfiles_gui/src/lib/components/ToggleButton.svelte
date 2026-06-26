@@ -1,6 +1,5 @@
 <script lang="ts">
-  export let checked: boolean;
-  export let onToggle: () => void;
+  let { checked, onToggle }: { checked: boolean; onToggle: () => void } = $props();
 </script>
 
 <button

@@ -14,7 +14,7 @@
     return 'auto';
   }
 
-  let themeMode: ThemeMode = getStoredThemeMode();
+  let themeMode = $state<ThemeMode>(getStoredThemeMode());
 
   function applyTheme(modeToApply: ThemeMode) {
     if (typeof window === 'undefined') return;
@@ -68,12 +68,12 @@
     };
   });
 
-  $: {
+  $effect(() => {
     if (typeof window !== 'undefined') {
       applyTheme(themeMode);
       setupSystemThemeListener();
     }
-  }
+  });
 
   const themeOptions: Array<{ id: ThemeMode; label: string; icon: typeof Sun }> = [
     { id: 'light', label: 'Clair', icon: Sun },

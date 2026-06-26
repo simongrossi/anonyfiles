@@ -1,26 +1,23 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import * as XLSX from "xlsx";
 
-  export let file: File | null = null;
-  export let hasHeader: boolean = true;
+  let {
+    file = null,
+    hasHeader = true,
+  }: { file?: File | null; hasHeader?: boolean } = $props();
 
-  let sheetNames: string[] = [];
-  let selectedSheet = "";
-  let previewHeaders: string[] = [];
-  let previewTable: string[][] = [];
+  let sheetNames: string[] = $state([]);
+  let selectedSheet = $state("");
+  let previewHeaders: string[] = $state([]);
+  let previewTable: string[][] = $state([]);
   const PREVIEW_ROW_LIMIT = 10;
-  let loading = false;
-  let error = "";
+  let loading = $state(false);
+  let error = $state("");
 
-  // Lecture du fichier XLSX et extraction des noms de feuilles
-  onMount(() => {
-    if (file) {
-      readXlsx(file);
-    }
+  // Lit le fichier dès qu'il change (couvre aussi le montage initial).
+  $effect(() => {
+    if (file) readXlsx(file);
   });
-
-  $: if (file) readXlsx(file);
 
   async function readXlsx(file: File) {
     loading = true;

@@ -1,6 +1,11 @@
 <script lang="ts">
-  export let mode: 'auto' | 'light' | 'dark' = 'auto';
-  export let onChange: (mode: 'auto' | 'light' | 'dark') => void;
+  let {
+    mode = 'auto',
+    onChange,
+  }: {
+    mode?: 'auto' | 'light' | 'dark';
+    onChange: (mode: 'auto' | 'light' | 'dark') => void;
+  } = $props();
 </script>
 
 <div class="flex gap-3">

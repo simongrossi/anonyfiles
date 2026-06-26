@@ -3,9 +3,9 @@
   import { auditLog } from '../stores/anonymizationStore';
   import { ScrollText, Hash, Tag } from 'lucide-svelte';
 
-  $: totalOccurrences = $auditLog.reduce((sum, item) => sum + (item.count || 0), 0);
-  $: distinctPatterns = $auditLog.length;
-  $: distinctTypes = new Set($auditLog.map((i) => i.type || 'n/a')).size;
+  const totalOccurrences = $derived($auditLog.reduce((sum, item) => sum + (item.count || 0), 0));
+  const distinctPatterns = $derived($auditLog.length);
+  const distinctTypes = $derived(new Set($auditLog.map((i) => i.type || 'n/a')).size);
 </script>
 
 <div class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">

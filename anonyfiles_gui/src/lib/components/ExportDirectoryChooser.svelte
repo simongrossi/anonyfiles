@@ -1,7 +1,9 @@
 <script lang="ts">
   import { open } from '@tauri-apps/plugin-dialog';
-  export let exportDir: string;
-  export let onDirChange: (dir: string) => void;
+  let {
+    exportDir,
+    onDirChange,
+  }: { exportDir: string; onDirChange: (dir: string) => void } = $props();
 
   async function chooseExportDir() {
     const selected = await open({

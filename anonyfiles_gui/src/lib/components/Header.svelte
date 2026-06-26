@@ -3,7 +3,7 @@
   import { Menu, ShieldCheck } from 'lucide-svelte';
   import { sidebarState } from '../stores/sidebarStore';
 
-  export let title: string = 'Anonyfiles';
+  let { title = 'Anonyfiles' }: { title?: string } = $props();
 </script>
 
 <header
