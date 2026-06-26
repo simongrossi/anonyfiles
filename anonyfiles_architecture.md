@@ -56,13 +56,19 @@ graph TD
 
 Contient :
 
-- Pipeline NLP (spaCy)
+- Pipeline NLP (spaCy) + regex prioritaires (`EMAIL`, `DATE`, `PHONE`, `IBAN`, `ADDRESS`)
+- **Mode strict** (`strict_mode`) : heuristiques agressives (prénoms isolés, adresses,
+  téléphones, emails obfusqués, acronymes, lignes contextualisées) privilégiant
+  l'absence de fuite au prix de faux positifs
+- **Ajout manuel d'entités** : injection des entités fournies par l'utilisateur
 - Processus de lecture/écriture multi-formats (`.docx`, `.pdf`, `.xlsx`, `.txt`...)
 - Stratégies d’anonymisation :
   - Faker
   - Codes séquentiels
   - Redact Masqué
   - Placeholder
+- **Scanner anti-fuite** (`privacy_warning_scanner`) : re-scan de la sortie finale,
+  remonte `privacy_warnings` / `privacy_warnings_count` sans bloquer le résultat
 - Mapping & logs d’audit
 
 > C’est la couche **pure**, entièrement réutilisable sans interface.
@@ -149,12 +155,13 @@ sequenceDiagram
     
     API->>Worker: Enqueue job
     Worker->>FS: Status running + progress
-    Worker->>Core: Core.anonymize()
-    Core->>Core: Détection NLP
+    Worker->>Core: Core.anonymize() (strict_mode + entités manuelles)
+    Core->>Core: Détection NLP + regex
     Core->>Core: Replacements
+    Core->>Core: Scan anti-fuite (privacy_warnings)
     Core->>FS: Écrit outputs (mapping + anonymized)
     
-    Worker->>FS: Status terminal + métriques
+    Worker->>FS: Status terminal + métriques + privacy_warnings
     
     Client->>API: GET /anonymize_status/{job_id}
     API->>Client: status + liens fichiers

@@ -8,6 +8,7 @@ export const ANONYMIZATION_OPTION_KEYS = [
   'anonymizePhones',
   'anonymizeIbans',
   'anonymizeAddresses',
+  'strictMode',
 ] as const;
 
 export type AnonymizationOptionKey = (typeof ANONYMIZATION_OPTION_KEYS)[number];
@@ -37,6 +38,7 @@ export const ANONYMIZATION_OPTIONS: AnonymizationOption[] = [
   { key: 'anonymizePhones', label: 'Téléphones (PHONE)', default: false },
   { key: 'anonymizeIbans', label: 'IBAN', default: false },
   { key: 'anonymizeAddresses', label: 'Adresses (ADDRESS)', default: false },
+  { key: 'strictMode', label: 'Mode strict', default: false },
 ];
 
 export function createDefaultAnonymizationSelection(): AnonymizationSelection {
@@ -53,7 +55,7 @@ export const ANONYMIZATION_PROFILES: AnonymizationProfile[] = [
   {
     id: 'strict-rgpd',
     label: 'Strict RGPD',
-    description: 'Toutes les catégories disponibles sont anonymisées.',
+    description: 'Toutes les catégories disponibles sont anonymisées avec les heuristiques strictes.',
     selection: selection({
       anonymizePersons: true,
       anonymizeLocations: true,
@@ -64,6 +66,7 @@ export const ANONYMIZATION_PROFILES: AnonymizationProfile[] = [
       anonymizePhones: true,
       anonymizeIbans: true,
       anonymizeAddresses: true,
+      strictMode: true,
     }),
   },
   {

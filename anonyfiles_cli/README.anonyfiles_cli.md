@@ -247,7 +247,7 @@ replacements:
  options:
  locale: fr_FR
  ORG:
- type: code
+ type: codes
  options:
  prefix: ORG_
  padding: 4

@@ -4,6 +4,7 @@
     outputText,
     mappingCSV,
     auditLog,
+    privacyWarnings,
     outputLineCount,
     outputCharCount,
   } from '../stores/anonymizationStore';
@@ -15,11 +16,13 @@
     Copy,
     Download,
     CircleCheck,
+    AlertTriangle,
   } from 'lucide-svelte';
 
   let viewMode: 'anonymized' | 'original' | 'split' | 'mapping' = $state('anonymized');
 
   const hasOutput = $derived($outputText && $outputText.trim().length > 0);
+  const hasPrivacyWarnings = $derived($privacyWarnings.length > 0);
 
   const totalReplacements = $derived(
     $auditLog.reduce((sum, item) => sum + (item.count || 0), 0)
@@ -92,6 +95,32 @@
     </header>
 
     <div class="ui-section-body space-y-4">
+      {#if hasPrivacyWarnings}
+        <div
+          class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/25 text-amber-900 dark:text-amber-100 px-4 py-3"
+          role="status"
+        >
+          <div class="flex items-start gap-2">
+            <AlertTriangle size={18} class="shrink-0 mt-0.5" />
+            <div class="min-w-0">
+              <strong class="font-semibold">Éléments suspects restants</strong>
+              <div class="mt-2 space-y-2 text-sm">
+                {#each $privacyWarnings as warning}
+                  <div>
+                    <span class="font-medium">{warning.message}</span>
+                    {#if warning.examples?.length}
+                      <span class="block mt-1 text-xs text-amber-800/80 dark:text-amber-100/80 wrap-break-word">
+                        Exemples : {warning.examples.join(', ')}
+                      </span>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          </div>
+        </div>
+      {/if}
+
       <!-- Segmented control -->
       <div class="grid grid-cols-2 sm:inline-flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 max-w-full gap-1">
         {#each tabs as tab}

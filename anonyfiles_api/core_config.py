@@ -99,6 +99,7 @@ class AnonymizationOptions(BaseModel):
     anonymizePhones: bool = True
     anonymizeIbans: bool = True
     anonymizeAddresses: bool = True
+    strictMode: bool = False
     # Par défaut `True` comme l'ancien code, sauf en présence de custom rules
     # où l'appelant (router) choisit d'inverser la valeur par défaut.
     anonymizeMisc: bool = True

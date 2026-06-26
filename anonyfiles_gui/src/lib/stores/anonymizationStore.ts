@@ -9,10 +9,20 @@ export interface AuditLogEntry {
   count: number; 
 }
 
+export interface PrivacyWarning {
+  kind: string;
+  label: string;
+  count: number;
+  examples: string[];
+  severity: 'high' | 'medium' | 'low' | string;
+  message: string;
+}
+
 export const inputText = writable('');
 export const outputText = writable('');
 export const auditLog = writable<AuditLogEntry[]>([]); // << TYPEZ VOTRE STORE ICI
 export const mappingCSV = writable('');
+export const privacyWarnings = writable<PrivacyWarning[]>([]);
 export const isLoading = writable(false);
 export const errorMessage = writable('');
 export const inputLineCount = writable(0);

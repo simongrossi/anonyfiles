@@ -25,6 +25,7 @@ QUALITY_CONFIG = {
         "EMAIL": {"type": "redact", "options": {"text": "EMAIL_TOKEN"}},
         "PHONE": {"type": "redact", "options": {"text": "PHONE_TOKEN"}},
         "IBAN": {"type": "redact", "options": {"text": "IBAN_TOKEN"}},
+        "ADDRESS": {"type": "redact", "options": {"text": "ADDRESS_TOKEN"}},
     },
 }
 
@@ -36,6 +37,22 @@ def _load_corpus_cases():
 def _read_mapping_rows(mapping_path: Path):
     with mapping_path.open(encoding="utf-8", newline="") as mapping_file:
         return list(csv.DictReader(mapping_file))
+
+
+def _assert_no_sensitive_leaks(case_id: str, anonymized_text: str, expectations: dict):
+    folded_output = anonymized_text.casefold()
+
+    for literal in expectations.get(
+        "sensitive_literals", expectations["absent_literals"]
+    ):
+        assert (
+            literal.casefold() not in folded_output
+        ), f"{case_id}: sensitive literal leaked in anonymized output: {literal!r}"
+
+    for pattern in expectations.get("sensitive_patterns", []):
+        assert (
+            re.search(pattern, anonymized_text, re.IGNORECASE) is None
+        ), f"{case_id}: sensitive pattern leaked in anonymized output: {pattern!r}"
 
 
 @pytest.mark.parametrize(
@@ -75,6 +92,8 @@ def test_quality_anonymization_corpus(case, tmp_path):
 
     anonymized_text = output_path.read_text(encoding="utf-8")
     expectations = case["expect"]
+
+    _assert_no_sensitive_leaks(case["id"], anonymized_text, expectations)
 
     for literal in expectations["absent_literals"]:
         assert literal not in anonymized_text

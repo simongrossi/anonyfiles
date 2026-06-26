@@ -1,4 +1,5 @@
 import importlib
+import json
 import sys
 import uuid
 
@@ -54,5 +55,38 @@ def test_cancel_endpoint_marks_known_orphan_job_cancelled(tmp_path):
         assert payload["cancel_requested"] is True
         assert payload["status"] == "cancelled"
         assert payload["state"] == "cancelled"
+    finally:
+        core_config.JOBS_DIR = original_jobs_dir
+
+
+def test_finished_job_status_persists_privacy_warnings(tmp_path):
+    original_jobs_dir = core_config.JOBS_DIR
+    core_config.JOBS_DIR = tmp_path
+    try:
+        job_id = str(uuid.uuid4())
+        job = Job(job_id)
+        job.set_initial_status_sync()
+        warnings = [
+            {
+                "kind": "EMAIL",
+                "label": "Emails possibles",
+                "count": 1,
+                "examples": ["contact@example.com"],
+                "severity": "high",
+                "message": "Il reste peut-être 1 email possible dans le résultat.",
+            }
+        ]
+
+        assert job.set_status_as_finished_sync(
+            {
+                "audit_log": [],
+                "privacy_warnings": warnings,
+                "privacy_warnings_count": 1,
+            }
+        )
+
+        payload = json.loads(job.status_file_path.read_text(encoding="utf-8"))
+        assert payload["privacy_warnings"] == warnings
+        assert payload["privacy_warnings_count"] == 1
     finally:
         core_config.JOBS_DIR = original_jobs_dir

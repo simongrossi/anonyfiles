@@ -46,6 +46,7 @@ def generate_code_replacement(
         "MISC": "DIVERS",
         "PHONE": "TEL",
         "IBAN": "IBAN_ID",
+        "ADDRESS": "ADRESSE",
     }
     inner_tag = options.get("prefix", default_inner_tags.get(label, label.upper()))
     padding = options.get("padding", 3)

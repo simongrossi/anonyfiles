@@ -55,6 +55,7 @@ ALLOWED_ENTITY_LABELS = {
     "IBAN",
     "ADDRESS",
 }
+ALLOWED_ENTITY_DECISION_SOURCES = {"detected", "manual"}
 
 
 def _prepare_engine_options(
@@ -67,6 +68,9 @@ def _prepare_engine_options(
     return {
         "exclude_entities_cli": exclude_entities,
         "custom_replacement_rules": custom_rules,
+        "strict_mode": bool(
+            config_options.get("strictMode", config_options.get("strict_mode", False))
+        ),
     }
 
 
@@ -98,6 +102,9 @@ def _parse_entity_decisions(entity_decisions: Optional[str]) -> list[dict[str, A
         text = str(raw_decision.get("text", "")).strip()
         label = str(raw_decision.get("label", "")).strip().upper()
         enabled = bool(raw_decision.get("enabled", True))
+        source = str(raw_decision.get("source", "detected")).strip().lower()
+        if bool(raw_decision.get("manual", False)):
+            source = "manual"
 
         if not text:
             raise ValueError(f"entity_decisions[{index}].text est requis.")
@@ -105,24 +112,37 @@ def _parse_entity_decisions(entity_decisions: Optional[str]) -> list[dict[str, A
             raise ValueError(
                 f"entity_decisions[{index}].label invalide: {label or 'vide'}."
             )
+        if source not in ALLOWED_ENTITY_DECISION_SOURCES:
+            raise ValueError(
+                f"entity_decisions[{index}].source invalide: {source or 'vide'}."
+            )
 
-        parsed_decisions.append({"text": text, "label": label, "enabled": enabled})
+        parsed_decisions.append(
+            {"text": text, "label": label, "enabled": enabled, "source": source}
+        )
 
     return parsed_decisions
 
 
 def _engine_entity_decision_options(
     entity_decisions: list[dict[str, Any]],
-) -> tuple[set[str], dict[str, str]]:
+) -> tuple[set[str], dict[str, str], list[dict[str, str]]]:
     ignored_entity_texts = {
-        decision["text"] for decision in entity_decisions if not decision["enabled"]
+        decision["text"]
+        for decision in entity_decisions
+        if not decision["enabled"] and decision.get("source") != "manual"
     }
     entity_label_overrides = {
         decision["text"]: decision["label"]
         for decision in entity_decisions
-        if decision["enabled"]
+        if decision["enabled"] and decision.get("source") != "manual"
     }
-    return ignored_entity_texts, entity_label_overrides
+    manual_entities = [
+        {"text": decision["text"], "label": decision["label"]}
+        for decision in entity_decisions
+        if decision["enabled"] and decision.get("source") == "manual"
+    ]
+    return ignored_entity_texts, entity_label_overrides, manual_entities
 
 
 def _preview_entities_from_engine_result(
@@ -372,8 +392,8 @@ def run_anonymization_job_sync(
             error=None,
         )
         engine_opts = _prepare_engine_options(config_options, custom_rules)
-        ignored_entity_texts, entity_label_overrides = _engine_entity_decision_options(
-            entity_decisions or []
+        ignored_entity_texts, entity_label_overrides, manual_entities = (
+            _engine_entity_decision_options(entity_decisions or [])
         )
         processor_kwargs = _prepare_processor_kwargs(input_path, has_header)
 
@@ -393,6 +413,7 @@ def run_anonymization_job_sync(
             config=passed_base_config,
             ignored_entity_texts=ignored_entity_texts,
             entity_label_overrides=entity_label_overrides,
+            manual_entities=manual_entities,
             **engine_opts,
         )
         engine_result = _execute_engine_anonymization(

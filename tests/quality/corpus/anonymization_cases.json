@@ -29,7 +29,18 @@
         "jean.dupont@example.com",
         "06 12 34 56 78"
       ],
+      "sensitive_literals": [
+        "Jean Dupont",
+        "Beta Services",
+        "4 avenue de la Republique, 69002 Lyon",
+        "15/04/1990",
+        "jean.dupont@example.com",
+        "06 12 34 56 78"
+      ],
       "absent_patterns": [
+        "\\bLyon\\b"
+      ],
+      "sensitive_patterns": [
         "\\bLyon\\b"
       ],
       "present_literals": [
@@ -99,7 +110,19 @@
         "07 98 76 54 32",
         "FR76 3000 6000 0112 3456 7890 189"
       ],
+      "sensitive_literals": [
+        "Sophie Laurent",
+        "Alpha Audit",
+        "18 boulevard Pasteur, 44000 Nantes",
+        "25 juin 2026",
+        "sophie.laurent@example.fr",
+        "07 98 76 54 32",
+        "FR76 3000 6000 0112 3456 7890 189"
+      ],
       "absent_patterns": [
+        "\\bNantes\\b"
+      ],
+      "sensitive_patterns": [
         "\\bNantes\\b"
       ],
       "present_literals": [
@@ -139,6 +162,136 @@
         "Nantes",
         "18 boulevard Pasteur, 44000 Nantes"
       ]
+    }
+  },
+  {
+    "id": "mobile_standalone_first_names",
+    "description": "Texte saisi/copié depuis mobile avec nom complet puis prénoms isolés sur des lignes séparées.",
+    "input": "Simon Grossi\n\nKMCL\n\nAlencon\n\nPierre\nAmbre\nJe suis là et tu es la bas\n",
+    "custom_rules": [],
+    "expect": {
+      "absent_literals": [
+        "Simon Grossi",
+        "Pierre",
+        "Ambre"
+      ],
+      "sensitive_literals": [
+        "Simon Grossi",
+        "Pierre",
+        "Ambre"
+      ],
+      "absent_patterns": [],
+      "sensitive_patterns": [],
+      "present_literals": [
+        "PER_TOKEN_1",
+        "PER_TOKEN_2",
+        "PER_TOKEN_3"
+      ],
+      "preserved_literals": [
+        "KMCL",
+        "Alencon",
+        "Je suis là et tu es la bas"
+      ],
+      "spacy_labels": [
+        "PER"
+      ],
+      "mapping_originals": [
+        "Simon Grossi",
+        "Pierre",
+        "Ambre"
+      ],
+      "custom_originals": []
+    }
+  },
+  {
+    "id": "contract_copy_paste_strict",
+    "description": "Contrat copié depuis un document avec accents, ponctuation, email, téléphone international et adresse française.",
+    "input": "Contrat de prestation.\nInterlocutrice: Élise Martin.\nAdresse personnelle: 12 rue Victor-Hugo, 75015 Paris.\nEmail: elise.martin+rh@example.org.\nTéléphone: +33 6 11 22 33 44.\nRéférence non sensible: SIREN-2026 et Parisien.\n",
+    "custom_rules": [],
+    "expect": {
+      "absent_literals": [
+        "Élise Martin",
+        "12 rue Victor-Hugo, 75015 Paris",
+        "elise.martin+rh@example.org",
+        "+33 6 11 22 33 44"
+      ],
+      "sensitive_literals": [
+        "Élise Martin",
+        "12 rue Victor-Hugo, 75015 Paris",
+        "elise.martin+rh@example.org",
+        "+33 6 11 22 33 44"
+      ],
+      "absent_patterns": [],
+      "sensitive_patterns": [],
+      "present_literals": [
+        "PER_TOKEN_1",
+        "ADDRESS_TOKEN_1",
+        "EMAIL_TOKEN_1",
+        "PHONE_TOKEN_1"
+      ],
+      "preserved_literals": [
+        "SIREN-2026",
+        "Parisien"
+      ],
+      "spacy_labels": [
+        "PER",
+        "ADDRESS",
+        "EMAIL",
+        "PHONE"
+      ],
+      "mapping_originals": [
+        "Élise Martin",
+        "12 rue Victor-Hugo, 75015 Paris",
+        "elise.martin+rh@example.org",
+        "+33 6 11 22 33 44"
+      ],
+      "custom_originals": []
+    }
+  },
+  {
+    "id": "support_ticket_rh_accents",
+    "description": "Ticket RH avec prénom rare, apostrophe typographique, email, téléphone pointé et adresse avec accent.",
+    "input": "Ticket RH #4821\nDemandeuse: Ambre Lenoir\nContact: ambre.lenoir@example.com\nTéléphone: 06.11.22.33.44\nAdresse: 7 allée des Érables, 31000 Toulouse.\nConserver: AMBRE-2026, ToulouseFC, dossier-4821.\n",
+    "custom_rules": [],
+    "expect": {
+      "absent_literals": [
+        "Ambre Lenoir",
+        "ambre.lenoir@example.com",
+        "06.11.22.33.44",
+        "7 allée des Érables, 31000 Toulouse"
+      ],
+      "sensitive_literals": [
+        "Ambre Lenoir",
+        "ambre.lenoir@example.com",
+        "06.11.22.33.44",
+        "7 allée des Érables, 31000 Toulouse"
+      ],
+      "absent_patterns": [],
+      "sensitive_patterns": [],
+      "present_literals": [
+        "PER_TOKEN_1",
+        "EMAIL_TOKEN_1",
+        "PHONE_TOKEN_1",
+        "ADDRESS_TOKEN_1"
+      ],
+      "preserved_literals": [
+        "AMBRE-2026",
+        "ToulouseFC",
+        "dossier-4821"
+      ],
+      "spacy_labels": [
+        "PER",
+        "EMAIL",
+        "PHONE",
+        "ADDRESS"
+      ],
+      "mapping_originals": [
+        "Ambre Lenoir",
+        "ambre.lenoir@example.com",
+        "06.11.22.33.44",
+        "7 allée des Érables, 31000 Toulouse"
+      ],
+      "custom_originals": []
     }
   }
 ]

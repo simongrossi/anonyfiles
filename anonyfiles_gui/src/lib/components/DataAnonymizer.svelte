@@ -1,6 +1,6 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import { Eye, ListChecks, Sparkles, RotateCcw, Trash2, FileText, LoaderCircle } from 'lucide-svelte';
+  import { Eye, ListChecks, Sparkles, RotateCcw, Trash2, FileText, LoaderCircle, Plus } from 'lucide-svelte';
   import FileDropZone from './FileDropZone.svelte';
   import CustomRulesManager from './CustomRulesManager.svelte';
   import AnonymizationOptions from './AnonymizationOptions.svelte';
@@ -50,6 +50,9 @@
   let previewError = $state("");
   let isPreviewLoading = $state(false);
   let previewSignature = $state("");
+  let manualEntityText = $state("");
+  let manualEntityLabel = $state("PER");
+  let manualEntityError = $state("");
 
   // AJOUTÉ : Fonction pour mettre à jour les compteurs pour la saisie manuelle
   function updateInputCountsFromTextarea(currentText: string) {
@@ -150,11 +153,44 @@
   }
 
   function previewEntityDecisions(): EntityDecision[] {
-    return previewEntities.map(({ text, label, enabled }) => ({
+    return previewEntities.map(({ text, label, enabled, source }) => ({
       text,
       label,
-      enabled
+      enabled,
+      source
     }));
+  }
+
+  function addManualPreviewEntity() {
+    const text = manualEntityText.trim();
+    if (!text) {
+      manualEntityError = "Saisis le texte exact à anonymiser.";
+      return;
+    }
+    if (previewEntities.some((entity) => entity.text === text)) {
+      previewEntities = previewEntities.map((entity) =>
+        entity.text === text
+          ? { ...entity, label: manualEntityLabel, enabled: true }
+          : entity
+      );
+    } else {
+      previewEntities = [
+        ...previewEntities,
+        {
+          text,
+          label: manualEntityLabel,
+          enabled: true,
+          count: 0,
+          source: 'manual'
+        }
+      ];
+    }
+    manualEntityText = "";
+    manualEntityError = "";
+  }
+
+  function removePreviewEntity(index: number) {
+    previewEntities = previewEntities.filter((_entity, i) => i !== index);
   }
 
   function resetAll() {
@@ -178,6 +214,9 @@
     previewError = "";
     previewSignature = "";
     isPreviewLoading = false;
+    manualEntityText = "";
+    manualEntityLabel = "PER";
+    manualEntityError = "";
     dragActive = false;
     customReplacementRules.set([]);
     currentJobId.set(null);
@@ -303,6 +342,41 @@
         {/if}
       </div>
 
+      <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_auto]">
+        <input
+          type="text"
+          class="ui-input"
+          placeholder="Texte exact"
+          bind:value={manualEntityText}
+          on:keydown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              addManualPreviewEntity();
+            }
+          }}
+        />
+        <select class="ui-input" bind:value={manualEntityLabel}>
+          {#each entityLabels as label}
+            <option value={label}>{label}</option>
+          {/each}
+        </select>
+        <button
+          type="button"
+          class="ui-btn-secondary justify-center"
+          on:click={addManualPreviewEntity}
+          disabled={$isLoading || !canAnonymize}
+        >
+          <Plus size={16} />
+          Ajouter
+        </button>
+      </div>
+
+      {#if manualEntityError}
+        <div class="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-3 py-2 text-sm">
+          {manualEntityError}
+        </div>
+      {/if}
+
       {#if previewError}
         <div class="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-3 py-2 text-sm">
           {previewError}
@@ -318,6 +392,7 @@
                 <th class="px-3 py-2 text-left">Entité</th>
                 <th class="w-32 px-3 py-2 text-left">Type</th>
                 <th class="w-24 px-3 py-2 text-right">Occ.</th>
+                <th class="w-10 px-3 py-2 text-right"></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
@@ -333,6 +408,9 @@
                   </td>
                   <td class="px-3 py-2">
                     <span class="font-medium text-zinc-800 dark:text-zinc-100">{entity.text}</span>
+                    {#if entity.source === 'manual'}
+                      <span class="ml-2 ui-badge">manuel</span>
+                    {/if}
                   </td>
                   <td class="px-3 py-2">
                     <select
@@ -346,7 +424,19 @@
                       {/each}
                     </select>
                   </td>
-                  <td class="px-3 py-2 text-right tabular-nums">{entity.count}</td>
+                  <td class="px-3 py-2 text-right tabular-nums">
+                    {#if entity.source === 'manual'}—{:else}{entity.count}{/if}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      class="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-red-600 dark:hover:bg-zinc-700"
+                      on:click={() => removePreviewEntity(index)}
+                      aria-label="Retirer"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
                 </tr>
               {/each}
             </tbody>

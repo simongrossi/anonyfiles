@@ -45,7 +45,9 @@ def test_anonymize_preview_returns_detected_entities(monkeypatch):
     response = client.post(
         "/anonymize_preview/",
         files={"file": ("input.txt", b"Jean Dupont vit a Paris.")},
-        data={"config_options": json.dumps({"anonymizePersons": True})},
+        data={
+            "config_options": json.dumps({"anonymizePersons": True, "strictMode": True})
+        },
     )
 
     assert response.status_code == 200
@@ -55,6 +57,7 @@ def test_anonymize_preview_returns_detected_entities(monkeypatch):
     ]
     assert captured["anonymize_kwargs"]["dry_run"] is True
     assert captured["anonymize_kwargs"]["output_path"] is None
+    assert captured["kwargs"]["strict_mode"] is True
 
 
 def test_entity_decisions_are_parsed_for_engine_options():
@@ -68,13 +71,22 @@ def test_entity_decisions_are_parsed_for_engine_options():
             [
                 {"text": "Jean Dupont", "label": "PER", "enabled": True},
                 {"text": "Paris", "label": "LOC", "enabled": False},
+                {
+                    "text": "ACME-Secret",
+                    "label": "ORG",
+                    "enabled": True,
+                    "source": "manual",
+                },
             ]
         )
     )
-    ignored_texts, label_overrides = _engine_entity_decision_options(decisions)
+    ignored_texts, label_overrides, manual_entities = _engine_entity_decision_options(
+        decisions
+    )
 
     assert ignored_texts == {"Paris"}
     assert label_overrides == {"Jean Dupont": "PER"}
+    assert manual_entities == [{"text": "ACME-Secret", "label": "ORG"}]
 
 
 def test_entity_decisions_reject_invalid_labels():

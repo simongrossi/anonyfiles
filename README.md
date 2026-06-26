@@ -395,10 +395,34 @@ passés à la CLI lorsque ces informations sont disponibles.
 * **CLI :** Voir [`anonyfiles_cli/README.md`](anonyfiles_cli/README.md)
 * **GUI :** Voir [`anonyfiles_gui/README.md`](anonyfiles_gui/README.md)
 * **API :** Voir [`anonyfiles_api/README.md`](anonyfiles_api/README.md)
+* **Roadmap technique :** Voir [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
 ## 🚣️ Roadmap
+
+### Priorité immédiate
+
+La priorité produit actuelle est la **fiabilité de l'anonymisation** : éviter
+qu'une donnée sensible reste visible alors que l'utilisateur croit son document
+anonymisé. Les prochains chantiers doivent donc d'abord renforcer l'anti-fuite,
+les tests qualité et le mode strict, avant les gros ajouts de workflow.
+Le détail opérationnel est suivi dans [`ROADMAP.md`](ROADMAP.md) sous les
+items P0.1 à P0.7 : scanners multi-formats, ajout manuel d'entités, mode strict
+moteur, détection de valeurs suspectes, validation téléphone/IBAN, corpus élargi
+et score de confiance.
+
+| Priorité actuelle | Thème                         | Objectif |
+| ----------------- | ----------------------------- | -------- |
+| P0                | Qualité anonymisation         | Corpus enrichi : prénoms rares, noms composés, adresses, faux positifs |
+| P0                | Tests anti-fuite en CI        | TXT/CSV/JSON/DOCX/XLSX/PDF, échec automatique si une valeur sensible reste visible |
+| P0                | Mode strict                   | Heuristiques backend activées par `strictMode` / profil Strict RGPD |
+| P0                | Alertes post-anonymisation    | Warnings API/GUI si des emails, téléphones, adresses ou valeurs capitalisées semblent rester |
+| P1                | Audit mobile complet          | Parcours upload → résultat → mapping sans débordement |
+| P1                | Sécurité production           | Vérifier `ANONYFILES_API_KEY` sur déploiement public |
+| P2                | Batch multi-fichiers          | ZIP final, erreurs par fichier, rapport global, reprise |
+
+### Roadmap fonctionnelle
 
 | Priorité | Thème                                            | État          | Commentaire / Lien tâche                 |
 | -------- | ------------------------------------------------ | ------------- | ---------------------------------------- |
@@ -412,10 +436,14 @@ passés à la CLI lorsque ces informations sont disponibles.
 | 8        | Support PDF / JSON                               | ✅ Fait        | PDF natif (fitz), JSON complet           |
 | 9        | Désanonymisation CLI (mapping inverse)           | ✅ Fait        | Commande `deanonymize` opérationnelle    |
 | 10       | GUI avancée (drag & drop, prévisualisation)      | 🚧 En cours   | Tauri/Svelte, profils, preview entités, UX moderne |
-| 11       | Copie, export, gestion multi-fichier dans la GUI | 🚧 En cours   | Copier/coller, sélection, batch          |
+| 11       | Copie, export, gestion multi-fichier dans la GUI | 🚧 En cours   | Copier/coller, sélection, batch complet  |
 | 12       | Support anglais, espagnol, allemand              | 🔜 À venir    | Modèles spaCy additionnels               |
 | 13       | API asynchrone avec suivi de jobs (`job_id`)     | ✅ Fait        | File de jobs interne : retry, timeout, annulation, progression/phases, audit complet |
 | 14       | Rétention / purge automatique des jobs           | ✅ Fait        | TTL configurable (`ANONYFILES_JOB_RETENTION_HOURS`), confidentialité |
+| 15       | Qualité anonymisation                            | 🔜 Priorité P0 | Corpus enrichi : prénoms rares, noms composés, adresses, faux positifs |
+| 16       | Audit mobile complet                             | 🔜 À venir    | Parcours upload → résultat → mapping sans débordement |
+| 17       | Sécurité production                              | 🔜 À vérifier | `ANONYFILES_API_KEY` sur déploiement public |
+| 18       | Maintenance CI / typage                          | 🔜 À venir    | Warnings GitHub Actions + extension progressive de `mypy` |
 
 ---
 

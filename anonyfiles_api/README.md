@@ -146,7 +146,8 @@ que `POST /anonymize/` : `file`, `config_options`, `custom_replacement_rules`,
 ```
 
 La GUI utilise ensuite `entity_decisions` sur `POST /anonymize/` pour exclure
-une entité précise (`enabled: false`) ou corriger son label avant le job final.
+une entité précise (`enabled: false`), corriger son label, ou ajouter une entité
+manuelle avant le job final.
 
 ### `POST /anonymize/`
 
@@ -155,11 +156,15 @@ Lance un job d’anonymisation en arrière-plan.
 **Paramètres :**
 
 - `file` : fichier à anonymiser (`multipart/form-data`)
-- `config_options` : chaîne JSON des options d’anonymisation (ex. : entités à exclure, règles personnalisées)
+- `config_options` : chaîne JSON des options d’anonymisation (ex. : entités à
+  exclure, règles personnalisées, `strictMode: true` pour activer les
+  heuristiques backend plus agressives)
 - `file_type` *(optionnel)*
 - `has_header` *(optionnel)*
 - `entity_decisions` *(optionnel)* : liste JSON issue de la prévisualisation,
-  au format `{"text": "...", "label": "PER", "enabled": true}`
+  au format `{"text": "...", "label": "PER", "enabled": true}`. Pour ajouter
+  une entité ratée par le moteur, envoyer aussi `"source": "manual"` ; le texte
+  exact sera remplacé dans tous les blocs où il apparaît.
 
 **Exemple de réponse :**
 ```json
@@ -187,6 +192,8 @@ disponibles :
 - `file_size_bytes`, `file_type`, `job_kind`, `timeout_seconds` ;
 - `duration_seconds`, `queue_wait_seconds`, `phase_durations_seconds` ;
 - `entities_detected_count`, `total_replacements` ;
+- `privacy_warnings_count` et `privacy_warnings` quand le scanner final voit des
+  emails, téléphones, IBAN, adresses, prénoms ou acronymes suspects restants ;
 - `final_status_category` (`success`, `engine_error`, `unexpected_error`,
   `timeout`, `cancelled`, etc.).
 
@@ -213,6 +220,17 @@ publient aussi des événements structurés préfixés par `job_event`.
   "file_type": "txt",
   "entities_detected_count": 12,
   "total_replacements": 12,
+  "privacy_warnings_count": 1,
+  "privacy_warnings": [
+    {
+      "kind": "EMAIL",
+      "label": "Emails possibles",
+      "count": 1,
+      "examples": ["contact@example.com"],
+      "severity": "high",
+      "message": "Il reste peut-être 1 email possible dans le résultat."
+    }
+  ],
   "anonymized_text": "...texte anonymisé...",
   "audit_log": [
     {

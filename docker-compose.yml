@@ -4,6 +4,9 @@ services:
     image: anonyfiles-api:latest
     build:
       context: .
+    # Une anonymisation peut faire un pic mémoire ; si le conteneur est tué
+    # (OOM, exit 137) il redémarre seul au lieu de laisser un 502 persistant.
+    restart: unless-stopped
     # SÉCURITÉ : Port 8000 retiré pour ne pas exposer l'API directement sur Internet.
     # Elle n'est accessible que par le service 'web' via le réseau interne Docker.
     expose:
@@ -22,6 +25,7 @@ services:
     image: anonyfiles-web:latest
     build:
       context: ./anonyfiles_gui
+    restart: unless-stopped
     ports:
       - "127.0.0.1:3000:80" # Accessible only from the host reverse proxy
     depends_on:

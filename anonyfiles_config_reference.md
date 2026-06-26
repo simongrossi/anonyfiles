@@ -25,6 +25,9 @@ Un fichier de configuration valide comporte trois sections principales :
 2. **`replacements`** — stratégie par type d'entité
 3. **`exclude_entities`** — entités à ignorer
 
+Une clé optionnelle **`strict_mode`** (ou `strictMode`) active les heuristiques
+agressives du moteur (voir plus bas).
+
 ### Exemple minimal
 
 ```yaml
@@ -32,13 +35,21 @@ spacy_model: fr_core_news_md
 
 replacements:
   PER:
-    type: faker
+    type: codes
     options:
-      locale: fr_FR
+      prefix: NOM
 
 exclude_entities:
   - LOC
 ```
+
+### Labels d'entités reconnus
+
+| Label | Source de détection |
+|---|---|
+| `PER`, `LOC`, `ORG`, `MISC` | spaCy (NER) |
+| `EMAIL`, `PHONE`, `IBAN`, `ADDRESS` | regex prioritaires |
+| `DATE` | regex (validée) |
 
 ---
 
@@ -62,38 +73,32 @@ Permet de choisir le modèle spaCy pour la reconnaissance des entités :
 
 ## 🛠️ Stratégies de Remplacement (`replacements`)
 
-Chaque entité (`PER`, `ORG`, `LOC`, `EMAIL`, etc.) peut utiliser une stratégie :
+Chaque entité (`PER`, `ORG`, `LOC`, `EMAIL`, etc.) peut utiliser une stratégie.
+Quatre `type` sont reconnus : **`codes`** (défaut), **`redact`**, **`placeholder`**
+et **`faker`**. Si le `type` est absent ou inconnu, le moteur retombe sur `codes`.
 
-### 1. **faker** — données réalistes
+### 1. **codes** — codification séquentielle *(défaut)*
 
-Génère des données plausibles (noms, adresses, entreprises).
-
-```yaml
-PER:
-  type: faker
-  options:
-    locale: fr_FR
-```
-
----
-
-### 2. **code** — codification séquentielle
-
-Conserve la distinction des entités dans le document.
+Génère un code unique et séquentiel par entité (ex. `{{NOM_001}}`), ce qui conserve
+la distinction des entités dans le document.
 
 ```yaml
 ORG:
-  type: code
+  type: codes
   options:
-    prefix: ENTREPRISE_
-    padding: 3    # → ENTREPRISE_001
+    prefix: ENTREPRISE   # → {{ENTREPRISE_001}}
+    padding: 3
 ```
+
+> ⚠️ Le type s'écrit **`codes`** (pluriel). Si `prefix` est omis, un tag par défaut
+> est utilisé selon le label (`PER`→`NOM`, `ORG`→`ENTREPRISE`, `ADDRESS`→`ADRESSE`…).
 
 ---
 
-### 3. **redact** — masquage statique
+### 2. **redact** — masquage statique
 
-Remplace par un texte fixe.
+Remplace par un texte fixe, rendu unique par un index (ex. `[EMAIL_MASQUÉ]` →
+`[EMAIL_MASQUÉ_1]`). Un `{}` dans `text` reçoit l'index.
 
 ```yaml
 EMAIL:
@@ -104,15 +109,33 @@ EMAIL:
 
 ---
 
-### 4. **placeholder** — format dynamique
+### 3. **placeholder** — format dynamique
 
-Permet de conserver le format tout en indiquant le type.
+Conserve le format en indiquant le type. Un `{}` dans `format` est remplacé par le
+**texte original** de l'entité.
 
 ```yaml
 DATE:
   type: placeholder
   options:
-    format: "<DATE:{}>"
+    format: "<DATE>"
+```
+
+---
+
+### 4. **faker** — données réalistes
+
+Génère des données plausibles (noms, villes, entreprises…). Le fournisseur est
+choisi automatiquement selon le label (`PER`→nom, `LOC`→ville, `ORG`→société,
+`EMAIL`, `PHONE`, `DATE`, `IBAN`). Options : `locale` et `consistent` (remplace
+toujours une même valeur par le même faux).
+
+```yaml
+PER:
+  type: faker
+  options:
+    locale: fr_FR
+    consistent: true
 ```
 
 ---
@@ -129,43 +152,76 @@ exclude_entities:
 
 ---
 
+## 🔒 Mode strict (`strict_mode`)
+
+Activé via `strict_mode: true` (ou `strictMode`) — la GUI/API le propage par
+`config_options` (profil **Strict RGPD**). Le moteur ajoute alors des heuristiques
+plus agressives : prénoms français isolés, adresses probables, téléphones variés,
+emails obfusqués (`nom [at] domaine [point] fr`), acronymes/lignes en majuscules et
+valeurs sensibles dans des lignes contextualisées (`Nom:`, `Adresse:`, `Tel:`,
+`Email:`, `Dossier:`…).
+
+> Compromis assumé : en mode strict, un faux positif est accepté plus facilement
+> qu'une fuite. Indépendamment de ce réglage, un scanner anti-fuite re-analyse la
+> sortie finale et remonte des `privacy_warnings` (voir
+> [`anonyfiles_api/README.md`](anonyfiles_api/README.md)).
+
+---
+
 ## 📋 Exemple Complet (`config_default.yaml`)
+
+Le fichier livré par défaut utilise la stratégie `codes` pour toutes les entités :
 
 ```yaml
 spacy_model: fr_core_news_md
 
 replacements:
-  # Personnes → faux noms FR
   PER:
-    type: faker
+    type: codes
     options:
-      locale: fr_FR
-
-  # Entreprises → codes
-  ORG:
-    type: code
-    options:
-      prefix: ORG_
+      prefix: NOM
       padding: 3
 
-  # Lieux → fausses adresses
   LOC:
-    type: faker
+    type: codes
     options:
-      locale: fr_FR
-      provider: address
+      prefix: FAKER_ADDRESS
+      padding: 3
 
-  # Dates → masque simple
+  ORG:
+    type: codes
+    options:
+      prefix: ENTREPRISE_ANONYME
+      padding: 3
+
   DATE:
-    type: redact
+    type: codes
     options:
-      text: "[DATE]"
+      prefix: DATE_ANONYME
+      padding: 3
 
-  # Emails → codes
   EMAIL:
-    type: code
+    type: codes
     options:
-      prefix: MAIL_
+      prefix: EMAIL
+      padding: 3
+
+  PHONE:
+    type: codes
+    options:
+      prefix: TEL
+      padding: 3
+
+  IBAN:
+    type: codes
+    options:
+      prefix: IBAN
+      padding: 3
+
+  ADDRESS:
+    type: codes
+    options:
+      prefix: ADRESSE
       padding: 3
 
 exclude_entities:

@@ -11,13 +11,23 @@ vi.mock('./api', () => ({
     anonymized_text: 'ok',
     audit_log: [],
     mapping_csv: '',
+    privacy_warnings: [
+      {
+        kind: 'EMAIL',
+        label: 'Emails possibles',
+        count: 1,
+        examples: ['contact@example.com'],
+        severity: 'high',
+        message: 'Il reste peut-être 1 email possible dans le résultat.',
+      },
+    ],
   })),
   debug: vi.fn(),
   debugError: vi.fn(),
 }));
 
 import { runAnonymization, runAnonymizationPreview } from './anonymize';
-import { inputText, errorMessage } from '../stores/anonymizationStore';
+import { inputText, errorMessage, privacyWarnings } from '../stores/anonymizationStore';
 import { get } from 'svelte/store';
 
 let lastBody: FormData | null = null;
@@ -30,6 +40,7 @@ beforeEach(() => {
   fetchCalls = 0;
   inputText.set('Bonjour Jean Dupont');
   errorMessage.set('');
+  privacyWarnings.set([]);
   globalThis.fetch = vi.fn(async (url: unknown, init: any) => {
     fetchCalls += 1;
     lastUrl = url;
@@ -117,6 +128,36 @@ describe('runAnonymization — construction du FormData par type de fichier', ()
       { text: 'Jean Dupont', label: 'PER', enabled: true },
       { text: 'Paris', label: 'LOC', enabled: false },
     ]));
+  });
+
+  it('conserve la source manual dans les décisions de prévisualisation', async () => {
+    await runAnonymization({
+      fileType: 'txt',
+      fileName: 'note.txt',
+      selected: {},
+      entityDecisions: [
+        { text: 'ACME-Secret', label: 'ORG', enabled: true, source: 'manual' },
+      ],
+    });
+
+    expect(lastBody!.get('entity_decisions')).toBe(JSON.stringify([
+      { text: 'ACME-Secret', label: 'ORG', enabled: true, source: 'manual' },
+    ]));
+  });
+
+  it('stocke les avertissements anti-fuite retournés par le polling', async () => {
+    await runAnonymization({ fileType: 'txt', fileName: 'note.txt', selected: {} });
+
+    expect(get(privacyWarnings)).toEqual([
+      {
+        kind: 'EMAIL',
+        label: 'Emails possibles',
+        count: 1,
+        examples: ['contact@example.com'],
+        severity: 'high',
+        message: 'Il reste peut-être 1 email possible dans le résultat.',
+      },
+    ]);
   });
 
   it('preview : appelle le endpoint dry-run et retourne les entités', async () => {

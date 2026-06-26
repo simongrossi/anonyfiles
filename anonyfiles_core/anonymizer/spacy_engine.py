@@ -26,8 +26,33 @@ DATE_REGEX = (
 )
 # TODO: Intégrer libphonenumber pour une validation internationale plus fine
 # Utilise actuellement une regex française/générique
-PHONE_REGEX = r"\b(?:\+33|0|[+]\d{1,3})[1-9](?:[\s.-]?\d{2}){4}\b"
+PHONE_REGEX = (
+    r"(?<!\w)(?:\+33[\s.-]?|0|[+]\d{1,3}[\s.-]?)[1-9](?:[\s.-]?\d{2}){4}(?!\w)"
+)
 IBAN_REGEX = r"\b[A-Z]{2}\d{2}[ ]?(?:\d[ ]?){12,26}\b"
+_ADDRESS_WORD_RE = r"[A-ZÀ-ÖØ-Þa-zà-öø-ÿ0-9'’]+(?:[-.][A-ZÀ-ÖØ-Þa-zà-öø-ÿ0-9'’]+)*"
+_CITY_WORD_RE = r"[A-ZÀ-ÖØ-Þa-zà-öø-ÿ'’]+(?:[-.][A-ZÀ-ÖØ-Þa-zà-öø-ÿ'’]+)*"
+ADDRESS_REGEX = (
+    r"(?<!\w)\d{1,4}\s*(?:bis|ter)?\s+"
+    r"(?:rue|avenue|av\.?|boulevard|bd|impasse|chemin|route|all[eé]e|place|quai|cours|square)"
+    rf"\s+{_ADDRESS_WORD_RE}(?:\s+{_ADDRESS_WORD_RE})*"
+    rf"(?:,\s*\d{{5}}\s+{_CITY_WORD_RE}(?:\s+{_CITY_WORD_RE})*)?"
+    r"(?=[\n.;]|$)"
+)
+
+
+# Anonyfiles n'exploite que le NER (`doc.ents`) : on exclut les composants de
+# pipeline inutiles (parser, morphologizer, lemmatizer, attribute_ruler). Cela
+# réduit fortement la mémoire et le CPU par requête — le `parser` notamment fait
+# exploser la RAM sur les textes longs (cause des OOM / exit 137 en production).
+# `tok2vec` et `ner` sont conservés (le NER en dépend) ; `entity_ruler` est
+# ajouté ensuite par le code pour les regex.
+_UNUSED_PIPES = ["morphologizer", "parser", "lemmatizer", "attribute_ruler"]
+
+
+def _load_model(model_name: str):
+    """Charge le modèle en n'activant que les composants nécessaires au NER."""
+    return spacy.load(model_name, exclude=_UNUSED_PIPES)
 
 
 # L'auto-téléchargement est souvent inapproprié en CI ou dans un sidecar
@@ -70,7 +95,7 @@ def _load_spacy_model_cached(model_name: str):
 
     if spacy.util.is_package(model_name):
         try:
-            return spacy.load(model_name)
+            return _load_model(model_name)
         except (OSError, ImportError, ValueError) as exc:
             # Modèle présent mais illisible (ex. ABI incompatible après upgrade
             # spaCy, fichier tronqué). Ne pas re-télécharger en boucle.
@@ -109,7 +134,7 @@ def _load_spacy_model_cached(model_name: str):
         ) from exc
 
     try:
-        return spacy.load(model_name)
+        return _load_model(model_name)
     except (OSError, ImportError, ValueError) as exc:
         raise ConfigurationError(
             f"Modèle spaCy '{model_name}' téléchargé mais impossible à charger: {exc}. "
@@ -153,6 +178,7 @@ class SpaCyEngine:
                 {"label": "EMAIL", "pattern": [{"TEXT": {"REGEX": EMAIL_REGEX}}]},
                 {"label": "PHONE", "pattern": [{"TEXT": {"REGEX": PHONE_REGEX}}]},
                 {"label": "IBAN", "pattern": [{"TEXT": {"REGEX": IBAN_REGEX}}]},
+                {"label": "ADDRESS", "pattern": [{"TEXT": {"REGEX": ADDRESS_REGEX}}]},
                 # Pour DATE, on s'appuie principalement sur spaCy NER ou une règle plus complexe si besoin
                 # {"label": "DATE", "pattern": [{"TEXT": {"REGEX": DATE_REGEX}}]},
             ]
@@ -201,6 +227,7 @@ class SpaCyEngine:
         add_regex_entities("EMAIL", EMAIL_REGEX)
         add_regex_entities("PHONE", PHONE_REGEX)
         add_regex_entities("IBAN", IBAN_REGEX)
+        add_regex_entities("ADDRESS", ADDRESS_REGEX)
         add_regex_entities("DATE", DATE_REGEX, is_valid_date)
 
         return entities

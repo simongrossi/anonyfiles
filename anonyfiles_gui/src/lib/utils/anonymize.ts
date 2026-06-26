@@ -5,11 +5,13 @@ import {
   outputText,
   auditLog,
   mappingCSV,
+  privacyWarnings,
   isLoading,
   errorMessage,
   outputLineCount,
   outputCharCount,
-  type AuditLogEntry
+  type AuditLogEntry,
+  type PrivacyWarning
 } from '../stores/anonymizationStore';
 import { currentJobId } from '$lib/stores/jobStore';
 import { apiFetch, apiUrl, pollJob, debug, debugError } from './api';
@@ -28,6 +30,7 @@ export interface EntityDecision {
   text: string;
   label: string;
   enabled: boolean;
+  source?: 'detected' | 'manual';
 }
 
 export interface PreviewEntity extends EntityDecision {
@@ -94,6 +97,7 @@ export async function runAnonymization({
   outputCharCount.set(0);
   auditLog.set([]);
   mappingCSV.set('');
+  privacyWarnings.set([]);
   currentJobId.set(null);
 
   try {
@@ -132,6 +136,7 @@ export async function runAnonymization({
         anonymized_text?: string;
         audit_log?: AuditLogEntry[];
         mapping_csv?: string;
+        privacy_warnings?: PrivacyWarning[];
         error?: string;
       }>(await apiUrl(`anonymize_status/${data.job_id}`));
 
@@ -141,6 +146,7 @@ export async function runAnonymization({
       outputLineCount.set(currentOutputText.split('\n').length);
       auditLog.set(pollData.audit_log || []);
       mappingCSV.set(pollData.mapping_csv || '');
+      privacyWarnings.set(pollData.privacy_warnings || []);
     } else {
       const directOutputText = data.outputText || data.anonymized_text || '';
       outputText.set(directOutputText);
@@ -148,6 +154,7 @@ export async function runAnonymization({
       outputLineCount.set(directOutputText.split('\n').length);
       auditLog.set(data.auditLog || data.audit_log || []);
       mappingCSV.set(data.mappingCSV || data.mapping_csv || '');
+      privacyWarnings.set(data.privacyWarnings || data.privacy_warnings || []);
       currentJobId.set(null);
     }
   } catch (err: any) {

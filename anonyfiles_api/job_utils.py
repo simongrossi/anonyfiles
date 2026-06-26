@@ -354,6 +354,8 @@ class Job:
                     else []
                 ),
                 total_replacements=engine_result.get("total_replacements"),
+                privacy_warnings=engine_result.get("privacy_warnings", []),
+                privacy_warnings_count=engine_result.get("privacy_warnings_count", 0),
                 completed_at=utc_now_iso(),
             ):
                 return False

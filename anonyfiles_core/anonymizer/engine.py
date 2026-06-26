@@ -14,6 +14,10 @@ from .file_processor_factory import FileProcessorFactory
 from .replacement_generator import ReplacementGenerator
 from .writer import AnonymizedFileWriter
 from .type_defs import EntityLabelOverrides, EntitySpansByBlock
+from .privacy_warning_scanner import (
+    privacy_warning_count,
+    scan_blocks_for_privacy_warnings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +59,51 @@ def apply_entity_decisions_to_detected_entities(
     return list(unique_by_text.items()), filtered_per_block
 
 
+def add_manual_entities_to_detected_entities(
+    text_blocks: list[str],
+    entities_per_block: EntitySpansByBlock,
+    manual_entities: list[dict[str, str]] | None = None,
+) -> tuple[list[tuple[str, str]], EntitySpansByBlock]:
+    """Add exact user-provided entities to block spans without overlapping detections."""
+    if not manual_entities:
+        detected_unique_by_text: dict[str, str] = {}
+        for block_entities in entities_per_block:
+            for ent_text, ent_label, _start, _end in block_entities:
+                detected_unique_by_text[ent_text] = ent_label
+        return list(detected_unique_by_text.items()), entities_per_block
+
+    enriched_per_block: EntitySpansByBlock = [
+        list(block) for block in entities_per_block
+    ]
+    unique_by_text: dict[str, str] = {}
+
+    for block_index, block_text in enumerate(text_blocks):
+        block_entities = enriched_per_block[block_index]
+        for manual_entity in manual_entities:
+            text = manual_entity["text"]
+            label = manual_entity["label"]
+            search_start = 0
+            while True:
+                start = block_text.find(text, search_start)
+                if start == -1:
+                    break
+                end = start + len(text)
+                overlaps = any(
+                    start < existing_end and end > existing_start
+                    for *_entity, existing_start, existing_end in block_entities
+                )
+                if not overlaps:
+                    block_entities.append((text, label, start, end))
+                search_start = end
+
+    for block_entities in enriched_per_block:
+        block_entities.sort(key=lambda entity: entity[2])
+        for ent_text, ent_label, _start, _end in block_entities:
+            unique_by_text[ent_text] = ent_label
+
+    return list(unique_by_text.items()), enriched_per_block
+
+
 class AnonyfilesEngine:
     """
     Orchestre le processus complet d'anonymisation d'un fichier.
@@ -67,10 +116,18 @@ class AnonyfilesEngine:
         custom_replacement_rules: Optional[List[Dict[str, str]]] = None,
         ignored_entity_texts: Optional[set[str]] = None,
         entity_label_overrides: Optional[Dict[str, str]] = None,
+        manual_entities: Optional[List[Dict[str, str]]] = None,
+        strict_mode: Optional[bool] = None,
     ):
         self.config = config or {}
         self.ignored_entity_texts = ignored_entity_texts or set()
         self.entity_label_overrides = entity_label_overrides or {}
+        self.manual_entities = manual_entities or []
+        self.strict_mode = bool(
+            strict_mode
+            if strict_mode is not None
+            else self.config.get("strict_mode", self.config.get("strictMode", False))
+        )
 
         # Initialisation du logger d'audit
         self.audit_logger = AuditLogger()
@@ -112,7 +169,10 @@ class AnonyfilesEngine:
         model = self.config.get("spacy_model", "fr_core_news_md")
         self.spacy_engine = SpaCyEngine(model=model)
         self.ner_processor = NERProcessor(
-            self.spacy_engine, self.enabled_labels, self.entities_exclude
+            self.spacy_engine,
+            self.enabled_labels,
+            self.entities_exclude,
+            strict_mode=self.strict_mode,
         )
 
         # Initialisation du ReplacementGenerator
@@ -126,6 +186,17 @@ class AnonyfilesEngine:
         logger.debug(
             "DEBUG (AnonyfilesEngine Init): Entités à exclure (config + CLI) : %s",
             self.entities_exclude,
+        )
+
+    def _scan_privacy_warnings(
+        self,
+        final_blocks: List[str],
+        ignored_values: list[str] | None = None,
+    ) -> list[dict[str, object]]:
+        return scan_blocks_for_privacy_warnings(
+            final_blocks,
+            enabled_labels=self.enabled_labels - self.entities_exclude,
+            ignored_values=ignored_values or [],
         )
 
     def _process_content(self, original_blocks: List[str]):
@@ -153,9 +224,11 @@ class AnonyfilesEngine:
 
         # Vérification si le contenu est vide
         if not any(block.strip() for block in blocks_after_custom_rules):
+            privacy_warnings = self._scan_privacy_warnings(blocks_after_custom_rules)
             return {
                 "decision": "empty",
                 "blocks_after_custom": blocks_after_custom_rules,
+                "privacy_warnings": privacy_warnings,
             }
 
         # 2. Détection des entités spaCy et regex
@@ -174,6 +247,13 @@ class AnonyfilesEngine:
                 entity_label_overrides=self.entity_label_overrides,
             )
         )
+        unique_spacy_entities, spacy_entities_per_block_with_offsets = (
+            add_manual_entities_to_detected_entities(
+                blocks_after_custom_rules,
+                spacy_entities_per_block_with_offsets,
+                self.manual_entities,
+            )
+        )
         logger.debug(
             "DEBUG (Engine): Entités spaCy uniques détectées : %s",
             len(unique_spacy_entities),
@@ -184,10 +264,12 @@ class AnonyfilesEngine:
             not unique_spacy_entities
             and self.custom_rules_processor.get_custom_replacements_count() == 0
         ):
+            privacy_warnings = self._scan_privacy_warnings(blocks_after_custom_rules)
             return {
                 "decision": "no_changes",
                 "blocks_after_custom": blocks_after_custom_rules,
                 "unique_spacy_entities": [],
+                "privacy_warnings": privacy_warnings,
             }
 
         # 3. Génération des remplacements
@@ -221,6 +303,14 @@ class AnonyfilesEngine:
             else:
                 truly_final_blocks.append(block_text_after)
 
+        ignored_replacement_values = list(replacements_map_spacy.values()) + list(
+            self.custom_rules_processor.get_custom_replacements_mapping().values()
+        )
+        privacy_warnings = self._scan_privacy_warnings(
+            truly_final_blocks,
+            ignored_values=ignored_replacement_values,
+        )
+
         return {
             "decision": "processed",
             "final_blocks": truly_final_blocks,
@@ -228,6 +318,7 @@ class AnonyfilesEngine:
             "spacy_entities_per_block": spacy_entities_per_block_with_offsets,
             "replacements_map_spacy": replacements_map_spacy,
             "mapping_dict_spacy": mapping_dict_spacy,
+            "privacy_warnings": privacy_warnings,
         }
 
     def anonymize(
@@ -257,7 +348,7 @@ class AnonyfilesEngine:
         )
 
         extract_kwargs = {}
-        if hasattr(processor, "has_header") and "has_header" in kwargs:
+        if ext == ".csv" and "has_header" in kwargs:
             extract_kwargs["has_header"] = kwargs["has_header"]
 
         original_blocks = processor.extract_blocks(input_path, **extract_kwargs)
@@ -280,7 +371,9 @@ class AnonyfilesEngine:
                     {},
                     [],
                 )
-            return self._success_response("Input empty", [])
+            return self._success_response(
+                "Input empty", [], privacy_warnings=result["privacy_warnings"]
+            )
 
         elif decision == "no_changes":
             logger.info("INFO (Engine): Aucune modification requise.")
@@ -299,7 +392,9 @@ class AnonyfilesEngine:
                     {},
                     [],
                 )
-            return self._success_response("No changes applied", [])
+            return self._success_response(
+                "No changes applied", [], privacy_warnings=result["privacy_warnings"]
+            )
 
         # Cas nominal: processed
         if not dry_run:
@@ -336,6 +431,7 @@ class AnonyfilesEngine:
             result["unique_spacy_entities"],
             result.get("replacements_map_spacy"),
             output_path,
+            result["privacy_warnings"],
         )
 
     async def anonymize_async(
@@ -363,7 +459,7 @@ class AnonyfilesEngine:
         )
 
         extract_kwargs = {}
-        if hasattr(processor, "has_header") and "has_header" in kwargs:
+        if ext == ".csv" and "has_header" in kwargs:
             extract_kwargs["has_header"] = kwargs["has_header"]
 
         original_blocks = await processor.extract_blocks_async(
@@ -387,7 +483,9 @@ class AnonyfilesEngine:
                     {},
                     [],
                 )
-            return self._success_response("Input empty", [])
+            return self._success_response(
+                "Input empty", [], privacy_warnings=result["privacy_warnings"]
+            )
 
         elif decision == "no_changes":
             logger.info("INFO (Engine Async): Aucune modification requise.")
@@ -406,7 +504,9 @@ class AnonyfilesEngine:
                     {},
                     [],
                 )
-            return self._success_response("No changes applied", [])
+            return self._success_response(
+                "No changes applied", [], privacy_warnings=result["privacy_warnings"]
+            )
 
         # Cas nominal
         if not dry_run:
@@ -443,6 +543,7 @@ class AnonyfilesEngine:
             result["unique_spacy_entities"],
             result.get("replacements_map_spacy"),
             output_path,
+            result["privacy_warnings"],
         )
 
     def _error_response(self, error):
@@ -453,7 +554,15 @@ class AnonyfilesEngine:
             "total_replacements": self.audit_logger.total(),
         }
 
-    def _success_response(self, message, entities, replacements=None, output_path=None):
+    def _success_response(
+        self,
+        message,
+        entities,
+        replacements=None,
+        output_path=None,
+        privacy_warnings=None,
+    ):
+        warnings = privacy_warnings or []
         return {
             "status": "success",
             "message": message,
@@ -462,4 +571,6 @@ class AnonyfilesEngine:
             "replacements_applied_spacy": replacements,
             "audit_log": self.audit_logger.summary(),
             "total_replacements": self.audit_logger.total(),
+            "privacy_warnings": warnings,
+            "privacy_warnings_count": privacy_warning_count(warnings),
         }

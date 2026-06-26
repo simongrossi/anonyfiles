@@ -215,6 +215,108 @@ nav, toggle thème dark/light, `bind:selected` enfant→parent, compteur de sais
 - [ ] **Batch complet** : traitement multi-fichiers avec rapport global, erreurs par fichier,
       ZIP final et reprise possible.
 
+### Phase 8 — Priorité P0 : fiabilité de l'anonymisation
+
+> État post-déploiement 2026-06-26 : serveur public fonctionnel, CI verte,
+> correction mobile du menu résultat déployée, et correction de détection des
+> prénoms isolés (`Pierre`, `Ambre`) validée en local + production.
+
+> Principe produit : pour les utilisateurs, le risque majeur n'est pas une UX
+> imparfaite, mais une donnée sensible qui reste visible alors que le résultat
+> est présenté comme anonymisé. La prochaine priorité est donc la réduction des
+> fuites avant l'ajout de gros workflows comme le batch complet.
+
+#### P0.1 — Scanner anti-fuite sur tous les formats
+
+- [x] **Tous les formats principaux** : tests de bout en bout via
+      `AnonyfilesEngine` sur sorties `.txt`, `.csv`, `.json`, `.docx`, `.xlsx`
+      et `.pdf`, avec extraction/relecture du fichier final, scan des valeurs
+      sensibles attendues et conservation des faux positifs publics
+      (`SIREN-2026`, `EMAIL-2026`, etc.).
+- [x] **DOCX** : extraire le texte du `.docx` anonymisé final (paragraphes,
+      tableaux, en-têtes/pieds) et échouer si une valeur sensible attendue reste.
+- [x] **PDF** : extraire le texte du PDF anonymisé final et vérifier qu'aucune
+      valeur sensible attendue n'est encore extractible.
+- [x] **XLSX** : relire toutes les feuilles du classeur anonymisé final et
+      scanner toutes les cellules de sortie.
+- [x] **TXT** : garder un scanner final explicite sur le fichier texte généré,
+      en plus du corpus moteur actuel.
+
+#### P0.2 — Ajout manuel d'entités dans la preview
+
+- [x] Permettre à l'utilisateur d'ajouter manuellement une entité ratée avant
+      anonymisation finale : texte exact, label (`PER`, `ORG`, `ADDRESS`, etc.)
+      et remplacement associé.
+- [x] Couvrir les cas typiques : ajouter `Ambre`, une adresse complète, une
+      société ou une référence sensible que le moteur n'a pas détectée.
+
+#### P0.3 — Mode strict réel côté moteur
+
+- [x] Ajouter un mode backend strict, distinct du simple profil GUI, qui active
+      des heuristiques plus agressives : prénoms français dans une phrase,
+      adresses probables, téléphones variés, emails obfusqués, acronymes isolés
+      et valeurs sensibles dans des lignes contextualisées (`Nom:`, `Adresse:`,
+      `Tel:`, `Email:`, `Dossier:`, etc.).
+- [x] Propager `strictMode` via `config_options` API + GUI : le profil
+      `Strict RGPD` active maintenant le vrai mode moteur.
+- [x] Documenter clairement le compromis : en mode strict, un faux positif est
+      accepté plus facilement qu'une fuite.
+
+#### P0.4 — Détection de valeurs suspectes non anonymisées
+
+- [x] Après anonymisation, scanner la sortie et remonter un avertissement du type
+      : `Il reste peut-être 2 emails / 1 téléphone / 3 mots capitalisés suspects`.
+      Le scanner ignore les placeholders et les valeurs de remplacement générées
+      pour éviter les faux positifs sur les faux noms/adresses.
+- [x] Exposer ces avertissements dans le résultat API (`privacy_warnings`,
+      `privacy_warnings_count`) et dans la GUI sans bloquer le téléchargement.
+
+#### P0.5 — Meilleure validation téléphone / IBAN
+
+- [ ] Remplacer ou compléter la regex téléphone avec `phonenumbers` pour couvrir
+      les numéros internationaux et réduire les faux positifs.
+- [ ] Ajouter `python-stdnum` pour valider IBAN, SIRET/SIREN et autres identifiants
+      français/européens pertinents.
+
+#### P0.6 — Corpus qualité beaucoup plus gros
+
+- [ ] Passer le corpus qualité à 50-100 cas réalistes : RH, contrats, emails,
+      factures, logs, comptes rendus, documents juridiques et textes mal copiés
+      depuis PDF/Word.
+- [ ] Pour chaque cas, maintenir les valeurs sensibles attendues, les faux
+      positifs à préserver et les labels attendus.
+
+#### P0.7 — Score de confiance
+
+- [ ] Calculer un score par anonymisation : nombre d'entités détectées, catégories
+      couvertes, éléments suspects restants, volume de texte et niveau de risque.
+- [ ] Afficher un niveau simple pour l'utilisateur : `faible`, `moyen`, `fort`,
+      avec les raisons principales.
+
+### Phase 9 — Prochaines améliorations produit / exploitation
+
+- [ ] **Batch multi-fichiers complet** : finaliser le flux produit autour de
+      plusieurs fichiers en une seule opération, avec statut par fichier,
+      rapport global, erreurs isolées, export ZIP et possibilité de reprise.
+- [ ] **Audit mobile complet** : vérifier tout le parcours sur téléphone
+      (upload, preview, sélection d'entités, résultat, comparaison, mapping,
+      désanonymisation, configuration) avec screenshots et contrôle
+      d'absence de débordement horizontal.
+- [ ] **Sécurité production** : confirmer que `ANONYFILES_API_KEY` est activée
+      sur les déploiements publics, documenter la configuration côté GUI
+      (`VITE_ANONYFILES_API_KEY`) et garder `/health` / docs accessibles sans
+      exposer les endpoints de traitement.
+- [ ] **Maintenance CI GitHub Actions** : nettoyer les warnings Node.js des
+      actions (`actions/checkout`, `actions/setup-node`, `actions/setup-python`)
+      quand les versions amont compatibles sont disponibles ; ce n'est pas un
+      blocage tant que les jobs restent verts.
+- [ ] **Typage Python progressif** : étendre `mypy` au moteur d'anonymisation
+      au-delà de la cible actuelle pour attraper plus tôt les erreurs de type
+      dans les chemins NER/remplacement/jobs.
+- [ ] **Ménage GitHub** : fermer ou retraiter la PR historique
+      [#72](https://github.com/simongrossi/anonyfiles/pull/72), qui semble
+      obsolète ou partiellement absorbée par `main`.
+
 ---
 
 ## 4. Notes de vérification utiles

@@ -32,9 +32,11 @@ class DummyModel:
 
 def _fake_spacy(load):
     """Faux module ``spacy`` complet (``util.is_package`` + ``load``)."""
+    def wrapped_load(name, *args, **kwargs):
+        return load(name)
     return SimpleNamespace(
         util=SimpleNamespace(is_package=lambda name: True),
-        load=load,
+        load=wrapped_load,
     )
 
 

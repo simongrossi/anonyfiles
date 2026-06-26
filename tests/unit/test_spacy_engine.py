@@ -43,7 +43,7 @@ def _fake_spacy(load):
 def test_detect_entities_with_regex():
     spacy_engine._load_spacy_model_cached.cache_clear()
     dummy = DummyModel()
-    with patch.object(spacy_engine, "spacy", _fake_spacy(lambda name: dummy)):
+    with patch.object(spacy_engine, "spacy", _fake_spacy(lambda name, **kwargs: dummy)):
         engine = spacy_engine.SpaCyEngine(model="dummy")
         entities = engine.detect_entities(
             "Jean test@example.com 01/01/2020", {"PER", "EMAIL", "DATE"}
@@ -53,10 +53,24 @@ def test_detect_entities_with_regex():
     assert ("01/01/2020", "DATE") in entities
 
 
+def test_detect_entities_with_common_french_phone_and_address_formats():
+    spacy_engine._load_spacy_model_cached.cache_clear()
+    dummy = DummyModel()
+    with patch.object(spacy_engine, "spacy", _fake_spacy(lambda name, **kwargs: dummy)):
+        engine = spacy_engine.SpaCyEngine(model="dummy")
+        entities = engine.detect_entities(
+            "Tel: +33 6 11 22 33 44. Adresse: 12 rue Victor-Hugo, 75015 Paris.",
+            {"PHONE", "ADDRESS"},
+        )
+
+    assert ("+33 6 11 22 33 44", "PHONE") in entities
+    assert ("12 rue Victor-Hugo, 75015 Paris", "ADDRESS") in entities
+
+
 def test_load_model_failure_raises_configuration_error():
     spacy_engine._load_spacy_model_cached.cache_clear()
 
-    def fail_load(name):
+    def fail_load(name, **kwargs):
         raise OSError("model missing")
 
     with patch.object(spacy_engine, "spacy", _fake_spacy(fail_load)):

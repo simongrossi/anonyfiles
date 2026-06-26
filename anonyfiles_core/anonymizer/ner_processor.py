@@ -6,7 +6,13 @@ from typing import List, Dict, Tuple, Set
 import logging  #
 
 from .spacy_engine import SpaCyEngine
-from .spacy_engine import EMAIL_REGEX, DATE_REGEX, PHONE_REGEX, IBAN_REGEX
+from .spacy_engine import (
+    ADDRESS_REGEX,
+    DATE_REGEX,
+    EMAIL_REGEX,
+    IBAN_REGEX,
+    PHONE_REGEX,
+)
 
 logger = logging.getLogger(__name__)  #
 
@@ -17,6 +23,57 @@ _EXTRA_FRENCH_FIRST_NAMES = {
 _SINGLE_NAME_LINE_RE = re.compile(
     r"(?m)^(?P<prefix>[ \t]*)(?P<name>[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’-]{1,40})(?P<suffix>[ \t]*)$"
 )
+_STRICT_FIRST_NAME_TOKEN_RE = re.compile(
+    r"(?<![\w'’-])(?P<name>[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’-]{1,40})(?![\w'’-])"
+)
+_STRICT_EMAIL_OBFUSCATED_RE = re.compile(
+    r"\b[A-Z0-9._%+-]+[ \t]*"
+    r"(?:@|\[?[ \t]*(?:at|arobase)[ \t]*\]?)[ \t]*"
+    r"[A-Z0-9.-]+[ \t]*"
+    r"(?:\.|\[?[ \t]*(?:dot|point)[ \t]*\]?)[ \t]*"
+    r"[A-Z]{2,10}\b",
+    re.IGNORECASE,
+)
+_STRICT_PHONE_RE = re.compile(
+    r"(?<!\w)(?:\+33|0033|0)[ \t]*(?:\(0\)[ \t]*)?[1-9]"
+    r"(?:[ \t./()-]?\d{2}){4}(?!\w)"
+)
+_STRICT_ADDRESS_RE = re.compile(
+    r"(?<!\w)\d{1,4}[ \t]*(?:bis|ter)?[ \t]+"
+    r"(?:rue|avenue|av\.?|boulevard|bd|impasse|chemin|route|all[eé]e|place|quai|cours|square)"
+    r"[ \t]+(?:d['’]|de[ \t]+|du[ \t]+|des[ \t]+|la[ \t]+|le[ \t]+|l['’])?"
+    r"[A-ZÀ-ÖØ-Þa-zà-öø-ÿ0-9'’.-]+"
+    r"(?:[ \t]+[A-ZÀ-ÖØ-Þa-zà-öø-ÿ0-9'’.-]+){0,8}"
+    r"(?:[ \t]+\d{5}[ \t]+[A-ZÀ-ÖØ-Þa-zà-öø-ÿ'’.-]+(?:[ \t]+[A-ZÀ-ÖØ-Þa-zà-öø-ÿ'’.-]+){0,4})?"
+    r"(?=[\n,.;]|$)",
+    re.IGNORECASE,
+)
+_STRICT_UPPERCASE_LINE_RE = re.compile(
+    r"(?m)^[ \t]*(?P<value>[A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ0-9&._-]{1,14})[ \t]*$"
+)
+_STRICT_CONTEXT_VALUE_RE = re.compile(
+    r"(?im)^[ \t]*(?P<key>nom|pr[eé]nom|contact|client|soci[eé]t[eé]|entreprise|organisation|"
+    r"adresse|t[eé]l(?:[eé]phone)?|telephone|mail|email|matricule|dossier|r[eé]f[eé]rence|reference)"
+    r"[ \t]*(?:[:=-]|est|=)[ \t]*(?P<value>[^\n;]{2,100})"
+)
+
+_STRICT_CONTEXT_LABEL_BY_KEY = {
+    "nom": "PER",
+    "prenom": "PER",
+    "contact": "PER",
+    "client": "MISC",
+    "societe": "ORG",
+    "entreprise": "ORG",
+    "organisation": "ORG",
+    "adresse": "ADDRESS",
+    "tel": "PHONE",
+    "telephone": "PHONE",
+    "mail": "EMAIL",
+    "email": "EMAIL",
+    "matricule": "MISC",
+    "dossier": "MISC",
+    "reference": "MISC",
+}
 
 
 def _normalize_name_key(value: str) -> str:
@@ -73,6 +130,48 @@ def _overlaps_existing_span(
     )
 
 
+def _add_non_overlapping_entity(
+    text: str,
+    label: str,
+    start: int,
+    end: int,
+    entities: List[Tuple[str, str, int, int]],
+    enabled_labels: Set[str],
+) -> None:
+    if label not in enabled_labels:
+        return
+
+    clean_entity = _trim_entity_span(text, label, start, end)
+    if clean_entity is None:
+        return
+
+    _ent_text, _ent_label, clean_start, clean_end = clean_entity
+    if _overlaps_existing_span(clean_start, clean_end, entities):
+        return
+
+    entities.append(clean_entity)
+
+
+def _fallback_to_misc(label: str, enabled_labels: Set[str]) -> str | None:
+    if label in enabled_labels:
+        return label
+    if "MISC" in enabled_labels:
+        return "MISC"
+    return None
+
+
+def _context_label_for_key(key: str, enabled_labels: Set[str]) -> str | None:
+    normalized_key = _normalize_name_key(key)
+    label = _STRICT_CONTEXT_LABEL_BY_KEY.get(normalized_key)
+    if label is None:
+        return None
+    return _fallback_to_misc(label, enabled_labels)
+
+
+def _clean_context_value(value: str) -> str:
+    return value.strip(" \t:-=.,;()[]{}\"'’")
+
+
 class NERProcessor:
     """
     Détecte les entités nommées (NER) dans des blocs de texte en utilisant spaCy et des regex additionnelles.
@@ -83,10 +182,12 @@ class NERProcessor:
         spacy_engine: SpaCyEngine,
         enabled_labels: Set[str],
         excluded_labels: Set[str],
+        strict_mode: bool = False,
     ):
         self.spacy_engine = spacy_engine
         self.enabled_labels = enabled_labels
         self.excluded_labels = excluded_labels
+        self.strict_mode = strict_mode
 
         self.final_enabled_labels_for_spacy = self.enabled_labels - self.excluded_labels
         logger.debug(  #
@@ -116,9 +217,10 @@ class NERProcessor:
             "DATE": DATE_REGEX,
             "PHONE": PHONE_REGEX,
             "IBAN": IBAN_REGEX,
+            "ADDRESS": ADDRESS_REGEX,
         }
 
-        PRIORITY_REGEX_LABELS = {"EMAIL", "DATE", "PHONE", "IBAN"}
+        PRIORITY_REGEX_LABELS = {"EMAIL", "DATE", "PHONE", "IBAN", "ADDRESS"}
 
         for block_text in text_blocks:
             detected_entities_for_this_block: List[Tuple[str, str, int, int]] = (
@@ -140,8 +242,11 @@ class NERProcessor:
                 # 2. Collecter toutes les entités Regex pertinentes
                 for label, pattern in regex_sources.items():
                     if label in self.final_enabled_labels_for_spacy:
+                        flags = re.IGNORECASE if label in {"ADDRESS", "DATE"} else 0
                         for match in re.finditer(
-                            pattern, block_text, re.IGNORECASE if label == "DATE" else 0
+                            pattern,
+                            block_text,
+                            flags,
                         ):
                             clean_entity = _trim_entity_span(
                                 block_text, label, match.start(), match.end()
@@ -162,6 +267,12 @@ class NERProcessor:
                         detected_entities_for_this_block.append(
                             (name, "PER", start, end)
                         )
+
+                if self.strict_mode:
+                    self._add_strict_entities(
+                        block_text,
+                        detected_entities_for_this_block,
+                    )
 
                 # 3. Nettoyer et dédupliquer les entités du bloc avec gestion de priorité
                 processed_entities_for_this_block: List[Tuple[str, str, int, int]] = []
@@ -222,3 +333,71 @@ class NERProcessor:
         ]
 
         return final_unique_entities_list, spacy_entities_per_block_with_offsets
+
+    def _add_strict_entities(
+        self,
+        block_text: str,
+        entities: List[Tuple[str, str, int, int]],
+    ) -> None:
+        enabled = self.final_enabled_labels_for_spacy
+
+        for label, pattern in (
+            ("EMAIL", _STRICT_EMAIL_OBFUSCATED_RE),
+            ("PHONE", _STRICT_PHONE_RE),
+            ("ADDRESS", _STRICT_ADDRESS_RE),
+        ):
+            if label not in enabled:
+                continue
+            for match in pattern.finditer(block_text):
+                _add_non_overlapping_entity(
+                    block_text,
+                    label,
+                    match.start(),
+                    match.end(),
+                    entities,
+                    enabled,
+                )
+
+        if "PER" in enabled:
+            for match in _STRICT_FIRST_NAME_TOKEN_RE.finditer(block_text):
+                name = match.group("name")
+                if _normalize_name_key(name) not in FRENCH_FIRST_NAMES:
+                    continue
+                _add_non_overlapping_entity(
+                    block_text,
+                    "PER",
+                    match.start("name"),
+                    match.end("name"),
+                    entities,
+                    enabled,
+                )
+
+        for match in _STRICT_UPPERCASE_LINE_RE.finditer(block_text):
+            uppercase_label = _fallback_to_misc("ORG", enabled)
+            if uppercase_label is None:
+                continue
+            _add_non_overlapping_entity(
+                block_text,
+                uppercase_label,
+                match.start("value"),
+                match.end("value"),
+                entities,
+                enabled,
+            )
+
+        for match in _STRICT_CONTEXT_VALUE_RE.finditer(block_text):
+            context_label = _context_label_for_key(match.group("key"), enabled)
+            if context_label is None:
+                continue
+            value = _clean_context_value(match.group("value"))
+            if not value:
+                continue
+            value_start = match.start("value") + match.group("value").index(value)
+            _add_non_overlapping_entity(
+                block_text,
+                context_label,
+                value_start,
+                value_start + len(value),
+                entities,
+                enabled,
+            )

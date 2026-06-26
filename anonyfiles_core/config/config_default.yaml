@@ -44,5 +44,11 @@ replacements:
       prefix: IBAN
       padding: 3
 
+  ADDRESS:
+    type: codes
+    options:
+      prefix: ADRESSE
+      padding: 3
+
 exclude_entities:
   - MISC

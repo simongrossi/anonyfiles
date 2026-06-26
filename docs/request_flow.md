@@ -19,12 +19,12 @@ La GUI Tauri, située dans `anonyfiles_gui`, s’appuie elle-même sur l’API p
 
 ## Flux complet d'une requête d'anonymisation
 
-1. **Client** : envoie une requête `POST /anonymize` avec le fichier et les options.
+1. **Client** : envoie une requête `POST /anonymize` avec le fichier et les options. `config_options` peut activer `strictMode`, et `entity_decisions` peut porter des entités ajoutées manuellement (`"source": "manual"`).
 2. **API FastAPI** : sauvegarde le fichier dans un dossier de job (`jobs/<job_id>`), écrit `status.json` et ajoute le travail à la file de jobs interne.
 3. **Job queue** : exécute le moteur dans un worker, applique retry/timeout, gère les annulations et met à jour `state`, `progress`, `attempt` et les métriques d'exploitation.
-4. **Moteur `AnonyfilesEngine`** : lit le fichier, applique les règles d'anonymisation, écrit les fichiers de sortie (texte anonymisé, mapping CSV, log CSV, audit).
-5. **Job utils** : met à jour `status.json` à `finished`, `error`, `cancelled` ou `timeout`, stocke le journal d'audit et publie les logs `job_event`.
-6. **Client** : récupère le statut via `GET /anonymize_status/{job_id}` ou la WebSocket `/ws/{job_id}` puis télécharge éventuellement les fichiers avec `GET /files/{job_id}/{file_key}`.
+4. **Moteur `AnonyfilesEngine`** : lit le fichier, détecte les entités (spaCy + regex, heuristiques supplémentaires si `strict_mode`), injecte les entités manuelles, applique les règles d'anonymisation, puis re-scanne la sortie finale pour repérer les valeurs sensibles résiduelles. Il écrit les fichiers de sortie (texte anonymisé, mapping CSV, log CSV, audit) et renvoie `privacy_warnings` / `privacy_warnings_count`.
+5. **Job utils** : met à jour `status.json` à `finished`, `error`, `cancelled` ou `timeout`, stocke le journal d'audit (avec `privacy_warnings`) et publie les logs `job_event`.
+6. **Client** : récupère le statut via `GET /anonymize_status/{job_id}` ou la WebSocket `/ws/{job_id}` puis télécharge éventuellement les fichiers avec `GET /files/{job_id}/{file_key}`. Les `privacy_warnings` éventuels sont affichés sans bloquer le téléchargement.
 
 Les fichiers générés sont stockés dans le dossier `jobs/` (aucune base de données n'est utilisée par défaut).
 
@@ -40,9 +40,10 @@ sequenceDiagram
     A->>F: crée job + status pending/queued
     A->>J: enqueue job
     J->>F: status running + progress
-    J->>E: lance anonymisation
+    J->>E: lance anonymisation (strict_mode + entités manuelles)
+    E->>E: détection, remplacement, scan anti-fuite
     E->>F: écrit fichiers de sortie
-    E-->>J: résultat (success ou error)
+    E-->>J: résultat (success/error + privacy_warnings)
     J->>F: status terminal + métriques
     C->>A: GET /anonymize_status/{job_id}
     A->>F: lit status.json

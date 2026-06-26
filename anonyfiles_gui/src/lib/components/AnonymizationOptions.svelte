@@ -47,6 +47,7 @@
     { id: 'contact', label: 'Contact', icon: AtSign, keys: ['anonymizeEmails', 'anonymizePhones'] },
     { id: 'finance', label: 'Finance & dates', icon: Landmark, keys: ['anonymizeIbans', 'anonymizeDates'] },
     { id: 'misc', label: 'Divers', icon: Tag, keys: ['anonymizeMisc'] },
+    { id: 'control', label: 'Contrôle', icon: ShieldCheck, keys: ['strictMode'] },
   ];
 
   const profileIcons: Record<string, typeof User> = {
