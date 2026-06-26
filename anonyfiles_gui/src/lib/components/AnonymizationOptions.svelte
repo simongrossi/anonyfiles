@@ -23,9 +23,15 @@
     type AnonymizationSelection,
   } from '$lib/data/anonymizationProfiles';
 
-  export let options: Array<AnonymizationOption>;
-  export let selected: AnonymizationSelection;
-  export let isLoading: boolean = false;
+  let {
+    options,
+    selected = $bindable(),
+    isLoading = false,
+  }: {
+    options: Array<AnonymizationOption>;
+    selected: AnonymizationSelection;
+    isLoading?: boolean;
+  } = $props();
 
   // Regroupement sémantique des entités — purement cosmétique, ne change rien
   // au contrat du composant (options/selected).
@@ -51,10 +57,10 @@
     'logs-techniques': Terminal,
   };
 
-  $: optionsByKey = Object.fromEntries(options.map((o) => [o.key, o]));
-  $: activeCount = options.filter((o) => selected[o.key]).length;
-  $: activeProfile = findMatchingAnonymizationProfile(selected);
-  $: activeProfileLabel = activeProfile?.label ?? 'Personnalisé';
+  const optionsByKey = $derived(Object.fromEntries(options.map((o) => [o.key, o])));
+  const activeCount = $derived(options.filter((o) => selected[o.key]).length);
+  const activeProfile = $derived(findMatchingAnonymizationProfile(selected));
+  const activeProfileLabel = $derived(activeProfile?.label ?? 'Personnalisé');
 
   function commit(next: Partial<AnonymizationSelection>) {
     selected = { ...selected, ...next };

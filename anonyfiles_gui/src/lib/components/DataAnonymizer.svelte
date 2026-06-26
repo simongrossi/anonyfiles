@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { Eye, ListChecks, Sparkles, RotateCcw, Trash2, FileText, LoaderCircle } from 'lucide-svelte';
   import FileDropZone from './FileDropZone.svelte';
@@ -45,12 +44,12 @@
   const dispatch = createEventDispatcher();
 
   const options = ANONYMIZATION_OPTIONS;
-  let selected: AnonymizationSelection = createDefaultAnonymizationSelection();
+  let selected: AnonymizationSelection = $state(createDefaultAnonymizationSelection());
   const entityLabels = ['PER', 'LOC', 'ORG', 'EMAIL', 'DATE', 'MISC', 'PHONE', 'IBAN', 'ADDRESS'];
-  let previewEntities: PreviewEntity[] = [];
-  let previewError = "";
-  let isPreviewLoading = false;
-  let previewSignature = "";
+  let previewEntities: PreviewEntity[] = $state([]);
+  let previewError = $state("");
+  let isPreviewLoading = $state(false);
+  let previewSignature = $state("");
 
   // AJOUTÉ : Fonction pour mettre à jour les compteurs pour la saisie manuelle
   function updateInputCountsFromTextarea(currentText: string) {
@@ -61,34 +60,36 @@
   // AJOUTÉ : Réagir aux changements de $inputText pour mettre à jour les compteurs
   // Ceci est utile si $inputText peut être modifié par d'autres moyens que le on:input direct du textarea
   // (par exemple, par handleFile via useFileHandler.ts qui met à jour $inputText)
-  $: if ($inputText) {
-    updateInputCountsFromTextarea($inputText);
-  } else { // Assurer la réinitialisation si $inputText devient vide
-    inputLineCount.set(0);
-    inputCharCount.set(0);
-  }
+  $effect(() => {
+    if ($inputText) {
+      updateInputCountsFromTextarea($inputText);
+    } else { // Assurer la réinitialisation si $inputText devient vide
+      inputLineCount.set(0);
+      inputCharCount.set(0);
+    }
+  });
 
 
-  $: canAnonymize =
+  const canAnonymize = $derived(
     ($fileType === "txt" && $inputText.trim().length > 0) ||
     ($fileType === "csv" && $inputText.trim().length > 0) || // Pour CSV, on se base sur inputText qui est rempli par useFileHandler
     ($fileType === "xlsx" && $xlsxFile !== null) ||
-    (["docx", "pdf", "json"].includes($fileType) && $fileName.length > 0); // json est aussi traité comme texte par useFileHandler
+    (["docx", "pdf", "json"].includes($fileType) && $fileName.length > 0)); // json est aussi traité comme texte par useFileHandler
 
-  $: currentPreviewSignature = JSON.stringify({
+  const currentPreviewSignature = $derived(JSON.stringify({
     fileType: $fileType,
     fileName: $fileName,
     hasHeader: $hasHeader,
     inputText: $inputText,
     selected,
     customReplacementRules: $customReplacementRules,
-  });
-  $: isPreviewStale =
+  }));
+  const isPreviewStale = $derived(
     previewEntities.length > 0 &&
     previewSignature.length > 0 &&
-    previewSignature !== currentPreviewSignature;
+    previewSignature !== currentPreviewSignature);
 
-  let dragActive = false;
+  let dragActive = $state(false);
   const dataAnonymizerDropZoneId = "data-anonymizer-dropzone";
 
   function handleDragOver(event: Event) {

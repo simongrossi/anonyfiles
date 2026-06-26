@@ -156,15 +156,17 @@ on est coincé sur numpy 1.26 et un écosystème daté.
 > Alternative recommandée : `cd anonyfiles_gui && npx sv migrate svelte-5` dans un **vrai terminal**
 > (l'outil officiel est interactif/clack — non pilotable depuis l'agent), puis relire le diff + tester.
 
-**Avancement :**
-- [x] `Sidebar.svelte` — POC fait et vérifié (clic nav → `activeTab` + bascule de vue OK).
-- [ ] `ToggleButton.svelte`, `SwitchTheme.svelte` (petits, sans events) — faciles
-- [ ] `FileDropZone.svelte` ⚠️ (a `createEventDispatcher`)
-- [ ] `Header.svelte`, `CsvPreview.svelte`, `XlsxPreview.svelte`, `AuditLogTable.svelte`
-- [ ] `LogView.svelte`, `ConfigurationView.svelte`, `ExportDirectoryChooser.svelte`, `ResultView.svelte`
-- [ ] `AnonymizationOptions.svelte` (toggles d'entités — bien tester les clics)
-- [ ] `DataAnonymizer.svelte` ⚠️ (gros, beaucoup d'état + `createEventDispatcher`) — à faire en dernier
-- [ ] (bonus final) remplacer `createEventDispatcher` par des callback props dans les 2 composants concernés
+**Avancement : ✅ les 14 composants migrés en runes** (build + tsc + tests d'interaction réels :
+nav, toggle thème dark/light, `bind:selected` enfant→parent, compteur de saisie via `$effect`).
+- [x] `Sidebar.svelte` (POC)
+- [x] `ToggleButton.svelte`, `SwitchTheme.svelte`
+- [x] `FileDropZone.svelte` (createEventDispatcher conservé)
+- [x] `Header.svelte`, `CsvPreview.svelte`, `XlsxPreview.svelte`, `AuditLogTable.svelte`
+- [x] `LogView.svelte`, `ConfigurationView.svelte`, `ExportDirectoryChooser.svelte`, `ResultView.svelte`
+- [x] `AnonymizationOptions.svelte` (`selected` en `$bindable()`)
+- [x] `DataAnonymizer.svelte`
+- [ ] (bonus, optionnel) remplacer `createEventDispatcher` par des callback props dans
+      `FileDropZone` et `DataAnonymizer` (seul reliquat ; non urgent, ça marche en l'état)
 
 ### Phase 4 — Sécurité / robustesse
 - [x] Merger les branches en cours (`fix/docx…`, `feat/job-retention`) + pousser/PR.
