@@ -1,0 +1,23 @@
+# Dependencies and generated web assets
+node_modules/
+dist/
+
+# Tauri/Rust build outputs and bundled sidecars are not needed for the web image
+src-tauri/target/
+src-tauri/sidecar/
+src-tauri/binaries/
+src-tauri/gen/
+
+# Local/editor/system files
+.DS_Store
+.env
+.env.*
+!.env.example
+.claude/
+
+# VCS and caches
+.git/
+.gitignore
+.npm/
+.vite/
+coverage/

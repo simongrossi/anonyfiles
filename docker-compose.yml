@@ -3,15 +3,14 @@ version: '3.8'
 services:
   # Service API (Backend Python)
   api:
-    build: .
+    image: anonyfiles-api:latest
+    build:
+      context: .
     # SÉCURITÉ : Port 8000 retiré pour ne pas exposer l'API directement sur Internet.
     # Elle n'est accessible que par le service 'web' via le réseau interne Docker.
     expose:
       - "8000"
     volumes:
-      # SÉCURITÉ : Montage en lecture seule (:ro) pour empêcher la persistance de backdoors
-      - .:/app:ro
-      - /app/anonyfiles.egg-info
       # Exception indispensable : le dossier jobs doit rester inscriptible
       - ./jobs:/app/jobs
     environment:
@@ -22,7 +21,9 @@ services:
 
   # Service Frontend & Reverse Proxy (Nginx)
   web:
-    build: ./anonyfiles_gui
+    image: anonyfiles-web:latest
+    build:
+      context: ./anonyfiles_gui
     ports:
       - "3000:80" # Accessible via http://localhost:3000
     depends_on:

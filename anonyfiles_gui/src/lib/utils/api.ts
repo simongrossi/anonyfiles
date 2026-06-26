@@ -8,7 +8,7 @@ async function resolveApiBase(): Promise<string> {
     const port = await invoke<number>('get_api_port');
     return `http://127.0.0.1:${port}`;
   }
-  const raw = import.meta.env.VITE_ANONYFILES_API_URL ?? 'http://127.0.0.1:8000';
+  const raw = import.meta.env.VITE_ANONYFILES_API_URL ?? '';
   return String(raw).replace(/\/+$/, '').replace(/\/api$/, '');
 }
 
