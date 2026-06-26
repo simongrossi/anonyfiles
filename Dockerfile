@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir --no-deps .
 # Si vous devez télécharger le modèle spacy ici pour qu'il soit dans l'image :
-# RUN python -m spacy download fr_core_news_md
+RUN python -m spacy download fr_core_news_md
 
 # Étape 2 : Image finale (Runtime)
 FROM python:3.11-slim

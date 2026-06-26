@@ -11,8 +11,15 @@ __pycache__
 env/
 venv/
 .venv/
+env-cli/
+env-api/
+env-pkg/
 pip-log.txt
 pip-delete-this-directory.txt
+
+# Node
+node_modules/
+**/node_modules/
 
 # Configuration / Secrets
 .env
@@ -24,6 +31,7 @@ anonyfiles_gui/
 tests/
 docs/
 jobs/
+logs/
 tmp/
 .pytest_cache/
 .mypy_cache/
