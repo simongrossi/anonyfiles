@@ -93,21 +93,21 @@
 
     <div class="ui-section-body space-y-4">
       <!-- Segmented control -->
-      <div class="inline-flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700">
+      <div class="grid grid-cols-2 sm:inline-flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 max-w-full gap-1">
         {#each tabs as tab}
           {@const Icon = tab.icon}
           {@const active = viewMode === tab.id}
           <button
             type="button"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition
+            class="min-w-0 inline-flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition
                    {active
                      ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm'
                      : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'}"
             on:click={() => (viewMode = tab.id)}
             aria-pressed={active}
           >
-            <Icon size={14} />
-            {tab.label}
+            <Icon size={14} class="shrink-0" />
+            <span class="truncate">{tab.label}</span>
           </button>
         {/each}
       </div>
