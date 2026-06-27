@@ -68,3 +68,7 @@ sync.ffs_db
 
 # Claude Code local state
 /.claude/
+
+# E2E test outputs
+/tests/e2e/output_e2e/
+
