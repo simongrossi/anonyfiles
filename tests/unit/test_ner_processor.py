@@ -24,6 +24,26 @@ class FakeSpaCyEngine:
         return FakeDoc(self.entities)
 
 
+def test_per_block_offsets_align_with_empty_blocks():
+    """Chaque bloc d'entrée doit produire une entrée par-bloc, même vide.
+
+    Les cellules CSV vides créent des blocs vides ; sans liste correspondante,
+    l'engine lève `IndexError` en indexant `entities_per_block[i]`.
+    """
+    processor = NERProcessor(
+        FakeSpaCyEngine([]),
+        enabled_labels={"PER"},
+        excluded_labels=set(),
+    )
+
+    blocks = ["Pierre", "", "   ", "Ambre"]
+    _unique, per_block = processor.detect_entities_in_blocks(blocks)
+
+    assert len(per_block) == len(blocks)
+    assert per_block[1] == []
+    assert per_block[2] == []
+
+
 def test_detects_standalone_french_first_names_as_people():
     processor = NERProcessor(
         FakeSpaCyEngine([]),

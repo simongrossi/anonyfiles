@@ -327,6 +327,11 @@ class NERProcessor:
                 spacy_entities_per_block_with_offsets.append(
                     processed_entities_for_this_block
                 )
+            else:
+                # Bloc vide (ex. cellule CSV vide) : on conserve l'alignement 1:1
+                # entre blocs et entités-par-bloc, sinon l'engine lève
+                # `IndexError` en indexant entities_per_block[i] en aval.
+                spacy_entities_per_block_with_offsets.append([])
 
         final_unique_entities_list = [
             (text, data[0]) for text, data in all_unique_entities_across_blocks.items()
