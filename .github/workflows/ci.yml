@@ -36,7 +36,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          # setuptools est mis à jour explicitement : le runner en préinstalle une
+          # version que pip-audit signale (PYSEC-2026-3447, corrigé en 83.0.0), et
+          # `--upgrade pip` seul ne la touche pas.
+          python -m pip install --upgrade pip "setuptools>=83.0.0"
           # Installation du paquet en mode éditable avec les dépendances de dev (tests, lint, secu)
           pip install -e .[dev]
 
