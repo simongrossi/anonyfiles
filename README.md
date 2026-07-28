@@ -168,6 +168,25 @@ Une fois lancé :
 
 ### 🖥️ Application desktop autonome
 
+#### Télécharger (utilisateurs finaux)
+
+Les installeurs prêts à l'emploi sont publiés sur la [page Releases](https://github.com/simongrossi/anonyfiles/releases). Ils embarquent tout (GUI + API + modèle spaCy) : ni Python, ni Rust, ni Node à installer.
+
+| Plateforme | Fichier |
+|---|---|
+| macOS Apple Silicon (M1–M4) | `Anonyfiles-<version>-macos-arm64.dmg` |
+| Linux x86_64 | `Anonyfiles-<version>-linux-x86_64.AppImage` ou `.deb` |
+
+**macOS — premier lancement.** L'app est signée en ad-hoc mais pas notarisée par Apple : macOS affichera « développeur non identifié ». Après avoir glissé `anonyfiles_gui.app` dans `/Applications` :
+
+```bash
+xattr -dr com.apple.quarantine /Applications/anonyfiles_gui.app
+```
+
+Sinon, clic droit sur l'app → **Ouvrir** → **Ouvrir**. Le premier démarrage prend 30 à 50 s (scan Gatekeeper du bundle), les suivants quelques secondes.
+
+#### Builder soi-même
+
 Pour produire une app macOS / Windows / Linux qui contient tout (GUI + API + modèle spaCy), sans dépendance externe :
 
 ```bash
@@ -182,7 +201,7 @@ Cela enchaîne :
 
 Sorties dans `anonyfiles_gui/src-tauri/target/release/bundle/` : `.app` + `.dmg` (macOS), `.msi` + `.exe` (Windows), `.AppImage` + `.deb` (Linux). Taille ~400 Mo à cause du modèle spaCy.
 
-La CI `desktop-build.yml` produit ces artifacts automatiquement sur tag `v*` pour les 4 cibles (macOS ARM, macOS Intel, Windows, Linux).
+La CI `desktop-build.yml` produit ces artifacts automatiquement sur tag `v*` (macOS ARM, Linux ; le build Windows est actuellement cassé et macOS Intel a été retiré, les runners `macos-13` ayant été supprimés par GitHub) et les publie sur la Release. Voir [`guide_installation_anonyfiles.md`](guide_installation_anonyfiles.md#-application-desktop-autonome) pour le détail.
 
 ---
 

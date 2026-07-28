@@ -140,15 +140,30 @@ Taille ~500-550 Mo dossier décompressé (onedir). Cold start **~1-3 s en warm**
 
 ### CI / release
 
-Pousser un tag `v*` sur GitHub déclenche le workflow `desktop-build.yml` qui produit les 4 artifacts (macOS ARM, macOS Intel, Windows, Linux) et les attache à la release. Le workflow `ci.yml` (tests + wheel Python + image Docker) reste déclenché indépendamment.
+Pousser un tag `v*` sur GitHub déclenche le workflow `desktop-build.yml`, qui build les cibles du matrix puis publie une **GitHub Release** avec les installeurs en pièces jointes, renommés `Anonyfiles-<tag>-<plateforme>.<ext>`, plus un `SHA256SUMS.txt`.
 
-### Signature de code (non inclus)
+Cibles actuellement construites :
 
-Les binaires produits sont **non signés**. Au premier lancement :
-- macOS : Gatekeeper affiche « développeur non identifié » → clic droit → Ouvrir
+| Cible | État |
+|---|---|
+| macOS Apple Silicon (`aarch64-apple-darwin`) | ✅ publié |
+| Linux x86_64 (`x86_64-unknown-linux-gnu`) | ✅ publié |
+| Windows x86_64 (`x86_64-pc-windows-msvc`) | ⚠️ build cassé (sidecar PyInstaller) |
+| macOS Intel (`x86_64-apple-darwin`) | ❌ retiré du matrix — runners `macos-13` supprimés par GitHub |
+
+Le job `release` tourne en `always()` : une cible cassée n'empêche pas la publication des autres. Il échoue seulement si *aucun* installeur n'a été produit.
+
+Le workflow `ci.yml` (tests + wheel Python + image Docker) reste déclenché indépendamment.
+
+### Signature de code
+
+Le `.app` macOS est signé en **ad-hoc** (`bundle.macOS.signingIdentity = "-"` dans `tauri.conf.json`), donc pendant le bundling Tauri et non après — sans ça le `.dmg` embarquerait une app non signée. Les binaires Windows et Linux ne sont pas signés.
+
+L'app n'est en revanche **pas notarisée** par Apple. Au premier lancement :
+- macOS : Gatekeeper affiche « développeur non identifié » → `xattr -dr com.apple.quarantine /Applications/anonyfiles_gui.app`, ou clic droit → Ouvrir
 - Windows : SmartScreen affiche un avertissement → « Informations supplémentaires » → « Exécuter quand même »
 
-Pour une distribution publique, il faut un Apple Developer ID ($99/an) + notarisation macOS, et un certificat EV code signing Windows (~$300/an). Hors scope de ce guide.
+Pour une distribution sans avertissement, il faut un Apple Developer ID ($99/an) + notarisation macOS, et un certificat EV code signing Windows (~$300/an). Hors scope de ce guide.
 
 ---
 

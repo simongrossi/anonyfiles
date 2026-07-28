@@ -14,8 +14,6 @@ jobs:
         include:
           - os: macos-14
             rust_target: aarch64-apple-darwin
-          - os: macos-13
-            rust_target: x86_64-apple-darwin
           - os: windows-latest
             rust_target: x86_64-pc-windows-msvc
           - os: ubuntu-latest
@@ -72,24 +70,25 @@ jobs:
         working-directory: anonyfiles_gui
         run: npm run tauri build -- --target ${{ matrix.rust_target }}
 
-      - name: Post-build re-sign (macOS)
+      # Tauri signe la .app en ad-hoc pendant le bundling (bundle.macOS.signingIdentity
+      # = "-" dans tauri.conf.json), donc AVANT la création du .dmg. On se contente ici
+      # de vérifier que la signature est bien présente dans le .app livré.
+      - name: Verify ad-hoc signature (macOS)
         if: runner.os == 'macOS'
         run: |
+          set -euo pipefail
           APP="anonyfiles_gui/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/anonyfiles_gui.app"
-          if [ -d "$APP" ]; then
-            find "$APP" -name '.DS_Store' -delete
-            codesign --force --deep --sign - "$APP"
-            spctl --assess --type execute --verbose "$APP" || true
-          fi
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -dv "$APP" 2>&1 | grep -q 'Signature=adhoc'
+          # Informatif : sans notarisation, spctl rejette toujours le bundle.
+          spctl --assess --type execute --verbose "$APP" || true
 
       - name: Upload artifacts (macOS)
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: anonyfiles-${{ matrix.rust_target }}
-          path: |
-            anonyfiles_gui/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/*.app
-            anonyfiles_gui/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
+          path: anonyfiles_gui/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
           if-no-files-found: error
 
       - name: Upload artifacts (Windows)
@@ -111,3 +110,90 @@ jobs:
             anonyfiles_gui/src-tauri/target/${{ matrix.rust_target }}/release/bundle/appimage/*.AppImage
             anonyfiles_gui/src-tauri/target/${{ matrix.rust_target }}/release/bundle/deb/*.deb
           if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: desktop
+    # always() : une cible cassée (ex. Windows) ne doit pas empêcher la publication
+    # des autres. Le job échoue plus bas si aucun installeur n'a été produit.
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: anonyfiles-*
+
+      - name: Collect and rename release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob globstar
+
+          declare -A LABELS=(
+            [aarch64-apple-darwin]=macos-arm64
+            [x86_64-apple-darwin]=macos-x86_64
+            [x86_64-unknown-linux-gnu]=linux-x86_64
+            [x86_64-pc-windows-msvc]=windows-x86_64
+          )
+
+          mkdir -p release
+          for dir in artifacts/anonyfiles-*/; do
+            target="${dir#artifacts/anonyfiles-}"
+            target="${target%/}"
+            label="${LABELS[$target]:-$target}"
+            for f in "$dir"**/*.dmg "$dir"**/*.AppImage "$dir"**/*.deb "$dir"**/*.msi "$dir"**/*.exe; do
+              cp "$f" "release/Anonyfiles-${GITHUB_REF_NAME}-${label}.${f##*.}"
+            done
+          done
+
+          if [ -z "$(ls -A release)" ]; then
+            echo "::error::Aucun installeur produit par le job desktop, rien à publier."
+            exit 1
+          fi
+
+          (cd release && sha256sum * > SHA256SUMS.txt)
+          ls -lh release
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > RELEASE_NOTES.md <<'EOF'
+          ## Installation
+
+          Les applications desktop embarquent tout (GUI + API + modèle spaCy `fr_core_news_md`).
+          Rien d'autre à installer : ni Python, ni Rust, ni Node.
+
+          | Plateforme | Fichier |
+          |---|---|
+          | macOS Apple Silicon (M1–M4) | `Anonyfiles-*-macos-arm64.dmg` |
+          | Linux x86_64 | `Anonyfiles-*-linux-x86_64.AppImage` ou `.deb` |
+
+          ### macOS — premier lancement
+
+          L'application est signée en ad-hoc mais **pas notarisée** par Apple. macOS affichera
+          donc « développeur non identifié » au premier lancement. Après avoir glissé
+          `anonyfiles_gui.app` dans `/Applications` :
+
+          ```bash
+          xattr -dr com.apple.quarantine /Applications/anonyfiles_gui.app
+          ```
+
+          Sinon : clic droit sur l'app → **Ouvrir** → **Ouvrir** dans la boîte de dialogue.
+          Le premier démarrage peut prendre 30 à 50 s (scan Gatekeeper du bundle), les
+          suivants quelques secondes.
+
+          ### Vérification d'intégrité
+
+          Les empreintes SHA-256 de tous les fichiers sont dans `SHA256SUMS.txt`.
+          EOF
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          body_path: RELEASE_NOTES.md
+          generate_release_notes: true
+          fail_on_unmatched_files: true
