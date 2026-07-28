@@ -24,7 +24,15 @@ from ..exceptions import (
 class BatchHandler:
     def __init__(self, console: ConsoleDisplay):
         self.console = console
-        self.supported_extensions = {".txt", ".log", ".csv", ".json", ".docx", ".xlsx", ".pdf"}
+        self.supported_extensions = {
+            ".txt",
+            ".log",
+            ".csv",
+            ".json",
+            ".docx",
+            ".xlsx",
+            ".pdf",
+        }
 
     def process_directory(
         self,
