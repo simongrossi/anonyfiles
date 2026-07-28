@@ -40,6 +40,26 @@ SCHEMA = {
         "schema": {"type": "string"},
         "default": [],
     },
+    "extra_labels": {
+        "type": "list",
+        "required": False,
+        "schema": {"type": "string"},
+        "default": [],
+    },
+    "custom_rules": {
+        "type": "list",
+        "required": False,
+        "schema": {
+            "type": "dict",
+            "schema": {
+                "pattern": {"type": "string", "required": True},
+                "replacement": {"type": "string", "required": True},
+                "isRegex": {"type": "boolean", "required": False},
+            },
+        },
+        "default": [],
+    },
+    "description": {"type": "string", "required": False},
     "default_output_dir": {"type": "string", "required": False},
     "backup_original": {"type": "boolean", "required": False},
     "compression": {"type": "boolean", "required": False},
