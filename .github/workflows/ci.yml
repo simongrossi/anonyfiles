@@ -206,10 +206,12 @@ jobs:
           path: dist
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          # Génère automatiquement les notes de release basées sur les PRs mergées
-          generate_release_notes: true
+          # Les notes de release sont écrites par le job `release` de
+          # desktop-build.yml, qui tourne sur le même tag. On ne fournit donc
+          # ni body ni generate_release_notes ici : ce job se contente
+          # d'attacher les wheels, sans écraser le corps de la release.
           files: |
             dist/*.whl
             dist/*.tar.gz
