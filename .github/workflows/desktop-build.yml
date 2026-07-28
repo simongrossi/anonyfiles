@@ -170,7 +170,10 @@ jobs:
           | Plateforme | Fichier |
           |---|---|
           | macOS Apple Silicon (M1–M4) | `Anonyfiles-*-macos-arm64.dmg` |
+          | Windows x86_64 | `Anonyfiles-*-windows-x86_64.msi` ou `.exe` |
           | Linux x86_64 | `Anonyfiles-*-linux-x86_64.AppImage` ou `.deb` |
+
+          macOS Intel n'est pas fourni : les runners `macos-13` ont été supprimés par GitHub.
 
           ### macOS — premier lancement
 
@@ -185,6 +188,11 @@ jobs:
           Sinon : clic droit sur l'app → **Ouvrir** → **Ouvrir** dans la boîte de dialogue.
           Le premier démarrage peut prendre 30 à 50 s (scan Gatekeeper du bundle), les
           suivants quelques secondes.
+
+          ### Windows — premier lancement
+
+          Les binaires ne sont pas signés : SmartScreen affiche un avertissement →
+          « Informations supplémentaires » → « Exécuter quand même ».
 
           ### Vérification d'intégrité
 

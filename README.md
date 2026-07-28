@@ -201,7 +201,7 @@ Cela enchaîne :
 
 Sorties dans `anonyfiles_gui/src-tauri/target/release/bundle/` : `.app` + `.dmg` (macOS), `.msi` + `.exe` (Windows), `.AppImage` + `.deb` (Linux). Taille ~400 Mo à cause du modèle spaCy.
 
-La CI `desktop-build.yml` produit ces artifacts automatiquement sur tag `v*` (macOS ARM, Linux ; le build Windows est actuellement cassé et macOS Intel a été retiré, les runners `macos-13` ayant été supprimés par GitHub) et les publie sur la Release. Voir [`guide_installation_anonyfiles.md`](guide_installation_anonyfiles.md#-application-desktop-autonome) pour le détail.
+La CI `desktop-build.yml` produit ces artifacts automatiquement sur tag `v*` (macOS ARM, Windows, Linux — macOS Intel a été retiré, les runners `macos-13` ayant été supprimés par GitHub) et les publie sur la Release. Voir [`guide_installation_anonyfiles.md`](guide_installation_anonyfiles.md#-application-desktop-autonome) pour le détail.
 
 ---
 

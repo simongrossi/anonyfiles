@@ -148,8 +148,10 @@ Cibles actuellement construites :
 |---|---|
 | macOS Apple Silicon (`aarch64-apple-darwin`) | ✅ publié |
 | Linux x86_64 (`x86_64-unknown-linux-gnu`) | ✅ publié |
-| Windows x86_64 (`x86_64-pc-windows-msvc`) | ⚠️ build cassé (sidecar PyInstaller) |
+| Windows x86_64 (`x86_64-pc-windows-msvc`) | ✅ publié |
 | macOS Intel (`x86_64-apple-darwin`) | ❌ retiré du matrix — runners `macos-13` supprimés par GitHub |
+
+Rétablir macOS Intel demanderait un cross-build `x86_64-apple-darwin` depuis `macos-14`, et surtout un sidecar PyInstaller x86_64 — or PyInstaller ne cross-compile pas. À traiter séparément si le besoin remonte.
 
 Le job `release` tourne en `always()` : une cible cassée n'empêche pas la publication des autres. Il échoue seulement si *aucun* installeur n'a été produit.
 
