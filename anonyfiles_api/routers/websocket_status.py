@@ -1,11 +1,12 @@
 # anonyfiles/anonyfiles_api/routers/websocket_status.py
 
 import asyncio
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
 from ..auth import websocket_has_valid_api_key
-from ..job_utils import Job, TERMINAL_JOB_STATUSES
 from ..core_config import logger
+from ..job_utils import TERMINAL_JOB_STATUSES, Job
 
 router = APIRouter()
 

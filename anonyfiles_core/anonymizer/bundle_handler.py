@@ -1,15 +1,15 @@
 import json
 import zipfile
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any
 
 
 def create_bundle(
     bundle_path: Path,
-    anonymized_path: Optional[Path],
-    mapping_path: Optional[Path],
-    audit_log: List[Dict[str, Any]],
-    log_entities_path: Optional[Path] = None,
+    anonymized_path: Path | None,
+    mapping_path: Path | None,
+    audit_log: list[dict[str, Any]],
+    log_entities_path: Path | None = None,
 ) -> None:
     """Create a zip archive containing output files and audit log."""
     bundle_path.parent.mkdir(parents=True, exist_ok=True)

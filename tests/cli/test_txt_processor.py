@@ -2,8 +2,9 @@ import pytest
 
 pytest.importorskip("spacy")
 import tempfile
-from anonyfiles_core.anonymizer.txt_processor import TxtProcessor
 from pathlib import Path
+
+from anonyfiles_core.anonymizer.txt_processor import TxtProcessor
 
 
 def test_extract_blocks_simple():

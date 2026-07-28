@@ -1,16 +1,17 @@
 import pytest
 
 pytest.importorskip("typer")
-from typer.testing import CliRunner  # noqa: E402
-from pathlib import Path  # noqa: E402
-from types import SimpleNamespace  # noqa: E402
-from unittest.mock import patch  # noqa: E402
-import zipfile  # noqa: E402
-import json  # noqa: E402
+import json
+import zipfile
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
-from anonyfiles_cli.main import app  # noqa: E402
-from anonyfiles_core.anonymizer import spacy_engine  # noqa: E402
-from anonyfiles_cli.managers.config_manager import ConfigManager  # noqa: E402
+from typer.testing import CliRunner
+
+from anonyfiles_cli.main import app
+from anonyfiles_cli.managers.config_manager import ConfigManager
+from anonyfiles_core.anonymizer import spacy_engine
 
 
 class DummyRuler:
@@ -255,7 +256,7 @@ def test_cli_verbose_outputs_debug():
     runner = CliRunner()
     result = runner.invoke(app, ["--verbose", "config", "validate-config", str(cfg)])
     assert result.exit_code == 0
-    assert "DEBUG:root:Verbose mode enabled" in result.output
+    assert "DEBUG:anonyfiles_cli.main:Verbose mode enabled" in result.output
 
 
 def test_cli_missing_spacy_model(tmp_path):

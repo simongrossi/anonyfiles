@@ -2,13 +2,13 @@
 
 import json
 from pathlib import Path
-from typing import Optional
+
 import typer  # Importez typer si vous comptez l'utiliser pour les messages ou confirmations
 
 from anonyfiles_core import DeanonymizationEngine
 from anonyfiles_core.anonymizer.file_utils import timestamp
 from anonyfiles_core.anonymizer.run_logger import log_run_event
-from ..ui.console_display import ConsoleDisplay
+
 from ..cli_logger import CLIUsageLogger
 from ..exceptions import (
     AnonyfilesError,
@@ -16,6 +16,7 @@ from ..exceptions import (
     FileIOError,
     ProcessingError,
 )
+from ..ui.console_display import ConsoleDisplay
 
 
 class DeanonymizeHandler:
@@ -26,8 +27,8 @@ class DeanonymizeHandler:
         self,
         input_file: Path,
         mapping_csv: Path,
-        output: Optional[Path],
-        report: Optional[Path],
+        output: Path | None,
+        report: Path | None,
         dry_run: bool,
         permissive: bool,
     ):

@@ -4,8 +4,8 @@ pytest.importorskip("spacy")
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from anonyfiles_core.anonymizer import spacy_engine
 from anonyfiles_cli.exceptions import ConfigurationError
+from anonyfiles_core.anonymizer import spacy_engine
 
 
 class DummyRuler:
@@ -73,8 +73,10 @@ def test_load_model_failure_raises_configuration_error():
     def fail_load(name, **kwargs):
         raise OSError("model missing")
 
-    with patch.object(spacy_engine, "spacy", _fake_spacy(fail_load)):
-        with pytest.raises(ConfigurationError) as exc:
-            spacy_engine.SpaCyEngine(model="missing")
+    with (
+        patch.object(spacy_engine, "spacy", _fake_spacy(fail_load)),
+        pytest.raises(ConfigurationError) as exc,
+    ):
+        spacy_engine.SpaCyEngine(model="missing")
     msg = str(exc.value)
     assert "python -m spacy download missing" in msg

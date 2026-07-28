@@ -1,13 +1,14 @@
 # anonyfiles_cli/managers/config_manager.py
 
-import yaml
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
+
+import yaml
 
 from ..exceptions import ConfigurationError
-from .validation_manager import ValidationManager
 from ..utils.default_paths import get_default_output_dir
+from .validation_manager import ValidationManager
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class ConfigManager:
     )
 
     @classmethod
-    def _load_yaml_file(cls, file_path: Path) -> Dict[str, Any]:
+    def _load_yaml_file(cls, file_path: Path) -> dict[str, Any]:
         """Charge un fichier YAML de manière sécurisée."""
         if not file_path.is_file():
             return {}
@@ -52,7 +53,7 @@ class ConfigManager:
             raise ConfigurationError(f"Erreur lors de la lecture de '{file_path}': {e}")
 
     @classmethod
-    def get_user_config(cls) -> Dict[str, Any]:
+    def get_user_config(cls) -> dict[str, Any]:
         """Charge la configuration spécifique à l'utilisateur."""
         try:
             return cls._load_yaml_file(cls.DEFAULT_USER_CONFIG_FILE)
@@ -62,8 +63,8 @@ class ConfigManager:
 
     @classmethod
     def get_effective_config(
-        cls, cli_provided_config_path: Optional[Path]
-    ) -> Dict[str, Any]:
+        cls, cli_provided_config_path: Path | None
+    ) -> dict[str, Any]:
         """
         Charge la configuration en respectant la priorité :
         1. Fichier de configuration fourni via la CLI.

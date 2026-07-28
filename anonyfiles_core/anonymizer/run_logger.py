@@ -5,7 +5,7 @@ Module utilitaire pour centraliser le logging des sessions (runs) d'anonymisatio
 Utilisable aussi bien dans le CLI que l'API pour garantir une structure de log cohérente.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 def log_run_event(
@@ -15,13 +15,13 @@ def log_run_event(
     output_file: str,
     mapping_file: str,
     log_entities_file: str,
-    entities_detected: Optional[list],
+    entities_detected: list | None,
     total_replacements: int,
-    audit_log: Optional[list],
+    audit_log: list | None,
     status: str,
-    error: Optional[str] = None,
-    command: Optional[str] = None,
-    args: Optional[Dict[str, Any]] = None,
+    error: str | None = None,
+    command: str | None = None,
+    args: dict[str, Any] | None = None,
 ) -> None:
     """
     Log une session (run) d'anonymisation/désanonymisation de façon centralisée et cohérente.

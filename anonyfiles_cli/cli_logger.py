@@ -1,12 +1,14 @@
 # anonyfiles_cli/cli_logger.py
 
+import contextlib
 import datetime
 import json
 import logging
-from typing import Any, Dict, Optional
-import typer
-from pathlib import Path
 import traceback
+from pathlib import Path
+from typing import Any
+
+import typer
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,7 @@ class CLIUsageLogger:
     VERBOSE: bool = False
 
     @classmethod
-    def get_log_path(cls) -> Optional[Path]:
+    def get_log_path(cls) -> Path | None:
         """Return the path to today's audit log file.
 
         The method creates the directory structure for the current date if
@@ -30,7 +32,7 @@ class CLIUsageLogger:
             Optional[Path]: Path object to ``cli_audit_log.jsonl``, or None if creation fails.
         """
         try:
-            now = datetime.datetime.now(datetime.timezone.utc)
+            now = datetime.datetime.now(datetime.UTC)
             log_dir = (
                 cls.LOG_BASE_DIR / str(now.year) / f"{now.month:02d}" / f"{now.day:02d}"
             )
@@ -54,7 +56,7 @@ class CLIUsageLogger:
             info (dict): Arbitrary metadata describing the executed command.
         """
         entry = {
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
             **info,
         }
         log_path = cls.get_log_path()
@@ -74,12 +76,12 @@ class CLIUsageLogger:
         context: str,
         exc: Exception,
         *,
-        command: Optional[str] = None,
-        args: Optional[Dict[str, Any]] = None,
+        command: str | None = None,
+        args: dict[str, Any] | None = None,
     ):
         """Record an error entry in the audit log."""
-        entry: Dict[str, Any] = {
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        entry: dict[str, Any] = {
+            "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
             "error": str(exc),
             "traceback": traceback.format_exc(),
             "context": context,
@@ -89,13 +91,11 @@ class CLIUsageLogger:
         if args is not None:
             entry["arguments"] = args
         elif cls.VERBOSE:
-            try:
+            with contextlib.suppress(Exception):
                 # Tentative de récupération du contexte Typer si disponible
                 ctx = typer.get_current_context()
                 entry["command"] = ctx.command_path
                 entry["arguments"] = ctx.params
-            except Exception:
-                pass
 
         log_path = cls.get_log_path()
         if not log_path:

@@ -4,32 +4,32 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
+from .auth import require_api_key
+from .core_config import (
+    DEFAULT_RATE_LIMIT,
+    JOBS_DIR,
+    AppConfig,
+    clear_request_context,
+    logger,
+    set_request_context,
+)
+from .job_queue import JobQueue
+from .retention import run_purge_loop
 from .routers import (
     anonymization,
     deanonymization,
     files,
-    jobs,
     health,
+    jobs,
     websocket_status,
 )
-from .core_config import (
-    logger,
-    JOBS_DIR,
-    DEFAULT_RATE_LIMIT,
-    set_request_context,
-    clear_request_context,
-    AppConfig,
-)
-from .job_queue import JobQueue
-from .retention import run_purge_loop
-from .auth import require_api_key
 
 # Plus besoin d'importer load_config_api_safe depuis anonyfiles_cli.main
 # CLI_MODULE_PATH = Path(__file__).resolve().parent.parent / "anonyfiles_cli"
@@ -86,7 +86,7 @@ async def _start_runtime(fastapi_app: FastAPI) -> None:
         )
         # On relève l'exception pour stopper Uvicorn (Fail Fast)
         await _stop_runtime(fastapi_app)
-        raise e
+        raise
 
 
 async def _stop_runtime(fastapi_app: FastAPI) -> None:
@@ -102,9 +102,9 @@ async def _stop_runtime(fastapi_app: FastAPI) -> None:
     if task is not None:
         try:
             await asyncio.wait_for(task, timeout=5)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
+        except (TimeoutError, asyncio.CancelledError):
             task.cancel()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning(f"Arrêt de la tâche de purge: {exc}")
 
 
@@ -194,12 +194,13 @@ async def read_root():
 
 
 if __name__ == "__main__":
-    import uvicorn
     import os
+
+    import uvicorn
 
     # SÉCURITÉ : Par défaut 127.0.0.1 (local uniquement).
     # Docker passera HOST=0.0.0.0 via les variables d'environnement.
     host = os.getenv("HOST", "127.0.0.1")
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", "8000"))
 
     uvicorn.run(app, host=host, port=port)

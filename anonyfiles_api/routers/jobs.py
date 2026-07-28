@@ -1,16 +1,16 @@
 # anonyfiles/anonyfiles_api/routers/jobs.py
 
-from fastapi import APIRouter, HTTPException, Request, status, Response
-import aiofiles.os as aio_os
 import uuid
 
-# import logging # Logger est maintenant importé depuis core_config
-
-from ..job_utils import Job
-from ..job_queue import ensure_job_queue
+import aiofiles.os as aio_os
+from fastapi import APIRouter, HTTPException, Request, Response, status
 
 # Importer depuis le nouveau module de configuration central
 from ..core_config import logger, set_job_id  # Importer logger et context
+from ..job_queue import ensure_job_queue
+
+# import logging # Logger est maintenant importé depuis core_config
+from ..job_utils import Job
 
 router = APIRouter()
 # 'logger' est maintenant importé de core_config et utilisé directement

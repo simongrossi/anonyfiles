@@ -1,6 +1,8 @@
-import logging
 import hashlib
-from typing import Any, Callable
+import logging
+from collections.abc import Callable
+from typing import Any
+
 from faker import Faker
 
 from .format_utils import create_placeholder
@@ -78,7 +80,7 @@ def generate_redaction_replacement(
     # Heuristique simple : si finit par "]" ou "}", on insère avant.
     if base_text.startswith("{{") and base_text.endswith("}}"):
         return f"{base_text[:-2]}_{index + 1}" + "}}"
-    if base_text.endswith("]") or base_text.endswith("}"):
+    if base_text.endswith(("]", "}")):
         return f"{base_text[:-1]}_{index + 1}{base_text[-1]}"
     return f"{base_text}_{index + 1}"
 
@@ -94,7 +96,7 @@ def generate_placeholder_replacement(
     """
     Remplace par un format dynamique. Ajoute un index pour l'unicité si non présent.
     """
-    format_str = options.get("format", "{{{}}}".format(label.upper()))
+    format_str = options.get("format", f"{{{label.upper()}}}")
     if "{}" in format_str:
         return format_str.format(entity_text)
 

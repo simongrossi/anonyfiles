@@ -1,20 +1,19 @@
 # anonyfiles_cli/anonymizer/ner_processor.py
 
+import logging
 import re
 import unicodedata
-from typing import List, Dict, Tuple, Set
-import logging  #
 
-from .spacy_engine import SpaCyEngine
 from .spacy_engine import (
     ADDRESS_REGEX,
     DATE_REGEX,
     EMAIL_REGEX,
     IBAN_REGEX,
     PHONE_REGEX,
+    SpaCyEngine,
 )
 
-logger = logging.getLogger(__name__)  #
+logger = logging.getLogger(__name__)
 
 _EXTRA_FRENCH_FIRST_NAMES = {
     "ambre",
@@ -122,7 +121,7 @@ def _trim_entity_span(
 
 
 def _overlaps_existing_span(
-    start: int, end: int, entities: List[Tuple[str, str, int, int]]
+    start: int, end: int, entities: list[tuple[str, str, int, int]]
 ) -> bool:
     return any(
         start < existing_end and end > existing_start
@@ -135,8 +134,8 @@ def _add_non_overlapping_entity(
     label: str,
     start: int,
     end: int,
-    entities: List[Tuple[str, str, int, int]],
-    enabled_labels: Set[str],
+    entities: list[tuple[str, str, int, int]],
+    enabled_labels: set[str],
 ) -> None:
     if label not in enabled_labels:
         return
@@ -152,7 +151,7 @@ def _add_non_overlapping_entity(
     entities.append(clean_entity)
 
 
-def _fallback_to_misc(label: str, enabled_labels: Set[str]) -> str | None:
+def _fallback_to_misc(label: str, enabled_labels: set[str]) -> str | None:
     if label in enabled_labels:
         return label
     if "MISC" in enabled_labels:
@@ -160,7 +159,7 @@ def _fallback_to_misc(label: str, enabled_labels: Set[str]) -> str | None:
     return None
 
 
-def _context_label_for_key(key: str, enabled_labels: Set[str]) -> str | None:
+def _context_label_for_key(key: str, enabled_labels: set[str]) -> str | None:
     normalized_key = _normalize_name_key(key)
     label = _STRICT_CONTEXT_LABEL_BY_KEY.get(normalized_key)
     if label is None:
@@ -180,8 +179,8 @@ class NERProcessor:
     def __init__(
         self,
         spacy_engine: SpaCyEngine,
-        enabled_labels: Set[str],
-        excluded_labels: Set[str],
+        enabled_labels: set[str],
+        excluded_labels: set[str],
         strict_mode: bool = False,
     ):
         self.spacy_engine = spacy_engine
@@ -190,14 +189,14 @@ class NERProcessor:
         self.strict_mode = strict_mode
 
         self.final_enabled_labels_for_spacy = self.enabled_labels - self.excluded_labels
-        logger.debug(  #
-            "DEBUG (NERProcessor Init): Labels spaCy effectivement activés pour la détection : %s",  #
-            self.final_enabled_labels_for_spacy,  #
+        logger.debug(
+            "DEBUG (NERProcessor Init): Labels spaCy effectivement activés pour la détection : %s",
+            self.final_enabled_labels_for_spacy,
         )
 
     def detect_entities_in_blocks(
-        self, text_blocks: List[str]
-    ) -> Tuple[List[Tuple[str, str]], List[List[Tuple[str, str, int, int]]]]:
+        self, text_blocks: list[str]
+    ) -> tuple[list[tuple[str, str]], list[list[tuple[str, str, int, int]]]]:
         """
         Détecte les entités dans une liste de blocs de texte.
         Retourne :
@@ -205,10 +204,10 @@ class NERProcessor:
         2. Une liste de listes de tuples (entity_text, label, start_char, end_char) par bloc,
            incluant les offsets pour le remplacement positionnel.
         """
-        all_unique_entities_across_blocks: Dict[str, Tuple[str, str]] = (
+        all_unique_entities_across_blocks: dict[str, tuple[str, str]] = (
             {}
         )  # {entity_text: (label, source_type)}
-        spacy_entities_per_block_with_offsets: List[List[Tuple[str, str, int, int]]] = (
+        spacy_entities_per_block_with_offsets: list[list[tuple[str, str, int, int]]] = (
             []
         )
 
@@ -223,7 +222,7 @@ class NERProcessor:
         PRIORITY_REGEX_LABELS = {"EMAIL", "DATE", "PHONE", "IBAN", "ADDRESS"}
 
         for block_text in text_blocks:
-            detected_entities_for_this_block: List[Tuple[str, str, int, int]] = (
+            detected_entities_for_this_block: list[tuple[str, str, int, int]] = (
                 []
             )  # Cette variable est celle qui est remplie
 
@@ -275,8 +274,8 @@ class NERProcessor:
                     )
 
                 # 3. Nettoyer et dédupliquer les entités du bloc avec gestion de priorité
-                processed_entities_for_this_block: List[Tuple[str, str, int, int]] = []
-                best_entities_by_span: Dict[Tuple[int, int], Tuple[str, str]] = {}
+                processed_entities_for_this_block: list[tuple[str, str, int, int]] = []
+                best_entities_by_span: dict[tuple[int, int], tuple[str, str]] = {}
 
                 # La variable à trier est bien 'detected_entities_for_this_block'
                 detected_entities_for_this_block.sort(key=lambda x: x[2])
@@ -285,7 +284,7 @@ class NERProcessor:
                     span = (start, end)
 
                     if span in best_entities_by_span:
-                        existing_text, existing_label = best_entities_by_span[span]
+                        _existing_text, existing_label = best_entities_by_span[span]
 
                         if (
                             ent_label in PRIORITY_REGEX_LABELS
@@ -342,7 +341,7 @@ class NERProcessor:
     def _add_strict_entities(
         self,
         block_text: str,
-        entities: List[Tuple[str, str, int, int]],
+        entities: list[tuple[str, str, int, int]],
     ) -> None:
         enabled = self.final_enabled_labels_for_spacy
 

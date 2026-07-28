@@ -1,7 +1,5 @@
 """Fonctionnalités interactives pour la CLI."""
 
-from typing import List
-
 import typer
 
 from .console_display import ConsoleDisplay
@@ -19,7 +17,7 @@ ENTITY_CHOICES = [
 ]
 
 
-def prompt_entities_to_exclude(console: ConsoleDisplay) -> List[str]:
+def prompt_entities_to_exclude(console: ConsoleDisplay) -> list[str]:
     """Demande à l'utilisateur quelles entités anonymiser.
 
     Retourne la liste des labels à exclure en fonction du choix.

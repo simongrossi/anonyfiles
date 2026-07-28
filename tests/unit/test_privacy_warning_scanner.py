@@ -7,10 +7,12 @@ from anonyfiles_core.anonymizer.privacy_warning_scanner import (
 def test_scanner_reports_suspicious_values_by_category():
     warnings = scan_blocks_for_privacy_warnings(
         [
-            "Pierre contacte ambre [at] exemple [dot] fr.\n"
-            "Tel: +33 (0)6 12 34 56 78\n"
-            "Adresse: 12 rue Victor Hugo 75015 Paris\n"
-            "KMCL\n"
+            (
+                "Pierre contacte ambre [at] exemple [dot] fr.\n"
+                "Tel: +33 (0)6 12 34 56 78\n"
+                "Adresse: 12 rue Victor Hugo 75015 Paris\n"
+                "KMCL\n"
+            )
         ],
         enabled_labels={"PER", "EMAIL", "PHONE", "ADDRESS", "ORG", "MISC"},
     )
@@ -26,7 +28,7 @@ def test_scanner_reports_suspicious_values_by_category():
 
 def test_scanner_ignores_generated_placeholders_and_replacements():
     warnings = scan_blocks_for_privacy_warnings(
-        ["{{NOM_001}} [ENTREPRISE_ANONYME_1] Jean Martin " "contact@example.com"],
+        ["{{NOM_001}} [ENTREPRISE_ANONYME_1] Jean Martin contact@example.com"],
         enabled_labels={"PER", "EMAIL", "ORG", "MISC"},
         ignored_values={"Jean Martin", "contact@example.com"},
     )

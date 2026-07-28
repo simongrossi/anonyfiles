@@ -1,4 +1,5 @@
 import os
+
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
@@ -9,7 +10,7 @@ def create_test_pdf(path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
     c = canvas.Canvas(path, pagesize=A4)
-    width, height = A4
+    _width, height = A4
 
     # Page 1
     c.drawString(100, height - 100, "Bonjour Pierre Dupont, vous habitez à Paris.")

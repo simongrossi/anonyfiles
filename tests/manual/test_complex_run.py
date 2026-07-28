@@ -1,6 +1,7 @@
 import logging
 import shutil
 from pathlib import Path
+
 from anonyfiles_core import AnonyfilesEngine
 
 # Configure logging
@@ -65,8 +66,8 @@ def run_test():
                 mapping_dict[row[0]] = row[1]
 
     print("--- MAPPING KEYS DETECTED ---")
-    for k in mapping_dict.keys():
-        print(f"Key: '{k}' -> '{mapping_dict[k]}'")
+    for k, v in mapping_dict.items():
+        print(f"Key: '{k}' -> '{v}'")
     print("----------------------------")
 
     # Check specific uniqueness cases based on input text

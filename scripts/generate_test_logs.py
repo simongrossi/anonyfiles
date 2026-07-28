@@ -1,7 +1,7 @@
+import argparse
 import random
 import time
 from datetime import datetime, timedelta
-import argparse
 from pathlib import Path
 
 # Constantes pour la simulation

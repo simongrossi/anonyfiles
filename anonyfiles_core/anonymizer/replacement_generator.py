@@ -1,9 +1,9 @@
 # anonyfiles_cli/anonymizer/replacement_generator.py
 
-from typing import List, Dict, Any, Tuple
+from typing import Any
 
-from .replacer import ReplacementSession
 from .audit import AuditLogger
+from .replacer import ReplacementSession
 
 
 class ReplacementGenerator:
@@ -12,7 +12,7 @@ class ReplacementGenerator:
     et les journalise dans l'audit logger.
     """
 
-    def __init__(self, config: Dict[str, Any], audit_logger: AuditLogger):
+    def __init__(self, config: dict[str, Any], audit_logger: AuditLogger):
         self.config = config
         self.audit_logger = audit_logger
         self.replacement_rules_spacy_config = self.config.get("replacements", {})
@@ -20,9 +20,9 @@ class ReplacementGenerator:
 
     def generate_spacy_replacements(
         self,
-        unique_spacy_entities: List[Tuple[str, str]],
-        entities_per_block_with_offsets: List[List[Tuple[str, str, int, int]]],
-    ) -> Tuple[Dict[str, str], Dict[str, str]]:
+        unique_spacy_entities: list[tuple[str, str]],
+        entities_per_block_with_offsets: list[list[tuple[str, str, int, int]]],
+    ) -> tuple[dict[str, str], dict[str, str]]:
         """
         Génère les remplacements pour les entités spaCy et met à jour l'audit log.
         Retourne le dictionnaire des remplacements (original_text -> anonymized_code)

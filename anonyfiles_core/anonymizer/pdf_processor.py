@@ -1,8 +1,11 @@
 # anonymizer/pdf_processor.py
 
-import fitz  # PyMuPDF
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+
+import fitz  # PyMuPDF
+
 from .base_processor import BaseProcessor
 from .type_defs import EntitySpansByBlock, ReplacementMap, TextBlocks
 

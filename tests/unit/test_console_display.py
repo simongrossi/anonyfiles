@@ -1,6 +1,7 @@
 import pytest
-from anonyfiles_cli.ui.console_display import ConsoleDisplay
+
 from anonyfiles_cli.exceptions import ConfigurationError, FileIOError, ProcessingError
+from anonyfiles_cli.ui.console_display import ConsoleDisplay
 
 
 class DummyLogger:

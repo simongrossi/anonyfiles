@@ -1,8 +1,9 @@
 # anonymizer/txt_processor.py
 
+import logging
 from pathlib import Path
 from typing import Any
-import logging
+
 import aiofiles
 
 from .base_processor import BaseProcessor

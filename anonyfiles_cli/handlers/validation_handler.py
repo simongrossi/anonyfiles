@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import ClassVar
 
 from ..exceptions import (
     ConfigurationError,
@@ -10,18 +10,26 @@ from ..exceptions import (
 
 
 class ValidationHandler:
-    SUPPORTED_EXTENSIONS = {".txt", ".log", ".csv", ".docx", ".xlsx", ".pdf", ".json"}
+    SUPPORTED_EXTENSIONS: ClassVar[set[str]] = {
+        ".txt",
+        ".log",
+        ".csv",
+        ".docx",
+        ".xlsx",
+        ".pdf",
+        ".json",
+    }
 
     @classmethod
     def validate_anonymize_inputs(
         cls,
         input_file: Path,
-        output: Optional[
-            Path
-        ],  # Non utilisé pour la validation d'extension, mais peut être utile si on valide le chemin de sortie
-        custom_replacements_json: Optional[str],
+        output: (
+            Path | None
+        ),  # Non utilisé pour la validation d'extension, mais peut être utile si on valide le chemin de sortie
+        custom_replacements_json: str | None,
         csv_no_header: bool,
-        has_header_opt: Optional[str],
+        has_header_opt: str | None,
     ):
         """Validate inputs for anonymization.
 
@@ -73,7 +81,7 @@ class ValidationHandler:
 
     @classmethod
     def _validate_csv_options(
-        cls, input_file: Path, csv_no_header: bool, has_header_opt: Optional[str]
+        cls, input_file: Path, csv_no_header: bool, has_header_opt: str | None
     ):
         """Valide la cohérence des options CSV avec le type de fichier."""
         if csv_no_header and input_file.suffix.lower() != ".csv":
@@ -85,7 +93,7 @@ class ValidationHandler:
             raise ConfigurationError("--has-header-opt doit être 'true' ou 'false'.")
 
     @classmethod
-    def _validate_custom_replacements(cls, custom_replacements_json: Optional[str]):
+    def _validate_custom_replacements(cls, custom_replacements_json: str | None):
         """Valide le format JSON des règles de remplacement personnalisées."""
         if custom_replacements_json:
             try:

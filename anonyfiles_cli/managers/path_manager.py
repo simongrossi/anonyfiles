@@ -1,17 +1,17 @@
 # anonyfiles_cli/managers/path_manager.py
 
 from pathlib import Path
-from typing import Dict, Optional
+
+from anonyfiles_core.anonymizer.file_utils import (
+    default_log,
+    default_mapping,
+    default_output,
+    ensure_folder,
+    make_run_dir,
+)
 
 # C'EST LA LIGNE CLÉ À VÉRIFIER : DOIT ÊTRE UN IMPORT RELATIF AVEC DEUX POINTS (..)
 from ..exceptions import FileIOError
-from anonyfiles_core.anonymizer.file_utils import (
-    ensure_folder,
-    make_run_dir,
-    default_output,
-    default_mapping,
-    default_log,
-)
 
 
 class PathManager:
@@ -37,7 +37,7 @@ class PathManager:
         self.base_output_dir = base_output_dir
         self.run_id = run_id
         self.append_timestamp = append_timestamp
-        self._run_dir: Optional[Path] = None
+        self._run_dir: Path | None = None
 
     @property
     def run_dir(self) -> Path:
@@ -48,12 +48,12 @@ class PathManager:
 
     def resolve_paths(
         self,
-        output_override: Optional[Path],
-        mapping_override: Optional[Path],
-        log_entities_override: Optional[Path],
+        output_override: Path | None,
+        mapping_override: Path | None,
+        log_entities_override: Path | None,
         dry_run: bool,
-        bundle_override: Optional[Path] = None,
-    ) -> Dict[str, Path]:
+        bundle_override: Path | None = None,
+    ) -> dict[str, Path]:
         """
         Résout tous les chemins de fichiers de sortie.
         Si un chemin n'est pas fourni, un chemin par default est généré dans le répertoire de run.
@@ -63,7 +63,7 @@ class PathManager:
         :param dry_run: Si True, ne crée pas de répertoires pour les chemins par default.
         :return: Un dictionnaire contenant les chemins résolus.
         """
-        paths: Dict[str, Path] = {}
+        paths: dict[str, Path] = {}
 
         # Chemin du fichier de sortie anonymisé
         if output_override:

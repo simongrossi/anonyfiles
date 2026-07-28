@@ -1,10 +1,10 @@
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from .core_config import logger
-from .job_utils import Job, TERMINAL_JOB_STATUSES, log_job_event, utc_now_iso
+from .job_utils import TERMINAL_JOB_STATUSES, Job, log_job_event, utc_now_iso
 
 
 @dataclass(slots=True)
@@ -13,7 +13,7 @@ class QueuedJob:
     kind: str
     func: Callable[..., None]
     kwargs: dict[str, Any]
-    timeout_seconds: Optional[float]
+    timeout_seconds: float | None
     retry_attempts: int
     retry_delay_seconds: float
     enqueued_at: str = field(default_factory=utc_now_iso)
@@ -33,7 +33,7 @@ class JobQueue:
         self,
         *,
         worker_count: int = 1,
-        timeout_seconds: Optional[float] = None,
+        timeout_seconds: float | None = None,
         retry_attempts: int = 0,
         retry_delay_seconds: float = 1.0,
     ) -> None:
@@ -75,7 +75,7 @@ class JobQueue:
                     asyncio.gather(*self._workers, return_exceptions=True),
                     timeout=timeout_seconds,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(
                     "Arrêt de la file de jobs: timeout après %ss.", timeout_seconds
                 )
@@ -90,8 +90,8 @@ class JobQueue:
         kind: str,
         func: Callable[..., None],
         kwargs: dict[str, Any],
-        timeout_seconds: Optional[float] = None,
-        retry_attempts: Optional[int] = None,
+        timeout_seconds: float | None = None,
+        retry_attempts: int | None = None,
     ) -> None:
         if self._stopping:
             raise RuntimeError("La file de jobs est en cours d'arrêt.")
@@ -246,7 +246,7 @@ class JobQueue:
                 await asyncio.wait_for(runner, timeout=queued_job.timeout_seconds)
             else:
                 await runner
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await job.update_status_async(
                 protect_terminal=False,
                 status="timeout",
@@ -262,7 +262,7 @@ class JobQueue:
             status_payload = await job.get_status_async() or {}
             self._log_job_finished(queued_job, status_payload)
             return False
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             await job.set_status_as_error_async(
                 f"Erreur inattendue dans la file de jobs: {exc}",
                 final_status_category="unexpected_error",

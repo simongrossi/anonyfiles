@@ -1,10 +1,12 @@
 # anonymizer/excel_processor.py
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import logging
+from pathlib import Path
 from typing import Any
+
+import numpy as np
+import pandas as pd
+
 from .base_processor import BaseProcessor
 from .type_defs import ExcelSheetMetadata, TextBlocks
 

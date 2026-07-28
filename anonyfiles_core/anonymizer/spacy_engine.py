@@ -127,7 +127,7 @@ def _load_spacy_model_cached(model_name: str):
             f"Échec du téléchargement automatique du modèle spaCy '{model_name}' "
             f"(code sortie pip: {exc.code}). {_install_hint(model_name)}"
         ) from exc
-    except Exception as exc:  # noqa: BLE001 - on re-type immédiatement
+    except Exception as exc:
         raise ConfigurationError(
             f"Échec du téléchargement automatique du modèle spaCy '{model_name}': {exc}. "
             f"{_install_hint(model_name)}"
@@ -158,10 +158,7 @@ def is_valid_date(text):
         return False
 
     # Éviter les nombres à virgule ou point isolés (faux positifs fréquents)
-    if re.match(r"^\d+[.,]\d+$", text.strip()):
-        return False
-
-    return True
+    return not re.match(r"^\d+[.,]\d+$", text.strip())
 
 
 class SpaCyEngine:

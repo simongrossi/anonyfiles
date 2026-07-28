@@ -1,10 +1,11 @@
 import pytest
 
 pytest.importorskip("spacy")
-import tempfile
-from anonyfiles_core.anonymizer.json_processor import JsonProcessor
-from pathlib import Path
 import json
+import tempfile
+from pathlib import Path
+
+from anonyfiles_core.anonymizer.json_processor import JsonProcessor
 
 
 def _nested_sample() -> str:

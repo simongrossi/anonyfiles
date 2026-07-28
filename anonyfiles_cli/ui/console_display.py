@@ -1,10 +1,11 @@
 # anonyfiles_cli/ui/console_display.py
 
+import contextlib
 import traceback
 from pathlib import Path
-from typing import Dict, Any
-import typer
+from typing import Any
 
+import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -33,7 +34,7 @@ class ConsoleDisplay:
         self.console.print("")
 
     def display_results(
-        self, result: Dict[str, Any], dry_run: bool, paths: Dict[str, Path]
+        self, result: dict[str, Any], dry_run: bool, paths: dict[str, Path]
     ):
         """
         Affiche un résumé des résultats de l'anonymisation.
@@ -101,12 +102,10 @@ class ConsoleDisplay:
 
         command_name = None
         params = None
-        try:
+        with contextlib.suppress(Exception):
             ctx = typer.get_current_context()
             command_name = ctx.command_path
             params = ctx.params
-        except Exception:
-            pass
 
         if isinstance(error, ConfigurationError):
             if "spaCy model" in str(error) and "Install manualy" in str(error):

@@ -1,12 +1,12 @@
 import pytest
 
 pytest.importorskip("aiofiles")
-import shutil
-from unittest.mock import patch
-import sys
-
 import importlib
-import anonyfiles_api.core_config as core_config
+import shutil
+import sys
+from unittest.mock import patch
+
+from anonyfiles_api import core_config
 
 
 def test_run_deanonymization_job_sync_uses_engine(tmp_path):

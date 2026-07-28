@@ -1,10 +1,11 @@
 # anonyfiles_cli/anonymizer/writer.py
 
 import csv
+import io
 from pathlib import Path
 from typing import Any
+
 import aiofiles
-import io
 
 from .base_processor import BaseProcessor
 from .pdf_processor import PdfProcessor  # Spécifique pour kwargs de PDF

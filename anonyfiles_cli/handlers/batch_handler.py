@@ -1,24 +1,24 @@
 # anonyfiles_cli/handlers/batch_handler.py
 
 from pathlib import Path
-from typing import List, Optional
+
 import typer
 from rich.progress import (
-    Progress,
     BarColumn,
+    Progress,
     TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
 
-from ..handlers.anonymize_handler import AnonymizeHandler
-from ..ui.console_display import ConsoleDisplay
 from ..exceptions import (
     AnonyfilesError,
     ConfigurationError,
     FileIOError,
     ProcessingError,
 )
+from ..handlers.anonymize_handler import AnonymizeHandler
+from ..ui.console_display import ConsoleDisplay
 
 
 class BatchHandler:
@@ -38,12 +38,12 @@ class BatchHandler:
         self,
         input_dir: Path,
         pattern: str,
-        output_dir: Optional[Path],
-        config: Optional[Path],
+        output_dir: Path | None,
+        config: Path | None,
         dry_run: bool,
         recursive: bool,
         csv_no_header: bool,  # Passer les options CSV si le batch doit les gérer uniformément
-        has_header_opt: Optional[str],
+        has_header_opt: str | None,
     ):
         """Run anonymization on all files within ``input_dir``.
 
@@ -179,7 +179,7 @@ class BatchHandler:
         self.console.console.print(f"❌ Erreurs : [red]{error_count}[/red]")
         self.console.console.print(f"📁 Dossier de sortie : [blue]{output_dir}[/blue]")
 
-    def _find_files(self, input_dir: Path, pattern: str, recursive: bool) -> List[Path]:
+    def _find_files(self, input_dir: Path, pattern: str, recursive: bool) -> list[Path]:
         """
         Trouve les fichiers à traiter dans le répertoire donné, en appliquant le pattern
         et l'option récursive.

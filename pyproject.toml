@@ -41,10 +41,10 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio",
-    # Épinglé pour la même raison que black : ruff 0.16 a élargi son jeu de
-    # règles par défaut (I, SIM, UP, B...), ce qui rendait la CI rouge sur du
-    # code inchangé. Voir la PR de mise à niveau avant de relever ce pin.
-    "ruff==0.15.19",
+    # Épinglé pour la même raison que black : éviter qu'un élargissement des
+    # règles par défaut ne rende la CI rouge sur du code inchangé (c'est ce
+    # qu'a fait 0.16). Relever ce pin volontairement, pas par dérive.
+    "ruff==0.16.0",
     # Épinglé pour un formatage reproductible (évite la dérive de style quand la
     # CI installe une version plus récente). 26.3.1 corrige aussi CVE-2026-32274.
     "black==26.3.1",
@@ -76,6 +76,38 @@ line-length = 88
 [tool.ruff]
 target-version = "py311"
 line-length = 88
+
+[tool.ruff.lint]
+# ruff 0.16 a élargi son jeu de règles par défaut. On garde l'ensemble, sauf
+# les règles qui contredisent les idiomes des frameworks utilisés ici.
+ignore = [
+    # FastAPI et Typer *exigent* l'appel dans les valeurs par défaut :
+    # `= File(...)`, `= Security(...)`, `= typer.Option(...)`. Suivre B008
+    # casserait l'injection de dépendances.
+    "B008",
+    # `except Exception` est délibéré aux frontières CLI/API : on convertit en
+    # message utilisateur et en code de sortie plutôt que de laisser fuiter une
+    # trace. À resserrer progressivement, pas en bloc.
+    "BLE001",
+    # Les timestamps sont volontairement en heure locale : ils servent à nommer
+    # des fichiers de sortie et à afficher des dates à l'utilisateur. Passer en
+    # UTC décalerait les noms de fichiers sans bénéfice ici.
+    "DTZ005",
+    "DTZ006",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Faux positif : le callback est consommé par `compiled_pattern.sub()` dans la
+# même itération, il ne survit jamais à la boucle.
+"anonyfiles_core/anonymizer/custom_rules_processor.py" = ["B023"]
+# `_parse_entity_decisions` lève ValueError pour tout payload malformé, et
+# l'appelant l'attrape pour renvoyer un HTTP 400. Suivre TRY004 ferait remonter
+# un TypeError non capturé, donc un 500.
+"anonyfiles_api/routers/anonymization.py" = ["TRY004"]
+# Les tests ouvrent des fichiers de fixtures dont la durée de vie est celle du
+# test ; le gestionnaire de contexte n'apporte rien. RUF012 sur les doubles de
+# test (`ents = []`) n'apporte rien non plus.
+"tests/**" = ["SIM115", "RUF012"]
 
 [tool.mypy]
 python_version = "3.11"

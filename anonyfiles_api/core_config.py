@@ -2,11 +2,12 @@
 import logging
 import os
 import sys
-import yaml
-from pathlib import Path
 from contextvars import ContextVar
-from typing import Optional, Dict, Any
-from pydantic import Field, BaseModel, ConfigDict
+from pathlib import Path
+from typing import Any
+
+import yaml
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -22,11 +23,9 @@ logging.basicConfig(
 logger = logging.getLogger("anonyfiles_api")
 
 # ContextVar pour stocker l'ID du job courant
-_job_id_ctx: ContextVar[Optional[str]] = ContextVar("job_id", default=None)
-_request_context_path: ContextVar[Optional[str]] = ContextVar(
-    "request_path", default=None
-)
-_request_context_ip: ContextVar[Optional[str]] = ContextVar("request_ip", default=None)
+_job_id_ctx: ContextVar[str | None] = ContextVar("job_id", default=None)
+_request_context_path: ContextVar[str | None] = ContextVar("request_path", default=None)
+_request_context_ip: ContextVar[str | None] = ContextVar("request_ip", default=None)
 
 # --- Constantes ---
 CONFIG_TEMPLATE_PATH = (
@@ -71,15 +70,15 @@ DEFAULT_JOB_RETRY_ATTEMPTS = 0
 class ReplacementOptions(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    locale: Optional[str] = None
-    provider: Optional[str] = None
-    text: Optional[str] = None
+    locale: str | None = None
+    provider: str | None = None
+    text: str | None = None
     # Pour 'codes', pas d'options spécifiques requises mais on accepte des dicts génériques
 
 
 class EntityConfig(BaseModel):
     type: str  # ex: codes, faker, redact
-    options: Optional[ReplacementOptions] = Field(default_factory=ReplacementOptions)
+    options: ReplacementOptions | None = Field(default_factory=ReplacementOptions)
 
 
 class AnonymizationOptions(BaseModel):
@@ -114,7 +113,7 @@ class AppConfig(BaseSettings):
     )
 
     # Configuration des actions de remplacement pour chaque entité
-    replacements: Dict[str, EntityConfig] = Field(default_factory=dict)
+    replacements: dict[str, EntityConfig] = Field(default_factory=dict)
 
     # Autres configurations globales potentielles
     cors_origins: str = Field(
@@ -206,7 +205,7 @@ class YamlConfigSettingsSource(PydanticBaseSettingsSource):
         # Ici on simplifie en retournant tout le dictionnaire chargé.
         pass
 
-    def __call__(self) -> Dict[str, Any]:
+    def __call__(self) -> dict[str, Any]:
         if not self.yaml_file.is_file():
             logger.warning(
                 f"Fichier de configuration YAML non trouvé : {self.yaml_file}"
@@ -233,11 +232,11 @@ class YamlConfigSettingsSource(PydanticBaseSettingsSource):
 # --- Fonctions utilitaires contextuelles ---
 
 
-def set_job_id(job_id: Optional[str] = None) -> None:
+def set_job_id(job_id: str | None = None) -> None:
     _job_id_ctx.set(job_id)
 
 
-def get_job_id() -> Optional[str]:
+def get_job_id() -> str | None:
     return _job_id_ctx.get()
 
 

@@ -1,7 +1,7 @@
 import asyncio
 import time
 
-import anonyfiles_api.core_config as core_config
+from anonyfiles_api import core_config
 from anonyfiles_api.job_queue import JobQueue
 from anonyfiles_api.job_utils import Job
 

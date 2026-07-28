@@ -1,7 +1,9 @@
-import pytest
 import shutil
 from pathlib import Path
+
+import pytest
 from pypdf import PdfReader
+
 from anonyfiles_core import AnonyfilesEngine
 
 # Chemin des ressources de test

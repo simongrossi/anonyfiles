@@ -1,18 +1,19 @@
 from pathlib import Path
+from typing import ClassVar
 
+from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import (
-    Header,
-    Footer,
     Button,
     DataTable,
+    Footer,
+    Header,
     Input,
     Label,
-    Static,
     RichLog,
+    Static,
 )
-from rich.text import Text
 
 
 class LogViewer(Static):
@@ -103,7 +104,7 @@ class LogsApp(App):
     }
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("q", "quit", "Quitter"),
         ("r", "reload", "Recharger"),
         ("c", "clear_logs", "Effacer vue"),

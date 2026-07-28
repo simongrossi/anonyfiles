@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Optional
 
 import aiofiles
 from fastapi import UploadFile
@@ -33,7 +32,7 @@ class UploadTooLargeError(Exception):
 
 
 def safe_upload_filename(
-    raw_filename: Optional[str],
+    raw_filename: str | None,
     *,
     fallback_stem: str = "upload",
     fallback_suffix: str = ".tmp",
@@ -76,7 +75,7 @@ async def stream_upload_to_path(
     upload_file: UploadFile,
     destination: Path,
     *,
-    max_bytes: Optional[int] = None,
+    max_bytes: int | None = None,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
 ) -> int:
     """Stream ``upload_file`` to ``destination``, enforcing ``max_bytes``.

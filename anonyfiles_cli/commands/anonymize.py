@@ -1,16 +1,16 @@
 # anonyfiles_cli/commands/anonymize.py
 
-import typer
 from pathlib import Path
-from typing import Optional, List
 
+import typer
+
+from ..exceptions import (
+    AnonyfilesError,
+)  # Assurez-vous d'importer les exceptions nécessaires
 from ..handlers.anonymize_handler import AnonymizeHandler
 from ..handlers.validation_handler import ValidationHandler
 from ..ui.console_display import ConsoleDisplay
 from ..ui.interactive_mode import prompt_entities_to_exclude
-from ..exceptions import (
-    AnonyfilesError,
-)  # Assurez-vous d'importer les exceptions nécessaires
 
 app = typer.Typer(help="Commandes pour anonymiser les fichiers.")
 console = ConsoleDisplay()
@@ -37,7 +37,7 @@ def process_anonymize(
         dir_okay=False,
         readable=True,
     ),
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "--config",
         "-c",
@@ -47,23 +47,23 @@ def process_anonymize(
         dir_okay=False,
         readable=True,
     ),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None,
         "--output",
         "-o",
         help="Chemin du fichier de sortie anonymisé (optionnel).",
     ),
-    log_entities: Optional[Path] = typer.Option(
+    log_entities: Path | None = typer.Option(
         None,
         "--log-entities",
         help="Chemin du fichier CSV de log des entités détectées (optionnel).",
     ),
-    mapping_output: Optional[Path] = typer.Option(
+    mapping_output: Path | None = typer.Option(
         None,
         "--mapping-output",
         help="Chemin du fichier CSV du mapping d'anonymisation (optionnel).",
     ),
-    bundle: Optional[Path] = typer.Option(
+    bundle: Path | None = typer.Option(
         None,
         "--bundle",
         "--output-bundle",
@@ -86,12 +86,12 @@ def process_anonymize(
         "--csv-no-header",
         help="Indique que le fichier CSV d'entrée N'A PAS d'en-tête (utilisé si --has-header-opt n'est pas fourni).",
     ),
-    has_header_opt: Optional[str] = typer.Option(
+    has_header_opt: str | None = typer.Option(
         None,
         "--has-header-opt",
         help="Spécifie explicitement si le fichier CSV d'entrée a une en-tête ('true'/'false'). Prioritaire sur --csv-no-header.",
     ),
-    exclude_entities: Optional[List[str]] = typer.Option(
+    exclude_entities: list[str] | None = typer.Option(
         None,
         "--exclude-entities",
         help="Types d'entités à exclure, séparés par des virgules (ex: PER,LOC).",
@@ -102,7 +102,7 @@ def process_anonymize(
         "-i",
         help="Sélection interactive des entités à anonymiser.",
     ),
-    custom_replacements_json: Optional[str] = typer.Option(
+    custom_replacements_json: str | None = typer.Option(
         None,
         "--custom-replacements-json",
         help='Chaîne JSON des règles de remplacement personnalisées (ex: \'[{"pattern": "Confidentiel", "replacement": "[SECRET]"}]\').',

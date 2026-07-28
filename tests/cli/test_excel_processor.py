@@ -1,9 +1,10 @@
 import pytest
 
 pd = pytest.importorskip("pandas")
-import tempfile  # noqa: E402
-from anonyfiles_core.anonymizer.excel_processor import ExcelProcessor  # noqa: E402
-from pathlib import Path  # noqa: E402
+import tempfile
+from pathlib import Path
+
+from anonyfiles_core.anonymizer.excel_processor import ExcelProcessor
 
 
 def test_extract_blocks_excel():

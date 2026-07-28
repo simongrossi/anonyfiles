@@ -1,13 +1,15 @@
 # anonyfiles_cli/commands/clean_job.py
 
-import typer
-from pathlib import Path
 import shutil
+from pathlib import Path
+
+import typer
+
+from anonyfiles_cli.exceptions import AnonyfilesError
 
 # Importations des modules nécessaires
 from anonyfiles_cli.managers.config_manager import ConfigManager
 from anonyfiles_cli.ui.console_display import ConsoleDisplay
-from anonyfiles_cli.exceptions import AnonyfilesError
 from anonyfiles_cli.utils.default_paths import get_default_output_dir
 
 app = typer.Typer(help="Commandes pour gérer et nettoyer les jobs.")

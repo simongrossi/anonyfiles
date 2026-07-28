@@ -1,8 +1,8 @@
 import pytest
 
 pytest.importorskip("spacy")
-import tempfile
 import csv
+import tempfile
 from pathlib import Path
 
 from anonyfiles_core.anonymizer.csv_processor import CsvProcessor

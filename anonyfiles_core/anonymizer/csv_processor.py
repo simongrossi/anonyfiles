@@ -1,13 +1,15 @@
 # anonyfiles_cli/anonymizer/csv_processor.py
 
 import csv
-from pathlib import Path  # Corrected: Removed invalid non-printable character
-from typing import Any
-from .base_processor import BaseProcessor
-from .type_defs import TextBlocks
-import aiofiles
 import io
 import logging
+from pathlib import Path  # Corrected: Removed invalid non-printable character
+from typing import Any
+
+import aiofiles
+
+from .base_processor import BaseProcessor
+from .type_defs import TextBlocks
 
 logger = logging.getLogger(__name__)
 # apply_positional_replacements n'est plus nécessaire ici car le traitement se fait dans anonyfiles_core
