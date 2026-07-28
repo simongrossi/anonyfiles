@@ -1,14 +1,14 @@
 # anonyfiles_cli/commands/batch.py
 
-import typer
 from pathlib import Path
-from typing import Optional
 
-from ..handlers.batch_handler import BatchHandler
-from ..ui.console_display import ConsoleDisplay
+import typer
+
 from ..exceptions import (
     AnonyfilesError,
 )  # Assurez-vous d'importer les exceptions nécessaires
+from ..handlers.batch_handler import BatchHandler
+from ..ui.console_display import ConsoleDisplay
 
 app = typer.Typer(help="Commandes pour le traitement de fichiers en lot.")
 console = ConsoleDisplay()
@@ -38,12 +38,12 @@ def process_batch(
     pattern: str = typer.Option(
         "*", "--pattern", help="Pattern de fichiers à inclure (ex: *.txt, *.csv)."
     ),
-    output_dir: Optional[Path] = typer.Option(
+    output_dir: Path | None = typer.Option(
         None,
         "--output-dir",
         help="Dossier où écrire les fichiers de sortie. Par défaut, un sous-dossier 'anonymized_output' dans le dossier d'entrée.",
     ),
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "--config",
         "-c",
@@ -69,7 +69,7 @@ def process_batch(
         "--csv-no-header",
         help="Indique que les fichiers CSV d'entrée N'ONT PAS d'en-tête (s'applique à tous les CSV du lot).",
     ),
-    has_header_opt: Optional[str] = typer.Option(
+    has_header_opt: str | None = typer.Option(
         None,
         "--has-header-opt",
         help="Spécifie explicitement si les fichiers CSV d'entrée ont une en-tête ('true'/'false'). Prioritaire sur --csv-no-header pour le lot.",

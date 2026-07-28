@@ -1,10 +1,11 @@
 # anonyfiles_cli/managers/validation_manager.py
 
-import yaml
 import logging  # Ajout de l'import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Union
+from typing import Any
+
 import typer
+import yaml
 from cerberus import Validator
 
 from anonyfiles_core.anonymizer.engine_options import (
@@ -72,7 +73,7 @@ class ValidationManager:
     """
 
     @staticmethod
-    def load_and_validate_config(config_path: Path) -> Dict[str, Any]:
+    def load_and_validate_config(config_path: Path) -> dict[str, Any]:
         """
         Charge et valide un fichier de configuration YAML.
         :param config_path: Chemin vers le fichier de configuration.
@@ -106,8 +107,8 @@ class ValidationManager:
 
     @staticmethod
     def parse_custom_replacements(
-        custom_replacements_json: Optional[str],
-    ) -> List[Dict[str, Union[str, bool]]]:
+        custom_replacements_json: str | None,
+    ) -> list[dict[str, str | bool]]:
         """Parse et valide la chaîne JSON des règles de remplacement personnalisées.
 
         Délègue le parsing de base au helper partagé (`engine_options`), puis
@@ -138,7 +139,7 @@ class ValidationManager:
         return parsed
 
     @staticmethod
-    def check_overwrite(paths_to_check: List[Path], force: bool):
+    def check_overwrite(paths_to_check: list[Path], force: bool):
         """
         Vérifie si des fichiers de sortie existent déjà et demande confirmation si --force n'est pas utilisé.
         :param paths_to_check: Liste des chemins de fichiers à vérifier.
@@ -167,7 +168,7 @@ class ValidationManager:
             )  # Modifié pour utiliser logger.warning
 
     @staticmethod
-    def validate_config_dict(config: Dict[str, Any]) -> None:
+    def validate_config_dict(config: dict[str, Any]) -> None:
         """Valide un dictionnaire de configuration selon ``SCHEMA``."""
         v = Validator(SCHEMA)
         if not v.validate(config):

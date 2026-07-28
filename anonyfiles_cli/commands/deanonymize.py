@@ -1,15 +1,15 @@
 # anonyfiles_cli/commands/deanonymize.py
 
-import typer
 from pathlib import Path
-from typing import Optional
 
-from ..handlers.deanonymize_handler import DeanonymizeHandler
-from ..handlers.validation_handler import ValidationHandler
-from ..ui.console_display import ConsoleDisplay
+import typer
+
 from ..exceptions import (
     AnonyfilesError,
 )  # Assurez-vous d'importer les exceptions nécessaires
+from ..handlers.deanonymize_handler import DeanonymizeHandler
+from ..handlers.validation_handler import ValidationHandler
+from ..ui.console_display import ConsoleDisplay
 
 app = typer.Typer(help="Commandes pour désanonymiser les fichiers.")
 console = ConsoleDisplay()
@@ -44,10 +44,10 @@ def process_deanonymize(
         dir_okay=False,
         readable=True,
     ),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None, "--output", "-o", help="Fichier de sortie restauré (optionnel)."
     ),
-    report: Optional[Path] = typer.Option(
+    report: Path | None = typer.Option(
         None,
         "--report",
         help="Fichier de rapport détaillé JSON sur la désanonymisation (optionnel).",

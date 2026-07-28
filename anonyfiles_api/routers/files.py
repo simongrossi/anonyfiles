@@ -1,19 +1,17 @@
 # anonyfiles/anonyfiles_api/routers/files.py
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.concurrency import run_in_threadpool
-from pathlib import Path
-import uuid
 import mimetypes
+import uuid
+from pathlib import Path
 
 # import logging # Logger est maintenant importé depuis core_config
-from typing import Optional
-
-from ..job_utils import Job
+from fastapi import APIRouter, HTTPException
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse
 
 # Importer depuis le nouveau module de configuration central
 from ..core_config import logger, set_job_id  # Importer logger et set_job_id
+from ..job_utils import Job
 
 router = APIRouter()
 # 'logger' est maintenant importé de core_config et utilisé directement
@@ -54,15 +52,14 @@ async def get_file_endpoint(
             detail=f"Clé de fichier invalide. Valides: {', '.join(valid_file_keys)}",
         )
 
-    file_path_to_serve: Optional[Path] = None
+    file_path_to_serve: Path | None = None
     try:
         file_path_to_serve = await run_in_threadpool(
             current_job.get_file_path_sync, file_key
         )
-    except Exception as e_find:
-        logger.error(
-            f"Tâche {job_id_str}: Erreur de recherche du fichier clé '{file_key}': {e_find}",
-            exc_info=True,
+    except Exception:
+        logger.exception(
+            f"Tâche {job_id_str}: Erreur de recherche du fichier clé '{file_key}'",
         )
         raise HTTPException(
             status_code=500,

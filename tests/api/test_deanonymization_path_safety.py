@@ -2,14 +2,13 @@ import pytest
 
 pytest.skip("unstable in CI", allow_module_level=True)
 pytest.importorskip("httpx")
-import shutil  # noqa: E402
-from unittest.mock import patch  # noqa: E402
+import importlib
+import shutil
+from unittest.mock import patch
 
-from fastapi.testclient import TestClient  # noqa: E402
+from fastapi.testclient import TestClient
 
-import importlib  # noqa: E402
-
-import anonyfiles_api.core_config as core_config  # noqa: E402
+from anonyfiles_api import core_config
 
 
 def test_deanonymize_sanitizes_filenames(tmp_path):

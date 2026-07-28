@@ -2,8 +2,9 @@
 
 import os
 import sys
-import typer
 from pathlib import Path
+
+import typer
 
 # Importation conditionnelle de chardet
 try:

@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import yaml
 from cerberus import Validator
-from pathlib import Path
 
 SCHEMA = {
     "spacy_model": {"type": "string", "required": True},

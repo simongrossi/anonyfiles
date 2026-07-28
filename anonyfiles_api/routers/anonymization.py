@@ -1,45 +1,45 @@
 # anonyfiles/anonyfiles_api/routers/anonymization.py
 
+import json
+import uuid
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any
+
+import aiofiles.os as aio_os
 from fastapi import (
     APIRouter,
-    UploadFile,
     File,
     Form,
     HTTPException,
     Request,
+    UploadFile,
 )
-from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
-from typing import Optional, Any, Dict
-from pathlib import Path
-from tempfile import TemporaryDirectory
-import json
-import uuid
-import aiofiles.os as aio_os
-
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from ..core_config import logger, set_job_id, AnonymizationOptions
-from ..job_queue import ensure_job_queue
-from ..job_utils import Job, BASE_INPUT_STEM_FOR_JOB_FILES
-from ..upload_utils import (
-    UploadTooLargeError,
-    safe_upload_filename,
-    stream_upload_to_path,
-)
-
-from anonyfiles_core.anonymizer.run_logger import log_run_event
+from anonyfiles_cli.cli_logger import CLIUsageLogger
+from anonyfiles_core import AnonyfilesEngine
 from anonyfiles_core.anonymizer.engine_options import (
     build_exclude_entities,
     build_processor_kwargs,
     parse_custom_replacement_rules,
 )
-from anonyfiles_cli.cli_logger import CLIUsageLogger
-from anonyfiles_core import AnonyfilesEngine
 from anonyfiles_core.anonymizer.file_utils import (
-    default_output,
-    default_mapping,
     default_log,
+    default_mapping,
+    default_output,
+)
+from anonyfiles_core.anonymizer.run_logger import log_run_event
+
+from ..core_config import AnonymizationOptions, logger, set_job_id
+from ..job_queue import ensure_job_queue
+from ..job_utils import BASE_INPUT_STEM_FOR_JOB_FILES, Job
+from ..upload_utils import (
+    UploadTooLargeError,
+    safe_upload_filename,
+    stream_upload_to_path,
 )
 
 router = APIRouter()
@@ -59,8 +59,8 @@ ALLOWED_ENTITY_DECISION_SOURCES = {"detected", "manual"}
 
 
 def _prepare_engine_options(
-    config_options: dict, custom_rules: Optional[list]
-) -> Dict[str, Any]:
+    config_options: dict, custom_rules: list | None
+) -> dict[str, Any]:
     """Create options for :class:`AnonyfilesEngine` from the request payload."""
     exclude_entities = build_exclude_entities(
         config_options, has_custom_rules=bool(custom_rules)
@@ -75,13 +75,13 @@ def _prepare_engine_options(
 
 
 def _prepare_processor_kwargs(
-    input_path: Path, has_header: Optional[bool]
-) -> Dict[str, Any]:
+    input_path: Path, has_header: bool | None
+) -> dict[str, Any]:
     """Build keyword arguments for the engine processor."""
     return build_processor_kwargs(input_path, has_header=has_header)
 
 
-def _parse_entity_decisions(entity_decisions: Optional[str]) -> list[dict[str, Any]]:
+def _parse_entity_decisions(entity_decisions: str | None) -> list[dict[str, Any]]:
     """Parse preview decisions sent by the GUI before final anonymization."""
     if not entity_decisions or not entity_decisions.strip():
         return []
@@ -146,7 +146,7 @@ def _engine_entity_decision_options(
 
 
 def _preview_entities_from_engine_result(
-    engine_result: Dict[str, Any],
+    engine_result: dict[str, Any],
 ) -> list[dict[str, Any]]:
     audit_counts: dict[tuple[str, str], int] = {}
     for entry in engine_result.get("audit_log", []):
@@ -184,7 +184,7 @@ def _execute_engine_anonymization(
     log_entities_path: Path,
     mapping_output_path: Path,
     processor_kwargs: dict,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the anonymization engine synchronously."""
     logger.info(
         f"Tâche {input_path.parent.name}: Exécution du moteur AnonyfilesEngine."
@@ -207,7 +207,7 @@ async def _execute_engine_anonymization_async(
     log_entities_path: Path,
     mapping_output_path: Path,
     processor_kwargs: dict,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the anonymization engine asynchronously."""
     logger.info(
         f"Tâche {input_path.parent.name}: Exécution du moteur AnonyfilesEngine (async)."
@@ -225,7 +225,7 @@ async def _execute_engine_anonymization_async(
 
 def _process_engine_result(
     current_job: Job,
-    engine_result: Dict[str, Any],
+    engine_result: dict[str, Any],
     input_path: Path,
     output_path: Path,
     mapping_output_path: Path,
@@ -246,7 +246,7 @@ def _process_engine_result(
     engine_error_message = engine_result.get("error")
 
     final_status_for_log_event: str
-    final_error_for_log_event: Optional[str] = None
+    final_error_for_log_event: str | None = None
 
     if engine_status_reported == "success":
         write_ok = current_job.set_status_as_finished_sync(engine_result)
@@ -288,9 +288,9 @@ def _handle_job_error(
     e: Exception,
     error_context: str,
     input_path: Path,
-    output_path: Optional[Path] = None,
-    mapping_output_path: Optional[Path] = None,
-    log_entities_path: Optional[Path] = None,
+    output_path: Path | None = None,
+    mapping_output_path: Path | None = None,
+    log_entities_path: Path | None = None,
 ) -> None:
     """Log an error and update the job status accordingly.
 
@@ -304,14 +304,14 @@ def _handle_job_error(
         log_entities_path: Optional path to the entity log file.
     """
 
-    logger.error(f"Tâche {current_job.job_id}: {error_context} - {e}", exc_info=True)
+    logger.error("Tâche %s: %s - %s", current_job.job_id, error_context, e)
 
     if isinstance(e, FileNotFoundError):
         error_message = f"Fichier non trouvé: {getattr(e, 'filename', 'N/A')}"
     elif isinstance(e, PermissionError):
         error_message = f"Erreur de permission: {getattr(e, 'strerror', 'N/A')} sur {getattr(e, 'filename', 'N/A')}"
     else:
-        error_message = f"Erreur inattendue pendant {error_context}: {str(e)}"
+        error_message = f"Erreur inattendue pendant {error_context}: {e!s}"
 
     current_job.set_status_as_error_sync(
         error_message, final_status_category="unexpected_error"
@@ -342,10 +342,10 @@ def run_anonymization_job_sync(
     job_id: str,
     input_path: Path,
     config_options: dict,
-    has_header: Optional[bool],
-    custom_rules: Optional[list],
-    entity_decisions: Optional[list[dict[str, Any]]],
-    passed_base_config: Dict[str, Any],
+    has_header: bool | None,
+    custom_rules: list | None,
+    entity_decisions: list[dict[str, Any]] | None,
+    passed_base_config: dict[str, Any],
 ):
     """Execute an anonymization job in a background thread.
 
@@ -360,9 +360,9 @@ def run_anonymization_job_sync(
 
     set_job_id(job_id)
     current_job = Job(job_id)
-    output_path: Optional[Path] = None
-    mapping_output_path: Optional[Path] = None
-    log_entities_path: Optional[Path] = None
+    output_path: Path | None = None
+    mapping_output_path: Path | None = None
+    log_entities_path: Path | None = None
 
     if passed_base_config is None or not passed_base_config:
         logger.error(
@@ -481,9 +481,9 @@ async def anonymize_preview_endpoint(
     request: Request,
     file: UploadFile = File(...),
     config_options: str = Form(...),
-    custom_replacement_rules: Optional[str] = Form(None),
-    file_type: Optional[str] = Form(None),
-    has_header: Optional[str] = Form(None),
+    custom_replacement_rules: str | None = Form(None),
+    file_type: str | None = Form(None),
+    has_header: str | None = Form(None),
 ):
     """Preview detected entities without creating a job or writing output files."""
     logger.info(
@@ -495,7 +495,7 @@ async def anonymize_preview_endpoint(
     except json.JSONDecodeError as exc:
         raise HTTPException(
             status_code=400,
-            detail=f"JSON invalide pour config_options: {str(exc)}",
+            detail=f"JSON invalide pour config_options: {exc!s}",
         ) from exc
 
     if not isinstance(config_opts_raw, dict):
@@ -519,7 +519,7 @@ async def anonymize_preview_endpoint(
     except ValueError:
         custom_rules_list = []
 
-    has_header_bool: Optional[bool] = None
+    has_header_bool: bool | None = None
     if has_header is not None:
         has_header_bool = has_header.lower() in (
             "1",
@@ -537,7 +537,7 @@ async def anonymize_preview_endpoint(
             detail="Erreur serveur: Configuration de base non disponible pour prévisualiser la requête.",
         )
 
-    max_upload_bytes: Optional[int] = None
+    max_upload_bytes: int | None = None
     settings = getattr(request.app.state, "settings", None)
     if settings is not None and getattr(settings, "max_upload_size_mb", None):
         max_upload_bytes = int(settings.max_upload_size_mb) * 1024 * 1024
@@ -576,7 +576,7 @@ async def anonymize_preview_endpoint(
             detail=f"Fichier trop volumineux (limite: {exc.max_bytes} octets).",
         ) from exc
     except OSError as exc:
-        logger.error(f"Erreur de prévisualisation upload: {exc}", exc_info=True)
+        logger.exception("Erreur de prévisualisation upload")
         raise HTTPException(
             status_code=500,
             detail="Impossible de sauvegarder temporairement le fichier à prévisualiser.",
@@ -607,10 +607,10 @@ async def anonymize_file_endpoint(
     config_options: str = Form(...),
     # MODIFICATION CLÉ ICI :
     # Conserver Form(None) pour l'API, mais ajouter plus de robustesse au parsing JSON.
-    custom_replacement_rules: Optional[str] = Form(None),
-    entity_decisions: Optional[str] = Form(None),
-    file_type: Optional[str] = Form(None),
-    has_header: Optional[str] = Form(None),
+    custom_replacement_rules: str | None = Form(None),
+    entity_decisions: str | None = Form(None),
+    file_type: str | None = Form(None),
+    has_header: str | None = Form(None),
 ):
     """Handle file upload and start an anonymization job.
 
@@ -645,7 +645,7 @@ async def anonymize_file_endpoint(
     input_filename_for_job = f"{BASE_INPUT_STEM_FOR_JOB_FILES}{file_extension}"
     input_path_for_job = current_job.job_dir / input_filename_for_job
 
-    max_upload_bytes: Optional[int] = None
+    max_upload_bytes: int | None = None
     settings = getattr(request.app.state, "settings", None)
     if settings is not None and getattr(settings, "max_upload_size_mb", None):
         max_upload_bytes = int(settings.max_upload_size_mb) * 1024 * 1024
@@ -671,12 +671,11 @@ async def anonymize_file_endpoint(
             detail=f"Fichier trop volumineux (limite: {e_size.max_bytes} octets).",
         )
     except OSError as e_upload:
-        logger.error(
-            f"Tâche {job_id}: Erreur de téléversement '{input_filename_for_job}': {e_upload}",
-            exc_info=True,
+        logger.exception(
+            f"Tâche {job_id}: Erreur de téléversement '{input_filename_for_job}'",
         )
         await current_job.set_status_as_error_async(
-            f"Échec de la sauvegarde du fichier téléversé: {str(e_upload)}"
+            f"Échec de la sauvegarde du fichier téléversé: {e_upload!s}"
         )
         raise HTTPException(
             status_code=500,
@@ -701,8 +700,8 @@ async def anonymize_file_endpoint(
     try:
         config_opts_raw = json.loads(config_options)
     except json.JSONDecodeError as e_json_conf:
-        error_msg = f"JSON invalide pour config_options: {str(e_json_conf)}"
-        logger.error(f"Tâche {job_id}: {error_msg}", exc_info=True)
+        error_msg = f"JSON invalide pour config_options: {e_json_conf!s}"
+        logger.exception(f"Tâche {job_id}: {error_msg}")
         await current_job.set_status_as_error_async(
             error_msg + " Échec du parsing des options de configuration."
         )
@@ -751,7 +750,7 @@ async def anonymize_file_endpoint(
         await current_job.set_status_as_error_async(error_msg)
         raise HTTPException(status_code=400, detail=error_msg)
 
-    has_header_bool: Optional[bool] = None
+    has_header_bool: bool | None = None
     if has_header is not None:
         has_header_bool = has_header.lower() in (
             "1",
@@ -842,7 +841,7 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
         return JSONResponse(content=current_status)
 
     if current_status.get("status") == "finished":
-        response_payload: Dict[str, Any] = {**current_status, "status": "finished"}
+        response_payload: dict[str, Any] = {**current_status, "status": "finished"}
         if "error" in current_status and current_status["error"] is not None:
             response_payload["error"] = current_status["error"]
 
@@ -851,7 +850,7 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
         response_payload["log_csv"] = ""
         response_payload["audit_log"] = []
 
-        error_details: Dict[str, str] = {}
+        error_details: dict[str, str] = {}
 
         try:
             output_file_path = await run_in_threadpool(
@@ -866,10 +865,9 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
             audit_log_file_path = await run_in_threadpool(
                 current_job.get_file_path_sync, "audit_log"
             )
-        except Exception as e_find:
-            logger.error(
-                f"Tâche {job_id_str}: Erreur d'obtention des chemins de fichiers: {e_find}",
-                exc_info=True,
+        except Exception:
+            logger.exception(
+                f"Tâche {job_id_str}: Erreur d'obtention des chemins de fichiers",
             )
             response_payload["status"] = "error"
             response_payload["error"] = (

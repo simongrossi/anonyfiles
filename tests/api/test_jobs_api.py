@@ -8,7 +8,7 @@ import pytest
 pytest.importorskip("httpx")
 from fastapi.testclient import TestClient
 
-import anonyfiles_api.core_config as core_config
+from anonyfiles_api import core_config
 from anonyfiles_api.job_utils import Job
 
 

@@ -1,16 +1,16 @@
 # anonyfiles_cli/commands/config.py
 
-import typer
-from pathlib import Path
 import json
 import os
-from typing import Optional
+from pathlib import Path
 
+import typer
+
+from ..exceptions import ConfigurationError
 from ..managers.config_manager import ConfigManager
 from ..managers.validation_manager import ValidationManager
 from ..ui.console_display import ConsoleDisplay
 from ..utils.system_utils import open_file_in_editor  # Import de la fonction utilitaire
-from ..exceptions import ConfigurationError
 
 app = typer.Typer(help="Gère la configuration d'Anonyfiles.")
 console = ConsoleDisplay()
@@ -26,7 +26,7 @@ class ExitCodes:
 
 @app.command(name="show", help="Affiche la configuration effective actuelle.")
 def show_config(
-    key: Optional[str] = typer.Option(
+    key: str | None = typer.Option(
         None, "--key", help="Clé de configuration spécifique à afficher."
     ),
 ):

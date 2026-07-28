@@ -1,15 +1,15 @@
 # anonyfiles_cli/commands/utils.py
 
-import typer
 import json
-from pathlib import Path
-from typing import Optional
-from datetime import datetime
 import time
+from datetime import datetime
+from pathlib import Path
 
+import typer
+
+from ..managers.config_manager import ConfigManager
 from ..ui.console_display import ConsoleDisplay
 from ..utils.system_utils import detect_file_encoding  # Import de la fonction
-from ..managers.config_manager import ConfigManager
 
 app = typer.Typer(help="Commandes utilitaires pour Anonyfiles.")
 console = ConsoleDisplay()
@@ -62,7 +62,7 @@ def list_entities():
     help="Diagnostique spaCy et le modèle configuré.",
 )
 def spacy_status(
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "--config",
         help="Fichier de configuration YAML à inspecter.",
@@ -71,7 +71,7 @@ def spacy_status(
         dir_okay=False,
         readable=True,
     ),
-    model: Optional[str] = typer.Option(
+    model: str | None = typer.Option(
         None,
         "--model",
         help="Modèle spaCy à diagnostiquer. Surcharge la configuration.",
@@ -203,7 +203,7 @@ def run_benchmark(
     iterations: int = typer.Option(
         3, "--iterations", "-i", help="Nombre d'itérations pour le benchmark."
     ),
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "--config",
         help="Fichier de configuration YAML à tester pour le benchmark.",

@@ -1,23 +1,26 @@
 # anonyfiles_cli/main.py
-# -*- coding: utf-8 -*-
 #
 # Entrée du programme CLI
-import typer
 import logging
+
+import typer
+
+from anonyfiles_cli.cli_logger import CLIUsageLogger
 
 # Importe les applications Typer des modules de commandes séparés
 from anonyfiles_cli.commands import (
     anonymize,
-    deanonymize,
-    config,
     batch,
-    utils,
     clean_job,
+    config,
+    deanonymize,
     logs,
+    utils,
 )
 from anonyfiles_cli.managers.config_manager import ConfigManager
 from anonyfiles_cli.ui.console_display import ConsoleDisplay
-from anonyfiles_cli.cli_logger import CLIUsageLogger
+
+logger = logging.getLogger(__name__)
 
 app = typer.Typer(
     pretty_exceptions_show_locals=False,
@@ -63,7 +66,7 @@ def main_callback(
     """
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, force=True)
     if verbose:
-        logging.debug("Verbose mode enabled")
+        logger.debug("Verbose mode enabled")
     CLIUsageLogger.VERBOSE = verbose
 
     user_config_path = ConfigManager.DEFAULT_USER_CONFIG_FILE

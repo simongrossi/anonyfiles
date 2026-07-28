@@ -1,9 +1,12 @@
 # anonymizer/word_processor.py
 
-from pathlib import Path
 import logging
-from typing import Any, Iterator
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
+
 from docx import Document
+
 from .base_processor import BaseProcessor
 from .type_defs import TextBlocks
 
@@ -22,7 +25,7 @@ class DocxProcessor(BaseProcessor):
         """Ouvre un document .docx en remontant une erreur claire si illisible."""
         try:
             return Document(str(path))
-        except Exception as exc:  # noqa: BLE001 - on veut un message unifié
+        except Exception as exc:
             raise ValueError(
                 f"Fichier .docx illisible ou corrompu: {Path(path).name} ({exc})"
             ) from exc
@@ -34,8 +37,7 @@ class DocxProcessor(BaseProcessor):
         """
         # 1. Paragraphes directs
         if hasattr(parent_elt, "paragraphs"):
-            for paragraph in parent_elt.paragraphs:
-                yield paragraph
+            yield from parent_elt.paragraphs
 
         # 2. Tableaux (qui contiennent des lignes -> cellules -> paragraphes/tables)
         if hasattr(parent_elt, "tables"):

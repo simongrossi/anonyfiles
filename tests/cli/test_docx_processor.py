@@ -1,9 +1,10 @@
 import pytest
 
 Document = pytest.importorskip("docx").Document
-from anonyfiles_core.anonymizer.word_processor import DocxProcessor  # noqa: E402
-from pathlib import Path  # noqa: E402
-import tempfile  # noqa: E402
+import tempfile
+from pathlib import Path
+
+from anonyfiles_core.anonymizer.word_processor import DocxProcessor
 
 
 def test_extract_blocks_docx():

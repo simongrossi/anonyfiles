@@ -1,18 +1,19 @@
 # anonyfiles/anonyfiles_api/job_utils.py
-from pathlib import Path
-import shutil
 import json
 import os
+import shutil
 import tempfile
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
 import aiofiles
 import aiofiles.os as aio_os
 from fastapi.concurrency import run_in_threadpool
-from typing import Optional, Any, Dict
 
 from . import core_config
-from .core_config import logger, BASE_INPUT_STEM_FOR_JOB_FILES
+from .core_config import BASE_INPUT_STEM_FOR_JOB_FILES, logger
 
 JOBS_DIR = core_config.JOBS_DIR
 TERMINAL_JOB_STATUSES = {"finished", "error", "cancelled", "timeout"}
@@ -21,10 +22,10 @@ _STATUS_WRITE_LOCK = threading.RLock()
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
-def _parse_iso_datetime(value: Any) -> Optional[datetime]:
+def _parse_iso_datetime(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
     try:
@@ -32,11 +33,11 @@ def _parse_iso_datetime(value: Any) -> Optional[datetime]:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
+        return parsed.replace(tzinfo=UTC)
     return parsed
 
 
-def _duration_seconds(start_value: Any, end_value: Any) -> Optional[float]:
+def _duration_seconds(start_value: Any, end_value: Any) -> float | None:
     start = _parse_iso_datetime(start_value)
     end = _parse_iso_datetime(end_value)
     if start is None or end is None:
@@ -44,7 +45,7 @@ def _duration_seconds(start_value: Any, end_value: Any) -> Optional[float]:
     return round(max(0.0, (end - start).total_seconds()), 3)
 
 
-def _default_final_status_category(status: Optional[str]) -> Optional[str]:
+def _default_final_status_category(status: str | None) -> str | None:
     if status == "finished":
         return "success"
     if status == "cancelled":
@@ -77,7 +78,7 @@ class Job:
         self.audit_log_file_path = self.job_dir / "audit_log.json"
         self.base_input_stem = BASE_INPUT_STEM_FOR_JOB_FILES
 
-    def _read_status_sync(self) -> Dict[str, Any]:
+    def _read_status_sync(self) -> dict[str, Any]:
         if not self.status_file_path.is_file():
             return {}
         try:
@@ -88,11 +89,11 @@ class Job:
             return {}
 
     def _write_status_payload_sync(
-        self, payload: Dict[str, Any], updated_at: Optional[str] = None
+        self, payload: dict[str, Any], updated_at: str | None = None
     ) -> None:
         self.job_dir.mkdir(parents=True, exist_ok=True)
         payload["updated_at"] = updated_at or utc_now_iso()
-        tmp_path: Optional[str] = None
+        tmp_path: str | None = None
         try:
             with tempfile.NamedTemporaryFile(
                 "w",
@@ -211,7 +212,7 @@ class Job:
             return await run_in_threadpool(self.status_file_path.exists)
         return True
 
-    async def get_status_async(self) -> Optional[Dict[str, Any]]:
+    async def get_status_async(self) -> dict[str, Any] | None:
         if not await run_in_threadpool(self.status_file_path.is_file):
             logger.warning(
                 f"Tâche {self.job_id}: status.json non trouvé pour lecture du statut."
@@ -241,7 +242,7 @@ class Job:
             )
             return None
 
-    def _find_latest_file_sync(self, glob_suffix_pattern: str) -> Optional[Path]:
+    def _find_latest_file_sync(self, glob_suffix_pattern: str) -> Path | None:
         glob_pattern = f"{self.base_input_stem}{glob_suffix_pattern}"
         logger.debug(
             f"Tâche {self.job_id}: Recherche fichier {self.job_dir} motif: {glob_pattern}"
@@ -256,7 +257,7 @@ class Job:
             return candidates[0]
         return None
 
-    def get_file_path_sync(self, file_key: str) -> Optional[Path]:
+    def get_file_path_sync(self, file_key: str) -> Path | None:
         if file_key == "output":
             return self._find_latest_file_sync("_anonymise_*")
         elif file_key == "mapping":
@@ -269,7 +270,7 @@ class Job:
         logger.warning(f"Tâche {self.job_id}: Clé de fichier inconnue '{file_key}'.")
         return None
 
-    async def read_file_content_async(self, file_path: Path) -> Optional[str]:
+    async def read_file_content_async(self, file_path: Path) -> str | None:
         if not await run_in_threadpool(file_path.is_file):
             logger.warning(
                 f"Tâche {self.job_id}: Tentative de lecture d'un fichier inexistant: {file_path}"
@@ -340,7 +341,7 @@ class Job:
             return True
         return False
 
-    def set_status_as_finished_sync(self, engine_result: Dict[str, Any]) -> bool:
+    def set_status_as_finished_sync(self, engine_result: dict[str, Any]) -> bool:
         try:
             if not self.update_status_sync(
                 status="finished",
@@ -373,11 +374,11 @@ class Job:
             )
             # Try to report the error
             self.set_status_as_error_sync(
-                f"Erreur critique: Échec de l'écriture du statut 'finished'/journal d'audit après l'exécution réussie du moteur: {str(e)}"
+                f"Erreur critique: Échec de l'écriture du statut 'finished'/journal d'audit après l'exécution réussie du moteur: {e!s}"
             )
             return False
 
-    async def set_status_as_finished_async(self, engine_result: Dict[str, Any]) -> bool:
+    async def set_status_as_finished_async(self, engine_result: dict[str, Any]) -> bool:
         return await run_in_threadpool(self.set_status_as_finished_sync, engine_result)
 
     def delete_job_directory_sync(self) -> bool:

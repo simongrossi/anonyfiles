@@ -16,6 +16,7 @@ once at install, launches in 2-4 s.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import shutil
 import subprocess
@@ -24,10 +25,8 @@ from pathlib import Path
 
 # Force UTF-8 stdout so non-ASCII log lines don't crash on Windows cp1252.
 if hasattr(sys.stdout, "reconfigure"):
-    try:
+    with contextlib.suppress(Exception):
         sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent

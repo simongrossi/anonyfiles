@@ -1,16 +1,16 @@
 import pytest
 
 pytest.importorskip("httpx")
+import importlib
 import json
 import shutil
-import importlib
 import sys
 import time
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-import anonyfiles_api.core_config as core_config
+from anonyfiles_api import core_config
 
 
 def test_anonymize_sanitizes_filenames(tmp_path):
@@ -61,24 +61,26 @@ def test_anonymize_sanitizes_filenames(tmp_path):
             saved["input_path"] = input_path
             Job(job_id).set_status_as_finished_sync({"audit_log": []})
 
-        with patch(
-            "anonyfiles_api.routers.anonymization.run_anonymization_job_sync",
-            side_effect=fake_run_anonymization_job_sync,
+        with (
+            patch(
+                "anonyfiles_api.routers.anonymization.run_anonymization_job_sync",
+                side_effect=fake_run_anonymization_job_sync,
+            ),
+            TestClient(app) as client,
         ):
-            with TestClient(app) as client:
-                files = {"file": ("../secret.txt", b"data")}
-                data = {
-                    "config_options": "{}",
-                    "file_type": "txt",
-                    "has_header": "",
-                    "custom_replacement_rules": "",
-                }
-                resp = client.post("/anonymize/", files=files, data=data)
-                assert resp.status_code == 200
+            files = {"file": ("../secret.txt", b"data")}
+            data = {
+                "config_options": "{}",
+                "file_type": "txt",
+                "has_header": "",
+                "custom_replacement_rules": "",
+            }
+            resp = client.post("/anonymize/", files=files, data=data)
+            assert resp.status_code == 200
 
-                deadline = time.time() + 2
-                while "job_id" not in saved and time.time() < deadline:
-                    time.sleep(0.05)
+            deadline = time.time() + 2
+            while "job_id" not in saved and time.time() < deadline:
+                time.sleep(0.05)
 
         job_id = saved["job_id"]
         job_dir = tmp_path / job_id

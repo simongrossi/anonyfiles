@@ -1,9 +1,9 @@
 # /home/debian/anonyfiles/anonyfiles_cli/anonymizer/deanonymize.py
 
 import csv
-from collections import defaultdict
-from typing import Dict, Set, Tuple, List, Optional
 import re
+from collections import defaultdict
+
 from .format_utils import ANY_PLACEHOLDER_REGEX, parse_placeholder
 
 
@@ -11,11 +11,11 @@ class Deanonymizer:
     def __init__(self, mapping_path: str, strict: bool = True):
         self.mapping_path = mapping_path
         self.strict = strict
-        self.code_to_originals: Dict[str, Set[str]] = defaultdict(set)
-        self.warnings: List[str] = []
-        self.map_loading_warnings: List[str] = []
-        self.collisions: Dict[str, Set[str]] = {}
-        self.unknown_codes_in_text: Set[str] = set()
+        self.code_to_originals: dict[str, set[str]] = defaultdict(set)
+        self.warnings: list[str] = []
+        self.map_loading_warnings: list[str] = []
+        self.collisions: dict[str, set[str]] = {}
+        self.unknown_codes_in_text: set[str] = set()
         self._load_mapping()
 
     def _load_mapping(self):
@@ -43,7 +43,6 @@ class Deanonymizer:
                 # Assuming ruff is correct and they are truly unused.
                 # But wait, lines 45-50 are doing work (next(...)). If I remove assignment, I should simple call next() if side effect needed, or remove completely if not needed to advance iterator.
                 # These seem to be lookups for column names. If result is not used, lookups are useless.
-                pass
 
                 if not code_field or not original_field:
                     self.map_loading_warnings.append(
@@ -72,7 +71,7 @@ class Deanonymizer:
                             )
                     except Exception as e_row:
                         self.map_loading_warnings.append(
-                            f"Erreur à la ligne {row_number} dans {self.mapping_path}: {str(e_row)}."
+                            f"Erreur à la ligne {row_number} dans {self.mapping_path}: {e_row!s}."
                         )
 
             temp_collisions = {}
@@ -90,10 +89,10 @@ class Deanonymizer:
             )
         except Exception as e:
             self.map_loading_warnings.append(
-                f"Erreur majeure lors du chargement du fichier mapping {self.mapping_path}: {str(e)}"
+                f"Erreur majeure lors du chargement du fichier mapping {self.mapping_path}: {e!s}"
             )
 
-    def deanonymize_text(self, text: str, dry_run: bool = False) -> Tuple[str, dict]:
+    def deanonymize_text(self, text: str, dry_run: bool = False) -> tuple[str, dict]:
         self.warnings = list(self.map_loading_warnings)
         self.unknown_codes_in_text = set()
 
@@ -147,15 +146,13 @@ class Deanonymizer:
         }
 
         report = {
-            "distinct_codes_in_text_list": sorted(
-                list(all_distinct_codes_found_in_text)
-            ),
+            "distinct_codes_in_text_list": sorted(all_distinct_codes_found_in_text),
             "distinct_codes_in_text_count": len(all_distinct_codes_found_in_text),
             "codes_from_text_found_in_mapping_count": len(
                 codes_in_mapping_that_were_referenced
             ),
             "codes_from_text_not_found_in_mapping_list": sorted(
-                list(self.unknown_codes_in_text)
+                self.unknown_codes_in_text
             ),
             "codes_from_text_not_found_in_mapping_count": len(
                 self.unknown_codes_in_text
@@ -179,7 +176,7 @@ class Deanonymizer:
         }
         return result_text, report
 
-    def generate_report(self, report: dict, output_path: Optional[str] = None):
+    def generate_report(self, report: dict, output_path: str | None = None):
         lines = [
             "=== Rapport de Désanonymisation ===",
             f"Mode dry-run: {report['dry_run']}",

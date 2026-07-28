@@ -1,14 +1,15 @@
+import contextlib
 import importlib
 import importlib.metadata
 import importlib.resources
 import json
 import platform
-from typing import Any, Dict, Optional
+from typing import Any
 
 DEFAULT_SPACY_MODEL = "fr_core_news_md"
 
 
-def get_spacy_status(model_name: str = DEFAULT_SPACY_MODEL) -> Dict[str, Any]:
+def get_spacy_status(model_name: str = DEFAULT_SPACY_MODEL) -> dict[str, Any]:
     """Return a fast, load-free diagnostic for spaCy and the configured model."""
     model_name = model_name or DEFAULT_SPACY_MODEL
     spacy_version = _distribution_version("spacy")
@@ -20,7 +21,7 @@ def get_spacy_status(model_name: str = DEFAULT_SPACY_MODEL) -> Dict[str, Any]:
     model_version = model_meta.get("version") or model_distribution_version
     spacy_constraint = model_meta.get("spacy_version")
 
-    compatible: Optional[bool] = None
+    compatible: bool | None = None
     if spacy_version and spacy_constraint:
         compatible = _is_compatible_spacy_version(spacy_version, spacy_constraint)
 
@@ -60,7 +61,7 @@ def get_spacy_status(model_name: str = DEFAULT_SPACY_MODEL) -> Dict[str, Any]:
     }
 
 
-def format_spacy_status_for_error(status: Dict[str, Any]) -> str:
+def format_spacy_status_for_error(status: dict[str, Any]) -> str:
     """Build an actionable one-line error message from ``get_spacy_status``."""
     commands = status.get("commands", {})
     model_name = status.get("model", {}).get("name", DEFAULT_SPACY_MODEL)
@@ -74,9 +75,7 @@ def format_spacy_status_for_error(status: Dict[str, Any]) -> str:
     )
 
 
-def _status_message(
-    status: str, model_name: str, spacy_constraint: Optional[str]
-) -> str:
+def _status_message(status: str, model_name: str, spacy_constraint: str | None) -> str:
     if status == "ok":
         return "spaCy et le modele configure sont disponibles."
     if status == "missing_spacy":
@@ -91,7 +90,7 @@ def _status_message(
     return "Diagnostic spaCy indetermine."
 
 
-def _distribution_version(package_name: str) -> Optional[str]:
+def _distribution_version(package_name: str) -> str | None:
     try:
         return importlib.metadata.version(package_name)
     except importlib.metadata.PackageNotFoundError:
@@ -107,7 +106,7 @@ def _find_module(module_name: str) -> bool:
         return False
 
 
-def _read_model_meta(model_name: str) -> Dict[str, Any]:
+def _read_model_meta(model_name: str) -> dict[str, Any]:
     try:
         package_root = importlib.resources.files(model_name)
     except (ImportError, ModuleNotFoundError, AttributeError, TypeError):
@@ -130,8 +129,8 @@ def _read_model_meta(model_name: str) -> Dict[str, Any]:
 
 def _is_compatible_spacy_version(
     spacy_version: str, spacy_constraint: str
-) -> Optional[bool]:
-    try:
+) -> bool | None:
+    with contextlib.suppress(Exception):
         spacy_module = importlib.import_module("spacy")
         is_compatible = getattr(
             getattr(spacy_module, "util", None), "is_compatible_version", None
@@ -140,8 +139,6 @@ def _is_compatible_spacy_version(
             result = is_compatible(spacy_version, spacy_constraint)
             if result is not None:
                 return bool(result)
-    except Exception:
-        pass
 
     try:
         from packaging.specifiers import SpecifierSet

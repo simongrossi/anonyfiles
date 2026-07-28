@@ -1,23 +1,23 @@
 # anonyfiles_cli/anonymizer/engine.py
 
+import logging
 import re
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-import logging
+from typing import Any
 
-from .spacy_engine import SpaCyEngine
-from .utils import apply_positional_replacements
 from .audit import AuditLogger
 from .custom_rules_processor import CustomRulesProcessor
-from .ner_processor import NERProcessor
 from .file_processor_factory import FileProcessorFactory
-from .replacement_generator import ReplacementGenerator
-from .writer import AnonymizedFileWriter
-from .type_defs import EntityLabelOverrides, EntitySpansByBlock
+from .ner_processor import NERProcessor
 from .privacy_warning_scanner import (
     privacy_warning_count,
     scan_blocks_for_privacy_warnings,
 )
+from .replacement_generator import ReplacementGenerator
+from .spacy_engine import SpaCyEngine
+from .type_defs import EntityLabelOverrides, EntitySpansByBlock
+from .utils import apply_positional_replacements
+from .writer import AnonymizedFileWriter
 
 logger = logging.getLogger(__name__)
 
@@ -111,13 +111,13 @@ class AnonyfilesEngine:
 
     def __init__(
         self,
-        config: Dict[str, Any],
-        exclude_entities_cli: Optional[List[str]] = None,
-        custom_replacement_rules: Optional[List[Dict[str, str]]] = None,
-        ignored_entity_texts: Optional[set[str]] = None,
-        entity_label_overrides: Optional[Dict[str, str]] = None,
-        manual_entities: Optional[List[Dict[str, str]]] = None,
-        strict_mode: Optional[bool] = None,
+        config: dict[str, Any],
+        exclude_entities_cli: list[str] | None = None,
+        custom_replacement_rules: list[dict[str, str]] | None = None,
+        ignored_entity_texts: set[str] | None = None,
+        entity_label_overrides: dict[str, str] | None = None,
+        manual_entities: list[dict[str, str]] | None = None,
+        strict_mode: bool | None = None,
     ):
         self.config = config or {}
         self.ignored_entity_texts = ignored_entity_texts or set()
@@ -186,7 +186,7 @@ class AnonyfilesEngine:
         )
 
         # Initialisation du Writer (dépend de dry_run, sera initialisé dans anonymize())
-        self.writer: Optional[AnonymizedFileWriter] = None
+        self.writer: AnonymizedFileWriter | None = None
 
         logger.debug(
             "DEBUG (AnonyfilesEngine Init): Entités à exclure (config + CLI) : %s",
@@ -195,7 +195,7 @@ class AnonyfilesEngine:
 
     def _scan_privacy_warnings(
         self,
-        final_blocks: List[str],
+        final_blocks: list[str],
         ignored_values: list[str] | None = None,
     ) -> list[dict[str, object]]:
         return scan_blocks_for_privacy_warnings(
@@ -204,7 +204,7 @@ class AnonyfilesEngine:
             ignored_values=ignored_values or [],
         )
 
-    def _process_content(self, original_blocks: List[str]):
+    def _process_content(self, original_blocks: list[str]):
         """
         Logique métier pure d'anonymisation sur des blocs de texte.
         Retourne un dictionnaire contenant les résultats intermédiaires ou finaux.
@@ -329,15 +329,15 @@ class AnonyfilesEngine:
     def anonymize(
         self,
         input_path: Path,
-        output_path: Optional[Path],
-        entities: Optional[
-            List[str]
-        ],  # Ce paramètre n'est plus utilisé directement ici, la logique de filtrage est dans NERProcessor
+        output_path: Path | None,
+        entities: (
+            list[str] | None
+        ),  # Ce paramètre n'est plus utilisé directement ici, la logique de filtrage est dans NERProcessor
         dry_run: bool,
-        log_entities_path: Optional[Path],
-        mapping_output_path: Optional[Path],
+        log_entities_path: Path | None,
+        mapping_output_path: Path | None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self.audit_logger.reset()
         self.custom_rules_processor.reset()
         self.writer = AnonymizedFileWriter(dry_run)
@@ -442,13 +442,13 @@ class AnonyfilesEngine:
     async def anonymize_async(
         self,
         input_path: Path,
-        output_path: Optional[Path],
-        entities: Optional[List[str]],
+        output_path: Path | None,
+        entities: list[str] | None,
         dry_run: bool,
-        log_entities_path: Optional[Path],
-        mapping_output_path: Optional[Path],
+        log_entities_path: Path | None,
+        mapping_output_path: Path | None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         self.audit_logger.reset()
         self.custom_rules_processor.reset()
         self.writer = AnonymizedFileWriter(dry_run)

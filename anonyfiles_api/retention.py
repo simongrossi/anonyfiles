@@ -19,7 +19,6 @@ import logging
 import shutil
 import time
 from pathlib import Path
-from typing import List, Optional
 
 logger = logging.getLogger("anonyfiles_api.retention")
 
@@ -27,8 +26,8 @@ logger = logging.getLogger("anonyfiles_api.retention")
 def purge_expired_jobs(
     jobs_dir: Path,
     max_age_seconds: float,
-    now: Optional[float] = None,
-) -> List[str]:
+    now: float | None = None,
+) -> list[str]:
     """Supprime les répertoires de jobs plus vieux que ``max_age_seconds``.
 
     Args:
@@ -47,7 +46,7 @@ def purge_expired_jobs(
         return []
 
     reference = time.time() if now is None else now
-    deleted: List[str] = []
+    deleted: list[str] = []
 
     for entry in sorted(jobs_dir.iterdir()):
         if not entry.is_dir():
@@ -99,9 +98,9 @@ async def run_purge_loop(
     while not stop_event.is_set():
         try:
             await asyncio.to_thread(purge_expired_jobs, jobs_dir, max_age_seconds)
-        except Exception as exc:  # noqa: BLE001 - la boucle ne doit jamais mourir
+        except Exception as exc:
             logger.error("Rétention: erreur inattendue pendant la purge (%s).", exc)
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=interval_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             continue

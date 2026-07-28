@@ -1,13 +1,12 @@
 # anonyfiles_cli/anonymizer/utils.py
 
-from typing import List, Dict, Tuple
 from io import StringIO  # Nécessaire pour la fonction
 
 
 def apply_positional_replacements(
     text: str,
-    entity_replacements: Dict[str, str],
-    entities_in_text_block: List[Tuple[str, str, int, int]],
+    entity_replacements: dict[str, str],
+    entities_in_text_block: list[tuple[str, str, int, int]],
 ) -> str:
     """
     Applique les remplacements d'entités dans un bloc de texte en respectant leurs positions.

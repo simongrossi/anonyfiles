@@ -1,9 +1,10 @@
 # tests/gen_samples_adv.py
 
-from faker import Faker
-from pathlib import Path
 import csv
 import json
+from pathlib import Path
+
+from faker import Faker
 
 try:
     from docx import Document

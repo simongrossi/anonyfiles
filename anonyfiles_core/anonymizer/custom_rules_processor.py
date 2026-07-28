@@ -1,7 +1,8 @@
 # anonyfiles_cli/anonymizer/custom_rules_processor.py
 
 import re
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 import typer
 
 from .audit import AuditLogger
@@ -14,12 +15,12 @@ class CustomRulesProcessor:
 
     def __init__(
         self,
-        custom_replacement_rules: Optional[List[Dict[str, Any]]],
+        custom_replacement_rules: list[dict[str, Any]] | None,
         audit_logger: AuditLogger,
     ):
-        self.custom_rules: List[Dict[str, Any]] = []
+        self.custom_rules: list[dict[str, Any]] = []
         self.audit_logger = audit_logger
-        self.custom_replacements_mapping: Dict[str, str] = {}
+        self.custom_replacements_mapping: dict[str, str] = {}
         self.custom_replacements_count = 0
 
         if custom_replacement_rules:
@@ -67,7 +68,7 @@ class CustomRulesProcessor:
             pattern_str = rule.get("pattern")
             replacement_base = rule.get("replacement", "[CUSTOM_REDACTED]")
             is_regex = rule.get("isRegex", False)
-            compiled_pattern: Optional[re.Pattern] = rule.get("compiled_pattern")
+            compiled_pattern: re.Pattern | None = rule.get("compiled_pattern")
 
             if not pattern_str:
                 continue
@@ -93,9 +94,7 @@ class CustomRulesProcessor:
                             # Pour injecter le compteur, on l'ajoute à la fin.
 
                             # Heuristique : Si le remplacement finit par ] ou }, on insère avant
-                            if replacement_base.endswith(
-                                "]"
-                            ) or replacement_base.endswith("}"):
+                            if replacement_base.endswith(("]", "}")):
                                 final_token = f"{replacement_base[:-1]}_{current_count}{replacement_base[-1]}"
                             else:
                                 final_token = f"{replacement_base}_{current_count}"
@@ -134,9 +133,7 @@ class CustomRulesProcessor:
                     else:
                         rule["match_counter"] += 1
                         current_count = rule["match_counter"]
-                        if replacement_base.endswith("]") or replacement_base.endswith(
-                            "}"
-                        ):
+                        if replacement_base.endswith(("]", "}")):
                             token = f"{replacement_base[:-1]}_{current_count}{replacement_base[-1]}"
                         else:
                             token = f"{replacement_base}_{current_count}"
@@ -165,7 +162,7 @@ class CustomRulesProcessor:
 
         return modified_text
 
-    def get_custom_replacements_mapping(self) -> Dict[str, str]:
+    def get_custom_replacements_mapping(self) -> dict[str, str]:
         return self.custom_replacements_mapping
 
     def get_custom_replacements_count(self) -> int:

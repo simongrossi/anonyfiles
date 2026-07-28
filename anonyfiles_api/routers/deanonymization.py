@@ -1,20 +1,34 @@
 # anonyfiles/anonyfiles_api/routers/deanonymization.py
 
+import json
+import uuid
+from pathlib import Path
+
+import aiofiles
 from fastapi import (
     APIRouter,
-    UploadFile,
     File,
     Form,
     HTTPException,
     Request,
+    UploadFile,
 )  # Ajout de Request
-from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
-from pathlib import Path
-import aiofiles
-import uuid
-import json
-from typing import Optional  # Ajouté pour la cohérence du typage
+from fastapi.responses import JSONResponse
+
+from anonyfiles_cli.cli_logger import CLIUsageLogger  # Utilisé pour log_run_event
+from anonyfiles_core import DeanonymizationEngine
+from anonyfiles_core.anonymizer.file_utils import (
+    timestamp,
+)
+from anonyfiles_core.anonymizer.run_logger import log_run_event
+
+# MODIFICATION ICI: Importer SEULEMENT logger depuis core_config.
+# BASE_CONFIG n'est plus défini globalement dans core_config.py.
+# Si la logique de désanonymisation avait besoin de BASE_CONFIG, il faudrait le passer en argument
+# aux fonctions concernées, récupéré depuis request.app.state.BASE_CONFIG dans l'endpoint.
+# Pour l'instant, nous supposons que la désanonymisation n'a pas besoin de BASE_CONFIG.
+from ..core_config import BASE_INPUT_STEM_FOR_JOB_FILES, logger, set_job_id
 
 # Importer Job depuis job_utils (JOBS_DIR est géré à l'intérieur de Job ou core_config)
 from ..job_queue import ensure_job_queue
@@ -24,20 +38,6 @@ from ..upload_utils import (
     safe_upload_filename,
     stream_upload_to_path,
 )
-
-# MODIFICATION ICI: Importer SEULEMENT logger depuis core_config.
-# BASE_CONFIG n'est plus défini globalement dans core_config.py.
-# Si la logique de désanonymisation avait besoin de BASE_CONFIG, il faudrait le passer en argument
-# aux fonctions concernées, récupéré depuis request.app.state.BASE_CONFIG dans l'endpoint.
-# Pour l'instant, nous supposons que la désanonymisation n'a pas besoin de BASE_CONFIG.
-from ..core_config import logger, set_job_id, BASE_INPUT_STEM_FOR_JOB_FILES
-
-from anonyfiles_core import DeanonymizationEngine
-from anonyfiles_core.anonymizer.file_utils import (
-    timestamp,
-)
-from anonyfiles_core.anonymizer.run_logger import log_run_event
-from anonyfiles_cli.cli_logger import CLIUsageLogger  # Utilisé pour log_run_event
 
 router = APIRouter()
 
@@ -125,10 +125,7 @@ def run_deanonymization_job_sync(
         output_path = run_dir / output_filename
         report_file_path = run_dir / "report.json"
 
-        if (
-            "map_collisions_details" in report_data_serializable
-            and report_data_serializable["map_collisions_details"]
-        ):
+        if report_data_serializable.get("map_collisions_details"):
             report_data_serializable["map_collisions_details"] = {
                 code: list(originals)
                 for code, originals in report_data_serializable[
@@ -197,9 +194,8 @@ def run_deanonymization_job_sync(
 
     except Exception as e:
         error_msg = str(e)
-        logger.error(
+        logger.exception(
             f"[{job_id}] Erreur de désanonymisation pour {input_path.name} : {error_msg}",
-            exc_info=True,
         )
         # Mettre à jour le statut avec original_input_name
         error_payload_for_status = {
@@ -278,7 +274,7 @@ async def deanonymize_file_endpoint(
     input_path = job_dir / input_filename
     mapping_path = job_dir / mapping_filename
 
-    max_upload_bytes: Optional[int] = None
+    max_upload_bytes: int | None = None
     settings = getattr(request.app.state, "settings", None)
     if settings is not None and getattr(settings, "max_upload_size_mb", None):
         max_upload_bytes = int(settings.max_upload_size_mb) * 1024 * 1024
@@ -312,10 +308,9 @@ async def deanonymize_file_endpoint(
             status_code=413,
             detail=f"Fichier trop volumineux (limite: {e_size.max_bytes} octets).",
         )
-    except OSError as e_save_input:
-        logger.error(
-            f"Tâche {job_id}: Échec de la sauvegarde du fichier d'entrée '{input_filename}': {e_save_input}",
-            exc_info=True,
+    except OSError:
+        logger.exception(
+            f"Tâche {job_id}: Échec de la sauvegarde du fichier d'entrée '{input_filename}'",
         )
         _write_error_status(
             f"Impossible de sauvegarder le fichier d'entrée: {input_filename}"
@@ -346,10 +341,9 @@ async def deanonymize_file_endpoint(
             status_code=413,
             detail=f"Mapping trop volumineux (limite: {e_size.max_bytes} octets).",
         )
-    except OSError as e_save_mapping:
-        logger.error(
-            f"Tâche {job_id}: Échec de la sauvegarde du fichier de mapping '{mapping_filename}': {e_save_mapping}",
-            exc_info=True,
+    except OSError:
+        logger.exception(
+            f"Tâche {job_id}: Échec de la sauvegarde du fichier de mapping '{mapping_filename}'",
         )
         _write_error_status(
             f"Impossible de sauvegarder le fichier de mapping: {mapping_filename}"
@@ -451,7 +445,7 @@ async def get_deanonymize_status(job_id: str):
                 Path(original_input_name).stem or BASE_INPUT_STEM_FOR_JOB_FILES
             )
 
-            def _find_latest_with_original_prefix() -> Optional[Path]:
+            def _find_latest_with_original_prefix() -> Path | None:
                 pattern = f"{original_stem}_deanonymise_*{original_suffix}"
                 candidates = sorted(
                     (p for p in current_job.job_dir.glob(pattern) if p.is_file()),
@@ -498,14 +492,13 @@ async def get_deanonymize_status(job_id: str):
                 ),  # Peut y avoir une erreur même si statut "finished" (rare)
             }
         except Exception as e:
-            logger.error(
-                f"Erreur de récupération des fichiers pour la tâche de désanonymisation terminée {job_id}: {str(e)}",
-                exc_info=True,
+            logger.exception(
+                f"Erreur de récupération des fichiers pour la tâche de désanonymisation terminée {job_id}",
             )
             # Retourner le statut d'erreur si la récupération des fichiers échoue
             error_payload = {
                 "status": "error",
-                "error": f"Tâche terminée mais impossible de récupérer/traiter les fichiers de résultats: {str(e)}",
+                "error": f"Tâche terminée mais impossible de récupérer/traiter les fichiers de résultats: {e!s}",
                 "original_input_name": status_data.get(
                     "original_input_name", "unknown"
                 ),

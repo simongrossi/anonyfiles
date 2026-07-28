@@ -1,17 +1,13 @@
 # anonyfiles_cli/handlers/anonymize_handler.py
 
 from pathlib import Path
-from typing import Optional, List
 
 from anonyfiles_core import AnonyfilesEngine
-from anonyfiles_core.anonymizer.run_logger import log_run_event
 from anonyfiles_core.anonymizer.file_utils import (
     timestamp,
 )
-from ..managers.path_manager import PathManager
-from ..managers.config_manager import ConfigManager
-from ..managers.validation_manager import ValidationManager
-from ..ui.console_display import ConsoleDisplay
+from anonyfiles_core.anonymizer.run_logger import log_run_event
+
 from ..cli_logger import CLIUsageLogger
 from ..exceptions import (
     AnonyfilesError,
@@ -19,6 +15,10 @@ from ..exceptions import (
     FileIOError,
     ProcessingError,
 )
+from ..managers.config_manager import ConfigManager
+from ..managers.path_manager import PathManager
+from ..managers.validation_manager import ValidationManager
+from ..ui.console_display import ConsoleDisplay
 
 
 class AnonymizeHandler:
@@ -28,17 +28,17 @@ class AnonymizeHandler:
     def process(
         self,
         input_file: Path,
-        config_path: Optional[Path],
-        output: Optional[Path],
-        log_entities: Optional[Path],
-        mapping_output: Optional[Path],
-        bundle_output: Optional[Path],
+        config_path: Path | None,
+        output: Path | None,
+        log_entities: Path | None,
+        mapping_output: Path | None,
+        bundle_output: Path | None,
         output_dir: Path,
         dry_run: bool,
         csv_no_header: bool,  # Reçoit l'option directe
-        has_header_opt: Optional[str],  # Reçoit l'option directe
-        exclude_entities: Optional[List[str]],
-        custom_replacements_json: Optional[str],
+        has_header_opt: str | None,  # Reçoit l'option directe
+        exclude_entities: list[str] | None,
+        custom_replacements_json: str | None,
         append_timestamp: bool,
         force: bool,
     ):
@@ -68,7 +68,7 @@ class AnonymizeHandler:
             f"📂 Anonymisation du fichier : [bold cyan]{input_file.name}[/bold cyan]"
         )
 
-        csv_has_header_bool: Optional[bool] = None
+        csv_has_header_bool: bool | None = None
         if has_header_opt is not None:
             csv_has_header_bool = has_header_opt.lower() == "true"
         else:

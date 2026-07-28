@@ -15,8 +15,9 @@ place and both front-ends stay consistent.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any
 
 # Mapping "toggle key in request" -> "entity label used by the engine".
 # Kept as a tuple of tuples so the iteration order is deterministic and the
@@ -38,10 +39,10 @@ class CustomRulesParseError(ValueError):
 
 
 def parse_custom_replacement_rules(
-    raw: Optional[str],
+    raw: str | None,
     *,
     strict: bool = False,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Parse a JSON string into a list of custom replacement rule dicts.
 
     Empty / ``None`` input yields ``[]``. When ``strict`` is true, malformed
@@ -80,7 +81,7 @@ def build_exclude_entities(
     toggles: Mapping[str, Any],
     *,
     has_custom_rules: bool = False,
-) -> List[str]:
+) -> list[str]:
     """Translate per-entity boolean toggles into an ``exclude_entities`` list.
 
     A missing key defaults to ``True`` (entity *is* anonymized) which matches
@@ -89,12 +90,12 @@ def build_exclude_entities(
     misc entities don't get double-processed.
     """
 
-    excluded: List[str] = []
+    excluded: list[str] = []
     for toggle_key, entity_label in ENTITY_TOGGLE_MAP:
         if not bool(toggles.get(toggle_key, True)):
             excluded.append(entity_label)
 
-    misc_default = False if has_custom_rules else True
+    misc_default = not has_custom_rules
     if not bool(toggles.get("anonymizeMisc", misc_default)):
         excluded.append("MISC")
     return excluded
@@ -103,10 +104,10 @@ def build_exclude_entities(
 def build_processor_kwargs(
     input_path: Path,
     *,
-    has_header: Optional[bool] = None,
-) -> Dict[str, Any]:
+    has_header: bool | None = None,
+) -> dict[str, Any]:
     """Build keyword arguments forwarded to the engine's file processor."""
-    processor_kwargs: Dict[str, Any] = {}
+    processor_kwargs: dict[str, Any] = {}
     if input_path.suffix.lower() == ".csv" and has_header is not None:
         processor_kwargs["has_header"] = has_header
     return processor_kwargs

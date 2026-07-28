@@ -1,10 +1,10 @@
 import pytest
 
 fitz = pytest.importorskip("fitz")
-import tempfile  # noqa: E402
-from pathlib import Path  # noqa: E402
+import tempfile
+from pathlib import Path
 
-from anonyfiles_core.anonymizer.pdf_processor import PdfProcessor  # noqa: E402
+from anonyfiles_core.anonymizer.pdf_processor import PdfProcessor
 
 
 def create_simple_pdf(path: Path, text: str) -> None:

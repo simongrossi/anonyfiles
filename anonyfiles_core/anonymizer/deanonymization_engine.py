@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
 from .deanonymize import Deanonymizer
 
@@ -16,7 +16,7 @@ class DeanonymizationEngine:
         mapping_path: Path,
         permissive: bool = False,
         dry_run: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run deanonymization and return result information."""
         try:
             deanonymizer = Deanonymizer(str(mapping_path), strict=not permissive)
@@ -43,7 +43,7 @@ class DeanonymizationEngine:
                 "warnings": warnings,
             }
         except Exception as e:
-            logger.error("Deanonymization failed", exc_info=True)
+            logger.exception("Deanonymization failed")
             return {
                 "status": "error",
                 "error": str(e),

@@ -1,7 +1,7 @@
 # anonymizer/base_processor.py
-from typing import Any
-from pathlib import Path
 import asyncio
+from pathlib import Path
+from typing import Any
 
 from .type_defs import TextBlocks
 

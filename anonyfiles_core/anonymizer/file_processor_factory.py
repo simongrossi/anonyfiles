@@ -1,12 +1,12 @@
 # anonyfiles_cli/anonymizer/file_processor_factory.py
 
 from .base_processor import BaseProcessor
-from .txt_processor import TxtProcessor
 from .csv_processor import CsvProcessor
-from .word_processor import DocxProcessor
 from .excel_processor import ExcelProcessor
-from .pdf_processor import PdfProcessor
 from .json_processor import JsonProcessor
+from .pdf_processor import PdfProcessor
+from .txt_processor import TxtProcessor
+from .word_processor import DocxProcessor
 
 PROCESSOR_MAP: dict[str, type[BaseProcessor]] = {
     ".txt": TxtProcessor,

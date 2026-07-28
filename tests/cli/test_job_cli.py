@@ -1,9 +1,10 @@
 import pytest
 
 pytest.importorskip("typer")
-from typer.testing import CliRunner
-import types
 import sys
+import types
+
+from typer.testing import CliRunner
 
 # Stub heavy dependencies used during CLI import with minimal attributes.
 # NB: spaCy n'est PAS stubbé — un stub partiel masquerait `spacy.util` et casserait
@@ -15,7 +16,7 @@ sys.modules.setdefault("docx", fake_docx)
 sys.modules.setdefault("pandas", types.ModuleType("pandas"))
 sys.modules.setdefault("fitz", types.ModuleType("fitz"))
 
-from anonyfiles_cli.main import app  # noqa: E402
+from anonyfiles_cli.main import app
 
 
 def test_job_list_nonexistent_directory(tmp_path):
