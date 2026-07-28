@@ -41,7 +41,10 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio",
-    "ruff",
+    # Épinglé pour la même raison que black : ruff 0.16 a élargi son jeu de
+    # règles par défaut (I, SIM, UP, B...), ce qui rendait la CI rouge sur du
+    # code inchangé. Voir la PR de mise à niveau avant de relever ce pin.
+    "ruff==0.15.19",
     # Épinglé pour un formatage reproductible (évite la dérive de style quand la
     # CI installe une version plus récente). 26.3.1 corrige aussi CVE-2026-32274.
     "black==26.3.1",
