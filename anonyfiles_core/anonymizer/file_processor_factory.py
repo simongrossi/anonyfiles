@@ -10,6 +10,7 @@ from .json_processor import JsonProcessor
 
 PROCESSOR_MAP: dict[str, type[BaseProcessor]] = {
     ".txt": TxtProcessor,
+    ".log": TxtProcessor,
     ".csv": CsvProcessor,
     ".docx": DocxProcessor,
     ".xlsx": ExcelProcessor,

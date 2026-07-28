@@ -1,0 +1,37 @@
+# Profil de configuration pour les logs Tufin.
+# Ce profil est optimisé pour les logs de sécurité réseau, qui sont riches
+# en adresses IP et noms d'utilisateurs, mais pauvres en texte libre.
+# L'analyse spaCy est donc désactivée pour une performance maximale.
+description: "Optimisé pour Tufin. Masque IPs, utilisateurs et FQDN. spaCy désactivé."
+
+# Modèle spaCy minimal. Il ne sera pas réellement utilisé car toutes les
+# entités sont exclues.
+spacy_model: "xx_ent_wiki_sm"
+
+# Aucune règle de remplacement spaCy n'est définie.
+replacements: {}
+
+# On exclut toutes les entités pour court-circuiter l'analyse NER (spaCy)
+# et maximiser la vitesse de traitement.
+exclude_entities:
+  - "PER"
+  - "LOC"
+  - "ORG"
+  - "MISC"
+  - "DATE"
+  - "EMAIL"
+
+# Règles personnalisées pour les motifs spécifiques aux logs Tufin.
+custom_rules:
+  # Masque toutes les adresses IP v4. C'est la règle la plus importante.
+  - pattern: '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
+    replacement: '[IP_REDACTED]'
+    isRegex: true
+  # Masque les noms d'utilisateurs (ex: 'user: admin' ou 'user=admin')
+  - pattern: '(user[=:]\s*)([\w\.-]+)'
+    replacement: '\1[USER_REDACTED]'
+    isRegex: true
+  # Masque les noms de domaine complets (FQDN) qui pourraient être des noms d'hôtes.
+  - pattern: '\b([a-zA-Z0-9-]+\.){1,}[a-zA-Z]{2,}\b'
+    replacement: '[HOST_REDACTED]'
+    isRegex: true

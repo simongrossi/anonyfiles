@@ -1,6 +1,10 @@
 import logging
+from pathlib import Path
+
 import typer
+import yaml
 from rich.console import Console
+from rich.table import Table
 
 
 from anonyfiles_cli.utils.default_paths import get_default_log_dir
@@ -9,8 +13,41 @@ from anonyfiles_cli.utils.default_paths import get_default_log_dir
 logger = logging.getLogger(__name__)
 console = Console()
 
+# Profils de configuration prêts à l'emploi pour l'anonymisation de journaux
+# applicatifs ou d'équipements (Apache, Splunk, Tenable, Tufin…).
+PROFILES_DIR = Path(__file__).parent.parent / "log_profiles"
+
 # Définition de l'application Typer
 app = typer.Typer(help="Gestion et analyse des fichiers de logs.")
+
+
+@app.command("list-profiles")
+def list_profiles():
+    """Lister les profils de configuration disponibles pour anonymiser des logs."""
+    profile_files = sorted(PROFILES_DIR.glob("*.yaml"))
+
+    if not profile_files:
+        console.print(f"[yellow]Aucun profil trouvé dans {PROFILES_DIR}.[/]")
+        return
+
+    table = Table(title="Profils de logs disponibles")
+    table.add_column("Profil", style="cyan", no_wrap=True)
+    table.add_column("Description")
+
+    for profile_path in profile_files:
+        try:
+            with open(profile_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            description = data.get("description", "—")
+        except (OSError, yaml.YAMLError) as e:
+            description = f"[red]Profil illisible : {e}[/red]"
+        table.add_row(profile_path.stem, description)
+
+    console.print(table)
+    console.print(
+        "\nUtilisation : [cyan]anonyfiles-cli anonymize <fichier> "
+        "--config anonyfiles_cli/log_profiles/<profil>.yaml[/]"
+    )
 
 
 @app.command("list")
@@ -64,7 +101,7 @@ def interactive_viewer():
 def clear_logs(
     force: bool = typer.Option(
         False, "--force", "-f", help="Forcer la suppression sans confirmation"
-    )
+    ),
 ):
     """Supprimer tous les fichiers de logs."""
     log_dir = get_default_log_dir()

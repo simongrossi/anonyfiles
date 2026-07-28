@@ -1,0 +1,35 @@
+# Profil de configuration générique pour l'anonymisation de logs.
+# Ce profil utilise un modèle de langage léger et des règles personnalisées
+# pour masquer les adresses IP et les identifiants utilisateurs.
+description: "Profil générique équilibré. Masque les IPs, user_ids, emails et noms de personnes."
+
+# Modèle spaCy à utiliser. "xx_ent_wiki_sm" est un bon choix car il est
+# multilingue et léger, ce qui limite l'utilisation de la RAM.
+spacy_model: "xx_ent_wiki_sm"
+
+# Stratégies de remplacement pour les entités détectées par spaCy.
+replacements:
+  # Masque les adresses email si elles apparaissent.
+  EMAIL:
+    type: "redact"
+    options:
+      text: "[EMAIL_REDACTED]"
+  # Remplace les noms de personnes. Utile si des noms apparaissent dans
+  # les messages d'erreur ou les descriptions.
+  PER:
+    type: "placeholder"
+    options:
+      format: "[PERSON]"
+
+# Entités à ne pas anonymiser, même si elles sont détectées par spaCy.
+exclude_entities:
+  - "DATE"
+
+# Règles personnalisées (regex) appliquées avant l'analyse spaCy.
+custom_rules:
+  - pattern: '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
+    replacement: '[IP_REDACTED]'
+    isRegex: true
+  - pattern: '(user_id=)([\w\.-]+)'
+    replacement: '\1[USER_REDACTED]'
+    isRegex: true

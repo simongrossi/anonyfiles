@@ -10,7 +10,7 @@ from ..exceptions import (
 
 
 class ValidationHandler:
-    SUPPORTED_EXTENSIONS = {".txt", ".csv", ".docx", ".xlsx", ".pdf", ".json"}
+    SUPPORTED_EXTENSIONS = {".txt", ".log", ".csv", ".docx", ".xlsx", ".pdf", ".json"}
 
     @classmethod
     def validate_anonymize_inputs(

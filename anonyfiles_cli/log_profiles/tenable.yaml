@@ -1,0 +1,38 @@
+# Profil de configuration pour les logs Tenable (Nessus, Tenable.sc).
+# Ce profil est optimisé pour les logs de gestion de vulnérabilités,
+# qui contiennent principalement des adresses IP des cibles scannées.
+# L'analyse spaCy est désactivée pour une performance maximale.
+description: "Optimisé pour Tenable/Nessus. Masque IPs, utilisateurs et FQDN. spaCy désactivé."
+
+# Modèle spaCy minimal. Il ne sera pas réellement utilisé car toutes les
+# entités sont exclues.
+spacy_model: "xx_ent_wiki_sm"
+
+# Aucune règle de remplacement spaCy n'est définie.
+replacements: {}
+
+# On exclut toutes les entités pour court-circuiter l'analyse NER (spaCy)
+# et maximiser la vitesse de traitement.
+exclude_entities:
+  - "PER"
+  - "LOC"
+  - "ORG"
+  - "MISC"
+  - "DATE"
+  - "EMAIL"
+
+# Règles personnalisées pour les motifs spécifiques aux logs Tenable.
+custom_rules:
+  # Masque toutes les adresses IP v4. C'est la règle la plus importante
+  # pour ne pas révéler les cibles des scans.
+  - pattern: '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
+    replacement: '[IP_REDACTED]'
+    isRegex: true
+  # Masque les noms d'utilisateurs (ex: 'login=admin' ou 'user=admin')
+  - pattern: '((?:user|login)=)([\w\.-]+)'
+    replacement: '\1[USER_REDACTED]'
+    isRegex: true
+  # Masque les noms de domaine complets (FQDN) qui pourraient être des noms d'hôtes.
+  - pattern: '\b([a-zA-Z0-9-]+\.){1,}[a-zA-Z]{2,}\b'
+    replacement: '[HOST_REDACTED]'
+    isRegex: true

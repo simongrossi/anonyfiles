@@ -126,9 +126,11 @@ class AnonymizeHandler:
             self.console.console.print("⚙️  Démarrage du traitement d'anonymisation...")
 
             # 4. Préparation et exécution du moteur AnonyfilesEngine
-            custom_rules_list = ValidationManager.parse_custom_replacements(
-                custom_replacements_json
-            )
+            # Les règles définies dans le YAML s'appliquent en premier, celles
+            # passées en CLI ensuite (elles peuvent donc affiner le résultat).
+            custom_rules_list = list(
+                effective_config.get("custom_rules", [])
+            ) + ValidationManager.parse_custom_replacements(custom_replacements_json)
 
             engine = AnonyfilesEngine(
                 config=effective_config,

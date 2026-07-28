@@ -1,0 +1,43 @@
+# Profil de configuration pour les logs Splunk (internes, audit, etc.).
+# Ce profil se concentre sur le masquage des adresses IP clientes, des noms d'utilisateurs
+# et des noms d'hôtes qui peuvent apparaître dans les logs.
+description: "Pour logs Splunk. Masque les IPs, utilisateurs (user=) et noms d'hôtes (host=)."
+
+# Modèle spaCy léger pour attraper d'éventuels noms/emails dans les messages.
+# Pour une performance maximale sur des logs très structurés, vous pouvez
+# commenter la section 'replacements' et ajouter toutes les entités à 'exclude_entities'.
+spacy_model: "xx_ent_wiki_sm"
+
+replacements:
+  EMAIL:
+    type: "redact"
+    options:
+      text: "[EMAIL_REDACTED]"
+  PER:
+    type: "placeholder"
+    options:
+      format: "[PERSON]"
+
+exclude_entities:
+  - "DATE"
+  - "LOC"
+  - "ORG"
+
+# Règles personnalisées pour les motifs spécifiques aux logs Splunk.
+custom_rules:
+  # Masque les adresses IP (générique)
+  - pattern: '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
+    replacement: '[IP_REDACTED]'
+    isRegex: true
+  # Masque la valeur de 'user=' (ex: user=jsmith)
+  - pattern: '(user=)([\w\.-]+)'
+    replacement: '\1[USER_REDACTED]'
+    isRegex: true
+  # Masque la valeur de 'clientip=' (ex: clientip=1.2.3.4)
+  - pattern: '(clientip=)([\d\.]+)'
+    replacement: '\1[IP_REDACTED]'
+    isRegex: true
+  # Masque la valeur de 'host=' (ex: host=workstation-123.domain.com)
+  - pattern: '(host=)([\w\.-]+)'
+    replacement: '\1[HOST_REDACTED]'
+    isRegex: true
