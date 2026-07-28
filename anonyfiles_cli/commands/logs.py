@@ -6,7 +6,6 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-
 from anonyfiles_cli.utils.default_paths import get_default_log_dir
 
 # Initialisation du logger et de la console
