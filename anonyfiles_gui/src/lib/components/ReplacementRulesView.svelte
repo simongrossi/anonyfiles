@@ -3,6 +3,7 @@
   import { customReplacementRules } from '$lib/stores/customReplacementRules';
   import { get } from 'svelte/store';
   import { Puzzle, Download, ArrowRight, Check, X } from 'lucide-svelte';
+  import { saveTextFile } from '$lib/utils/download';
   import WordlistRuleGenerator from './WordlistRuleGenerator.svelte';
 
   let rules = get(customReplacementRules);
@@ -11,16 +12,9 @@
     rules = value;
   });
 
-  function exportAsJSON() {
+  async function exportAsJSON() {
     const json = JSON.stringify(rules, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'anonyfiles_rules.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    await saveTextFile(json, 'anonyfiles_rules.json', 'application/json');
   }
 </script>
 

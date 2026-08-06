@@ -6,6 +6,14 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [Non publié]
+
+### Corrigé
+- **GUI : « Anonymiser » ne produisait aucun résultat visible pour les formats binaires** (`.docx`, `.pdf`, `.xlsx`). L'API lisait le fichier de sortie en UTF-8 ; l'échec de décodage vidait `anonymized_text` et le panneau de résultat restait masqué, sans message d'erreur. L'API renvoie désormais `output_file_name` + `output_is_binary`, et la GUI affiche le panneau avec un bouton **« Télécharger le fichier »** (issue #76).
+- **macOS/Linux : les boutons d'export n'enregistraient rien.** Les téléchargements passaient par un `<a download>` + blob URL, silencieusement ignoré par WKWebView/WebKitGTK dans une application Tauri. Nouvel utilitaire `saveFile()` qui utilise la boîte de dialogue native (`plugin-dialog`) et `plugin-fs` dans Tauri, avec repli sur `<a download>` en navigateur. Appliqué aux exports du résultat anonymisé, du mapping, du texte désanonymisé et des règles JSON.
+- **Permissions Tauri** : ajout de `fs:allow-write-file` et `fs:allow-write-text-file` à la capacité `default` — `fs:default` n'autorise que la lecture, toute écriture disque était donc refusée.
+- **GUI : une erreur signalée par un job terminé est désormais affichée** au lieu d'être silencieusement ignorée.
+
 ## [1.6.0] – 2026-06-25
 
 ### Modifié
