@@ -29,3 +29,10 @@ export const inputLineCount = writable(0);
 export const inputCharCount = writable(0);
 export const outputLineCount = writable(0);
 export const outputCharCount = writable(0);
+/** Nom du fichier de sortie produit par le backend (vide si aucun). */
+export const outputFileName = writable('');
+/**
+ * `true` quand la sortie est un fichier binaire (.docx, .pdf, .xlsx) : il n'y a
+ * pas d'aperçu texte, seul le téléchargement du fichier est possible.
+ */
+export const outputIsBinary = writable(false);
