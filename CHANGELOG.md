@@ -6,7 +6,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
-## [Non publié]
+## [1.6.1] – 2026-08-20
 
 ### Corrigé
 - **GUI : « Anonymiser » ne produisait aucun résultat visible pour les formats binaires** (`.docx`, `.pdf`, `.xlsx`). L'API lisait le fichier de sortie en UTF-8 ; l'échec de décodage vidait `anonymized_text` et le panneau de résultat restait masqué, sans message d'erreur. L'API renvoie désormais `output_file_name` + `output_is_binary`, et la GUI affiche le panneau avec un bouton **« Télécharger le fichier »** (issue #76).
