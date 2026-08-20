@@ -6,6 +6,11 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [Non publié]
+
+### Corrigé
+- **Le texte des zones de texte (`.docx`) n'était pas anonymisé.** python-docx n'expose que les paragraphes enfants directs du corps, des cellules de tableau et des en-têtes/pieds ; le contenu d'une zone de texte vit dans un `w:txbxContent` imbriqué sous `w:pict` (VML) ou `wps:txbx` (DrawingML) et échappait donc entièrement au moteur — les noms, adresses et emails placés dans une zone de texte ressortaient en clair. Le parcours du `DocxProcessor` descend désormais dans les zones de texte, y compris celles des en-têtes/pieds, celles imbriquées et les tableaux qu'elles contiennent. Les deux copies d'un `mc:AlternateContent` (`mc:Choice` + `mc:Fallback`) sont traitées, sinon la copie de repli conservait le texte d'origine dans le fichier livré (issue #78).
+
 ## [1.6.0] – 2026-06-25
 
 ### Modifié

@@ -6,17 +6,25 @@ from pathlib import Path
 from typing import Any
 
 from docx import Document
+from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
 
 from .base_processor import BaseProcessor
 from .type_defs import TextBlocks
 
 logger = logging.getLogger(__name__)
 
+# Conteneur du texte d'une zone de texte, quelle que soit la techno utilisée par
+# Word : VML (`w:pict/v:shape/v:textbox`) ou DrawingML (`w:drawing/wps:txbx`).
+_TXBX_CONTENT = qn("w:txbxContent")
+_PARAGRAPH = qn("w:p")
+
 
 class DocxProcessor(BaseProcessor):
     """
     Processor pour les fichiers .docx.
-    - Traverse hiérarchiquement : Paragraphes du corps -> Tableaux (récursifs).
+    - Traverse hiérarchiquement : Paragraphes du corps -> Tableaux (récursifs)
+      -> Zones de texte.
     - Préserve l'intégrité de la structure tout en anonymisant l'ensemble du contenu.
     """
 
@@ -47,6 +55,47 @@ class DocxProcessor(BaseProcessor):
                         # Récursion: une cellule contient des paragraphes et potentiellement d'autres tables
                         yield from self._iter_block_items(cell)
 
+    @staticmethod
+    def _is_inside_textbox(p_elt: Any) -> bool:
+        """Indique si un ``w:p`` est le contenu d'une zone de texte."""
+        parent = p_elt.getparent()
+        while parent is not None:
+            if parent.tag == _TXBX_CONTENT:
+                return True
+            parent = parent.getparent()
+        return False
+
+    def _iter_textbox_paragraphs(self, container: Any, root_elt: Any) -> Iterator[Any]:
+        """
+        Itère sur les paragraphes des zones de texte, que python-docx ignore.
+
+        python-docx n'expose que les ``w:p`` enfants directs du corps, des
+        cellules de tableau et des en-têtes/pieds. Le texte d'une zone de texte
+        vit dans un ``w:txbxContent`` imbriqué sous ``w:pict`` (VML) ou
+        ``wps:txbx`` (DrawingML) : il échappait donc entièrement à
+        l'anonymisation (issue #78).
+
+        Word duplique fréquemment une même zone de texte dans un
+        ``mc:AlternateContent`` (``mc:Choice`` DrawingML + ``mc:Fallback``
+        VML). Les deux copies sont renvoyées : n'en traiter qu'une laisserait
+        le texte d'origine en clair dans le fichier livré.
+
+        Le filtrage par ancêtre ``w:txbxContent`` garantit que ce parcours est
+        disjoint de ``_iter_block_items`` (qui ne descend jamais dans
+        ``w:pict``/``w:drawing``), y compris pour les zones de texte imbriquées
+        et les tableaux placés dans une zone de texte.
+        """
+        for p_elt in root_elt.iter(_PARAGRAPH):
+            if self._is_inside_textbox(p_elt):
+                yield Paragraph(p_elt, container)
+
+    def _iter_container_paragraphs(
+        self, container: Any, root_elt: Any
+    ) -> Iterator[Any]:
+        """Paragraphes d'un conteneur : blocs standards puis zones de texte."""
+        yield from self._iter_block_items(container)
+        yield from self._iter_textbox_paragraphs(container, root_elt)
+
     def _iter_header_footer_parts(self, doc: Any) -> Iterator[Any]:
         """
         Itère sur les en-têtes et pieds de page *propres* à chaque section.
@@ -73,14 +122,15 @@ class DocxProcessor(BaseProcessor):
     def _iter_document_paragraphs(self, doc: Any) -> Iterator[Any]:
         """
         Ordre déterministe couvrant TOUT le texte anonymisable d'un document :
-        corps (paragraphes + tableaux), puis en-têtes et pieds de page.
+        corps (paragraphes + tableaux + zones de texte), puis en-têtes et pieds
+        de page (mêmes règles).
 
         ``extract_blocks`` et ``reconstruct_and_write_anonymized_file`` partagent
         ce parcours pour garantir l'alignement index-par-index des blocs.
         """
-        yield from self._iter_block_items(doc)
+        yield from self._iter_container_paragraphs(doc, doc.element.body)
         for part in self._iter_header_footer_parts(doc):
-            yield from self._iter_block_items(part)
+            yield from self._iter_container_paragraphs(part, part._element)
 
     def extract_blocks(self, input_path: Path, **kwargs: Any) -> TextBlocks:
         """
