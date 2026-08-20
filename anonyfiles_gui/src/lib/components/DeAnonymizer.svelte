@@ -13,6 +13,8 @@
     ListChecks,
   } from 'lucide-svelte';
   import { apiFetch, apiUrl, pollJob, debug } from '$lib/utils/api';
+  import { saveTextFile } from '$lib/utils/download';
+  import { copyTextToClipboard } from '$lib/utils/clipboard';
 
   let inputFile: File | null = null;
   let mappingFile: File | null = null;
@@ -116,22 +118,13 @@
   }
 
   async function copyOutput() {
-    try {
-      await navigator.clipboard.writeText(outputText);
-    } catch {}
+    await copyTextToClipboard(outputText);
   }
 
-  function exportOutput() {
-    const blob = new Blob([outputText], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.download = 'deanonymized.txt';
-    link.href = URL.createObjectURL(blob);
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href);
-      document.body.removeChild(link);
-    }, 200);
+  async function exportOutput() {
+    if (await saveTextFile(outputText, 'deanonymized.txt') === 'error') {
+      errorMessage = "Impossible d'enregistrer le fichier désanonymisé.";
+    }
   }
 
   onDestroy(() => {

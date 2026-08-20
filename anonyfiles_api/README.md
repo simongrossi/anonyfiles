@@ -195,7 +195,12 @@ disponibles :
 - `privacy_warnings_count` et `privacy_warnings` quand le scanner final voit des
   emails, téléphones, IBAN, adresses, prénoms ou acronymes suspects restants ;
 - `final_status_category` (`success`, `engine_error`, `unexpected_error`,
-  `timeout`, `cancelled`, etc.).
+  `timeout`, `cancelled`, etc.) ;
+- `output_file_name` : nom du fichier de sortie produit par le moteur ;
+- `output_is_binary` : `true` quand la sortie n'est pas du texte UTF-8 (`.docx`,
+  `.pdf`, `.xlsx`). Dans ce cas `anonymized_text` est vide — ce n'est pas une
+  erreur — et le résultat doit être récupéré via
+  `GET /files/{job_id}/output?as_attachment=true`.
 
 `state` décrit la phase courante (`queued`, `running`, `preparing`,
 `processing`, `finalizing`, `retrying`, `cancelling`, etc.). Les logs API
@@ -232,6 +237,8 @@ publient aussi des événements structurés préfixés par `job_event`.
     }
   ],
   "anonymized_text": "...texte anonymisé...",
+  "output_file_name": "input_anonymise_20260806_120000.txt",
+  "output_is_binary": false,
   "audit_log": [
     {
       "pattern": "Jean Dupont",

@@ -9,6 +9,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 ## [Non publié]
 
 ### Corrigé
+- **GUI : « Anonymiser » ne produisait aucun résultat visible pour les formats binaires** (`.docx`, `.pdf`, `.xlsx`). L'API lisait le fichier de sortie en UTF-8 ; l'échec de décodage vidait `anonymized_text` et le panneau de résultat restait masqué, sans message d'erreur. L'API renvoie désormais `output_file_name` + `output_is_binary`, et la GUI affiche le panneau avec un bouton **« Télécharger le fichier »** (issue #76).
+- **macOS/Linux : les boutons d'export n'enregistraient rien.** Les téléchargements passaient par un `<a download>` + blob URL, silencieusement ignoré par WKWebView/WebKitGTK dans une application Tauri. Nouvel utilitaire `saveFile()` qui utilise la boîte de dialogue native (`plugin-dialog`) et `plugin-fs` dans Tauri, avec repli sur `<a download>` en navigateur. Appliqué aux exports du résultat anonymisé, du mapping, du texte désanonymisé et des règles JSON.
+- **Permissions Tauri** : ajout de `fs:allow-write-file` et `fs:allow-write-text-file` à la capacité `default` — `fs:default` n'autorise que la lecture, toute écriture disque était donc refusée.
+- **GUI : une erreur signalée par un job terminé est désormais affichée** au lieu d'être silencieusement ignorée.
 - **Le texte des zones de texte (`.docx`) n'était pas anonymisé.** python-docx n'expose que les paragraphes enfants directs du corps, des cellules de tableau et des en-têtes/pieds ; le contenu d'une zone de texte vit dans un `w:txbxContent` imbriqué sous `w:pict` (VML) ou `wps:txbx` (DrawingML) et échappait donc entièrement au moteur — les noms, adresses et emails placés dans une zone de texte ressortaient en clair. Le parcours du `DocxProcessor` descend désormais dans les zones de texte, y compris celles des en-têtes/pieds, celles imbriquées et les tableaux qu'elles contiennent. Les deux copies d'un `mc:AlternateContent` (`mc:Choice` + `mc:Fallback`) sont traitées, sinon la copie de repli conservait le texte d'origine dans le fichier livré (issue #78).
 
 ## [1.6.0] – 2026-06-25

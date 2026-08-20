@@ -270,29 +270,49 @@ class Job:
         logger.warning(f"Tâche {self.job_id}: Clé de fichier inconnue '{file_key}'.")
         return None
 
-    async def read_file_content_async(self, file_path: Path) -> str | None:
+    async def read_text_file_content_async(
+        self, file_path: Path
+    ) -> tuple[str | None, bool]:
+        """Read *file_path* as UTF-8 text and report whether it is binary.
+
+        Args:
+            file_path: File to read.
+
+        Returns:
+            ``(content, is_binary)``. ``is_binary`` vaut ``True`` uniquement
+            quand le fichier existe mais n'est pas décodable en UTF-8 : c'est
+            le cas normal des sorties .docx / .pdf / .xlsx, qui n'ont pas
+            d'aperçu texte mais restent téléchargeables via
+            ``GET /files/{job_id}/output``. Un fichier absent ou une erreur
+            d'E/S renvoient ``(None, False)``.
+        """
         if not await run_in_threadpool(file_path.is_file):
             logger.warning(
                 f"Tâche {self.job_id}: Tentative de lecture d'un fichier inexistant: {file_path}"
             )
-            return None
+            return None, False
         try:
             async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
-                return await f.read()
+                return await f.read(), False
         except OSError as e:
             logger.error(
                 f"Tâche {self.job_id}: I/O lecture impossible sur {file_path.name} "
                 f"({type(e).__name__}): {e}",
                 exc_info=True,
             )
-            return None
+            return None, False
         except UnicodeDecodeError as e:
-            # Typique des fichiers produits par un sidecar Windows avec encodage cp1252.
-            logger.error(
-                f"Tâche {self.job_id}: {file_path.name} n'est pas en UTF-8: {e}",
-                exc_info=True,
+            # Sortie binaire (.docx, .pdf, .xlsx) ou fichier produit par un
+            # sidecar Windows avec encodage cp1252.
+            logger.info(
+                f"Tâche {self.job_id}: {file_path.name} n'est pas en UTF-8, "
+                f"traité comme binaire: {e}"
             )
-            return None
+            return None, True
+
+    async def read_file_content_async(self, file_path: Path) -> str | None:
+        content, _ = await self.read_text_file_content_async(file_path)
+        return content
 
     def set_initial_status_sync(self, **metadata: Any) -> bool:
         """Sets the initial status to pending (synchronous)."""

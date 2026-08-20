@@ -10,6 +10,8 @@ import {
   errorMessage,
   outputLineCount,
   outputCharCount,
+  outputFileName,
+  outputIsBinary,
   type AuditLogEntry,
   type PrivacyWarning
 } from '../stores/anonymizationStore';
@@ -98,6 +100,8 @@ export async function runAnonymization({
   auditLog.set([]);
   mappingCSV.set('');
   privacyWarnings.set([]);
+  outputFileName.set('');
+  outputIsBinary.set(false);
   currentJobId.set(null);
 
   try {
@@ -137,6 +141,8 @@ export async function runAnonymization({
         audit_log?: AuditLogEntry[];
         mapping_csv?: string;
         privacy_warnings?: PrivacyWarning[];
+        output_file_name?: string;
+        output_is_binary?: boolean;
         error?: string;
       }>(await apiUrl(`anonymize_status/${data.job_id}`));
 
@@ -147,6 +153,14 @@ export async function runAnonymization({
       auditLog.set(pollData.audit_log || []);
       mappingCSV.set(pollData.mapping_csv || '');
       privacyWarnings.set(pollData.privacy_warnings || []);
+      outputFileName.set(pollData.output_file_name || '');
+      outputIsBinary.set(!!pollData.output_is_binary);
+
+      // Un job peut se terminer en "finished" tout en signalant un problème de
+      // récupération des résultats : sans ça l'UI resterait vide et muette.
+      if (pollData.error) {
+        errorMessage.set(pollData.error);
+      }
     } else {
       const directOutputText = data.outputText || data.anonymized_text || '';
       outputText.set(directOutputText);

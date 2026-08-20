@@ -849,6 +849,8 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
         response_payload["mapping_csv"] = ""
         response_payload["log_csv"] = ""
         response_payload["audit_log"] = []
+        response_payload["output_file_name"] = ""
+        response_payload["output_is_binary"] = False
 
         error_details: dict[str, str] = {}
 
@@ -876,9 +878,17 @@ async def anonymize_status_endpoint(job_id: uuid.UUID):
             return JSONResponse(content=response_payload)
 
         if output_file_path:
-            content = await current_job.read_file_content_async(output_file_path)
+            response_payload["output_file_name"] = output_file_path.name
+            content, is_binary = await current_job.read_text_file_content_async(
+                output_file_path
+            )
             if content is not None:
                 response_payload["anonymized_text"] = content
+            elif is_binary:
+                # .docx / .pdf / .xlsx : pas d'aperçu texte possible, mais le
+                # fichier existe et reste récupérable via /files/{job_id}/output.
+                # Ce n'est donc pas une erreur.
+                response_payload["output_is_binary"] = True
             else:
                 error_details["reading_output_file"] = (
                     f"Impossible de lire le fichier de sortie: {output_file_path.name}"

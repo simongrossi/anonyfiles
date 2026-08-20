@@ -11,6 +11,8 @@
     mappingCSV,
     isLoading,
     errorMessage,
+    outputFileName,
+    outputIsBinary,
     inputLineCount, // AJOUTÉ : Importer le store pour le nombre de lignes en entrée
     inputCharCount  // AJOUTÉ : Importer le store pour le nombre de caractères en entrée
   } from '../stores/anonymizationStore';
@@ -203,6 +205,8 @@
     auditLog.set([]);
     mappingCSV.set("");
     errorMessage.set("");
+    outputFileName.set("");
+    outputIsBinary.set(false);
     fileName.set("");
     fileType.set("txt");
     hasHeader.set(true);
@@ -475,7 +479,7 @@
     </div>
   </div>
 
-  {#if $outputText.trim().length > 0 || $errorMessage.trim().length > 0 || $isLoading}
+  {#if $outputText.trim().length > 0 || $outputIsBinary || $errorMessage.trim().length > 0 || $isLoading}
     {#await import('./ResultView.svelte') then ResultViewModule}
       <div class="mt-6">
         <svelte:component this={ResultViewModule.default} />

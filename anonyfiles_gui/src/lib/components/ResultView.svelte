@@ -7,7 +7,14 @@
     privacyWarnings,
     outputLineCount,
     outputCharCount,
+    outputFileName,
+    outputIsBinary,
   } from '../stores/anonymizationStore';
+  import { currentJobId } from '$lib/stores/jobStore';
+  import { fileName } from '../utils/useFileHandler';
+  import { apiFetch, apiUrl } from '../utils/api';
+  import { saveFile, saveTextFile, suffixedFileName } from '../utils/download';
+  import { copyTextToClipboard } from '../utils/clipboard';
   import {
     FileText,
     FileInput,
@@ -15,60 +22,107 @@
     Table,
     Copy,
     Download,
+    FileDown,
     CircleCheck,
     AlertTriangle,
   } from 'lucide-svelte';
 
-  let viewMode: 'anonymized' | 'original' | 'split' | 'mapping' = $state('anonymized');
+  type ViewMode = 'anonymized' | 'original' | 'split' | 'mapping';
+  interface ResultTab {
+    id: ViewMode;
+    label: string;
+    icon: typeof FileText;
+  }
 
-  const hasOutput = $derived($outputText && $outputText.trim().length > 0);
+  let viewMode: ViewMode = $state('anonymized');
+
+  const hasText = $derived($outputText.trim().length > 0);
+  // Une sortie .docx / .pdf / .xlsx n'a pas d'aperçu texte : sans ce cas, le
+  // panneau de résultat restait entièrement masqué et l'anonymisation semblait
+  // n'avoir rien produit.
+  const hasBinaryOutput = $derived($outputIsBinary && !!$currentJobId);
+  const hasOutput = $derived(hasText || hasBinaryOutput);
   const hasPrivacyWarnings = $derived($privacyWarnings.length > 0);
+
+  const outputSuggestedName = $derived(
+    suffixedFileName($fileName, '_anonymise', $outputFileName || 'anonymized.txt')
+  );
 
   const totalReplacements = $derived(
     $auditLog.reduce((sum, item) => sum + (item.count || 0), 0)
   );
 
-  const tabs: Array<{ id: typeof viewMode; label: string; icon: typeof FileText }> = [
-    { id: 'anonymized', label: 'Anonymisé', icon: FileText },
-    { id: 'original', label: 'Original', icon: FileInput },
-    { id: 'split', label: 'Comparaison', icon: GitCompare },
-    { id: 'mapping', label: 'Mapping', icon: Table },
-  ];
+  // Sans aperçu texte (sortie .docx / .pdf / .xlsx), les onglets qui affichent
+  // le résultat anonymisé n'ont rien à montrer.
+  const tabs: ResultTab[] = $derived([
+    ...(hasText
+      ? [
+          { id: 'anonymized' as const, label: 'Anonymisé', icon: FileText },
+          { id: 'original' as const, label: 'Original', icon: FileInput },
+          { id: 'split' as const, label: 'Comparaison', icon: GitCompare },
+        ]
+      : [{ id: 'original' as const, label: 'Original', icon: FileInput }]),
+    { id: 'mapping' as const, label: 'Mapping', icon: Table },
+  ]);
 
-  function exportOutput() {
-    const blob = new Blob([$outputText], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.download = 'anonymized.txt';
-    link.href = URL.createObjectURL(blob);
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href);
-      document.body.removeChild(link);
-    }, 200);
+  $effect(() => {
+    if (!tabs.some((tab) => tab.id === viewMode)) {
+      viewMode = tabs[0].id;
+    }
+  });
+
+  let exportError = $state('');
+  let isDownloading = $state(false);
+
+  async function exportOutput() {
+    exportError = '';
+    if (await saveTextFile($outputText, outputSuggestedName) === 'error') {
+      exportError = "Impossible d'enregistrer le fichier anonymisé.";
+    }
   }
 
-  function exportMapping() {
+  async function exportMapping() {
     if (!$mappingCSV.trim()) return;
-    const blob = new Blob([$mappingCSV], { type: 'text/csv;charset=utf-8' });
-    const link = document.createElement('a');
-    link.download = 'mapping.csv';
-    link.href = URL.createObjectURL(blob);
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      URL.revokeObjectURL(link.href);
-      document.body.removeChild(link);
-    }, 200);
+    exportError = '';
+    if (await saveTextFile($mappingCSV, 'mapping.csv', 'text/csv;charset=utf-8') === 'error') {
+      exportError = "Impossible d'enregistrer le mapping.";
+    }
+  }
+
+  /**
+   * Récupère le fichier de sortie tel quel auprès de l'API. Indispensable pour
+   * les formats binaires (.docx, .pdf, .xlsx) que le front ne reçoit jamais
+   * sous forme de texte.
+   */
+  async function downloadOutputFile() {
+    const jobId = $currentJobId;
+    if (!jobId) return;
+    exportError = '';
+    isDownloading = true;
+    try {
+      const response = await apiFetch(await apiUrl(`files/${jobId}/output?as_attachment=true`));
+      if (!response.ok) {
+        exportError = `Téléchargement impossible (HTTP ${response.status}).`;
+        return;
+      }
+      const mime = response.headers.get('content-type') || 'application/octet-stream';
+      const bytes = await response.arrayBuffer();
+      if (await saveFile(bytes, outputSuggestedName, mime) === 'error') {
+        exportError = "Impossible d'enregistrer le fichier anonymisé.";
+      }
+    } catch (err: any) {
+      exportError = err?.message || 'Téléchargement impossible.';
+    } finally {
+      isDownloading = false;
+    }
   }
 
   let copied = $state(false);
   async function copyOutput() {
-    try {
-      await navigator.clipboard.writeText($outputText);
+    if (await copyTextToClipboard($outputText)) {
       copied = true;
       setTimeout(() => (copied = false), 1500);
-    } catch {}
+    }
   }
 </script>
 
@@ -83,18 +137,56 @@
         </span>
       </div>
       <div class="flex items-center gap-1">
-        <button type="button" class="ui-btn-ghost text-xs px-2 py-1" on:click={copyOutput}>
-          <Copy size={14} />
-          {copied ? 'Copié !' : 'Copier'}
-        </button>
-        <button type="button" class="ui-btn-ghost text-xs px-2 py-1" on:click={exportOutput}>
-          <Download size={14} />
-          Exporter
-        </button>
+        {#if hasText}
+          <button type="button" class="ui-btn-ghost text-xs px-2 py-1" on:click={copyOutput}>
+            <Copy size={14} />
+            {copied ? 'Copié !' : 'Copier'}
+          </button>
+          <button type="button" class="ui-btn-ghost text-xs px-2 py-1" on:click={exportOutput}>
+            <Download size={14} />
+            Exporter
+          </button>
+        {/if}
+        {#if $currentJobId}
+          <button
+            type="button"
+            class="ui-btn-ghost text-xs px-2 py-1"
+            on:click={downloadOutputFile}
+            disabled={isDownloading}
+          >
+            <FileDown size={14} />
+            {isDownloading ? 'Téléchargement…' : 'Télécharger le fichier'}
+          </button>
+        {/if}
       </div>
     </header>
 
     <div class="ui-section-body space-y-4">
+      {#if exportError}
+        <div class="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-4 py-3 text-sm">
+          {exportError}
+        </div>
+      {/if}
+
+      {#if hasBinaryOutput}
+        <div
+          class="rounded-xl border border-brand-500/40 bg-brand-50 dark:bg-brand-900/25 text-brand-700 dark:text-brand-100 px-4 py-3"
+          role="status"
+        >
+          <div class="flex items-start gap-2">
+            <FileDown size={18} class="shrink-0 mt-0.5" />
+            <div class="min-w-0">
+              <strong class="font-semibold">Fichier anonymisé prêt</strong>
+              <p class="mt-1 text-sm">
+                Ce format ({$outputFileName ? $outputFileName.split('.').pop() : 'binaire'}) ne
+                peut pas être affiché en aperçu texte. Utilise
+                <span class="font-medium">« Télécharger le fichier »</span> pour l'enregistrer.
+              </p>
+            </div>
+          </div>
+        </div>
+      {/if}
+
       {#if hasPrivacyWarnings}
         <div
           class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/25 text-amber-900 dark:text-amber-100 px-4 py-3"
