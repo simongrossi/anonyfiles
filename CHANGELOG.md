@@ -6,6 +6,11 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et la ge
 
 ---
 
+## [1.6.2] – 2026-10-02
+
+### Corrigé
+- **Release : les binaires desktop n'étaient pas publiés.** `ci.yml` et `desktop-build.yml` se déclenchent tous deux sur les tags `v*` et appelaient `action-gh-release` sur la même release. Depuis l'activation des releases immuables, le perdant de la course voit ses assets rejetés (`Cannot upload asset to an immutable release`) : `ci.yml`, plus rapide, publiait les wheels et les six binaires desktop arrivaient trop tard. La release `v1.6.1` ne contenait donc aucun `.dmg`, `.msi` ni `.AppImage`, alors que ses notes annonçaient les trois plateformes. Le job `release` de `desktop-build.yml` est désormais seul propriétaire de la release : il construit aussi les wheels, crée la release en draft, y attache tous les fichiers, puis la publie.
+
 ## [1.6.1] – 2026-08-20
 
 ### Corrigé
