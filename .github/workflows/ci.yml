@@ -187,36 +187,21 @@ jobs:
           cache-to: type=gha,mode=max
 
   # -------------------------------------------------------------
-  # 4. GITHUB RELEASE
-  #    Crée une release officielle et y attache les wheels.
+  # 4. GITHUB RELEASE — volontairement absent de ce workflow.
+  #
+  #    ci.yml et desktop-build.yml se déclenchent tous deux sur les tags
+  #    'v*'. Tant que deux jobs appelaient action-gh-release sur la même
+  #    release, ils étaient en course. Depuis l'activation des releases
+  #    immuables, le perdant échoue : la publication verrouille la release
+  #    et tout upload ultérieur est rejeté avec
+  #    « Cannot upload asset to an immutable release ».
+  #
+  #    C'est ce qui est arrivé en v1.6.1 : ci.yml a publié les wheels en
+  #    premier, et les six binaires desktop ont été refusés — la release
+  #    annonçait des fichiers absents.
+  #
+  #    Le job `release` de desktop-build.yml est désormais SEUL propriétaire
+  #    de la release : il construit aussi les wheels, crée la release en
+  #    draft, y attache tous les fichiers, puis la publie. N'ajoute pas de
+  #    job de release ici sans supprimer celui-là.
   # -------------------------------------------------------------
-  release:
-    needs: [build_wheel, docker]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    
-    permissions:
-      contents: write # Nécessaire pour créer la release
-
-    steps:
-      - uses: actions/checkout@v4
-      
-      # Récupère les artefacts construits par le job build_wheel
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: python-package-dist
-          path: dist
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          # Les notes de release sont écrites par le job `release` de
-          # desktop-build.yml, qui tourne sur le même tag. On ne fournit donc
-          # ni body ni generate_release_notes ici : ce job se contente
-          # d'attacher les wheels, sans écraser le corps de la release.
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
-          draft: false
-          prerelease: false
